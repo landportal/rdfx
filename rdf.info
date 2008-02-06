@@ -1,0 +1,6 @@
+; $Id$
+name = RDF API
+description = Enables the use of Resource Description Framework (RDF) metadata.
+package = RDF
+core = 6.x
+php = 5.2

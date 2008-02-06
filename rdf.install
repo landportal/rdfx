@@ -1,0 +1,30 @@
+<?php
+// $Id$
+/**
+ * rdf.install - RDF API installation/uninstallation.
+ *
+ * @author Arto Bendiken <http://bendiken.net/>
+ * @copyright Copyright (c) 2007-2008 Arto Bendiken. All rights reserved.
+ * @license GPL <http://creativecommons.org/licenses/GPL/2.0/>
+ * @package rdf.module
+ */
+
+//////////////////////////////////////////////////////////////////////////////
+// Core API hooks
+
+/**
+ * Implementation of hook_enable().
+ */
+function rdf_enable() {
+  drupal_set_message(t('RDF API successfully installed. Please review the available <a href="@settings">configuration settings</a>.', array('@settings' => url('admin/settings/rdf'))));
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function rdf_install() {}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function rdf_uninstall() {}
