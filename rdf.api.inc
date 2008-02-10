@@ -10,6 +10,11 @@
  */
 
 //////////////////////////////////////////////////////////////////////////////
+// RDF API settings
+
+define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
+
+//////////////////////////////////////////////////////////////////////////////
 // RDF API statement-centric functions
 
 /**
@@ -56,7 +61,7 @@ function rdf_delete($subject, $predicate, $object, array $options = array()) {
  * @return
  *   TRUE if the statement exists, FALSE otherwise.
  */
-function rdf_exists($subject, $predicate, $object, array $options = array()) {
+function rdf_exists($subject, $predicate = NULL, $object = NULL, array $options = array()) {
   return count(rdf_lookup($subject, $predicate, $object, $options)) > 0;
 }
 
@@ -70,7 +75,7 @@ function rdf_exists($subject, $predicate, $object, array $options = array()) {
  * @return
  *   An instance of RDF_QueryIterator, yielding denormalized statements.
  */
-function rdf_query($subject, $predicate, $object, array $options = array()) {
+function rdf_query($subject = NULL, $predicate = NULL, $object = NULL, array $options = array()) {
   $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
   $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
 
@@ -197,12 +202,83 @@ function rdf_denormalize($input) {
   return $output;
 }
 
-function rdf_php_serialize($value) {
-  print serialize($value);
+function rdf_objectify($input) {
+  $output = array();
+  foreach ($input as $s => &$ps) {
+    foreach ($ps as $p => &$os) {
+      foreach ($os as &$o) {
+        $output[$s][$p][] = rdf_objectify_value($o);
+      }
+    }
+  }
+  return $output;
 }
 
-function rdf_php_unserialize($input) {
-  print unserialize($input);
+function rdf_objectify_value($value, &$bnodes = array()) {
+  switch ($value['type']) {
+    case 'bnode':
+      return rdf_uriref($value['value']); // FIXME
+    case 'uri':
+      return rdf_uriref($value['value']);
+    case 'literal':
+      return !isset($value['lang']) && !isset($value['datatype']) ? $value['value'] : rdf_literal($value['value'], $value['lang'], $value['datatype']);
+  }
+}
+
+function rdf_deobjectify($input) {
+  $output = array();
+  foreach ($input as $s => &$ps) {
+    foreach ($ps as $p => &$os) {
+      foreach ($os as &$o) {
+        $output[$s][$p][] = is_object($o) ? $o->to_array() : (!is_array($o) ? array('type' => 'literal', 'value' => (string)$o) : $o); // FIXME
+      }
+    }
+  }
+  return $output;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF/PHP serialization
+
+function rdf_serialize($data, array $options = array()) {
+  $data    = is_array($data) ? $data : rdf_normalize($data); // support RDF_QueryIterator
+  $formats = rdf_get_formats('info', 'w');
+  $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
+  return isset($formats[$format]) ? call_user_func($formats[$format]->serialize, $data, $options) : FALSE;
+}
+
+function rdf_unserialize($text, array $options = array()) {
+  $formats = rdf_get_formats('info', 'r');
+  $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
+  return isset($formats[$format]) ? call_user_func($formats[$format]->unserialize, $text, $options) : FALSE;
+}
+
+/**
+ * @see http://n2.talis.com/wiki/RDF_JSON_Specification#rdf.2Fphp
+ */
+function rdf_serialize_php($data, array $options = array()) {
+  return serialize(rdf_deobjectify($input));
+}
+
+/**
+ * @see http://n2.talis.com/wiki/RDF_JSON_Specification#rdf.2Fphp
+ */
+function rdf_unserialize_php($text, array $options = array()) {
+  return rdf_objectify(unserialize((string)$text));
+}
+
+/**
+ * @see http://n2.talis.com/wiki/RDF_JSON_Specification
+ */
+function rdf_serialize_json($data, array $options = array()) {
+  return drupal_to_js(rdf_deobjectify($data));
+}
+
+/**
+ * @see http://n2.talis.com/wiki/RDF_JSON_Specification
+ */
+function rdf_unserialize_json($json, array $options = array()) {
+  return rdf_objectify(json_decode((string)$json, TRUE));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -306,7 +382,9 @@ function rdf_get_formats($what = 'info', $mode = '') {
   foreach (module_implements('rdf_formats') as $module) {
     if ($result = module_invoke($module, 'rdf_formats')) {
       foreach ($result as $k => &$v) {
-        $formats[$k] = isset($formats[$k]) ? array_merge($formats[$k], $v) : $v;
+        $formats[$k] = (object)(isset($formats[$k]) ? array_merge($formats[$k], $v) : $v);
+        $formats[$k]->name = $k;
+        $formats[$k]->module = $module;
       }
     }
   }
@@ -314,15 +392,15 @@ function rdf_get_formats($what = 'info', $mode = '') {
 
   if (preg_match('/^[rw]$/', $mode)) {
     foreach ($formats as $k => &$v) {
-      if ((strpos($mode, 'r') !== FALSE && !isset($v['unserialize'])) ||
-          (strpos($mode, 'w') !== FALSE && !isset($v['serialize']))) {
+      if ((strpos($mode, 'r') !== FALSE && !isset($v->unserialize)) ||
+          (strpos($mode, 'w') !== FALSE && !isset($v->serialize))) {
         unset($formats[$k]);
       }
     }
   }
 
   if ($what == 'names') {
-    foreach ($formats as $k => &$v) { $formats[$k] = $v['title']; }
+    foreach ($formats as $k => &$v) { $formats[$k] = $v->title; }
   }
 
   return $formats;
@@ -477,6 +555,10 @@ class RDF_URIRef {
     return self::$resources[$uri];
   }
 
+  public function to_array() {
+    return array('type' => 'uri', 'value' => $this->uri);
+  }
+
   public function __toString() {
     return $this->uri;
   }
@@ -493,6 +575,10 @@ class RDF_BNode extends RDF_URIRef {
   public static function generate() {
     return self::uri('http://bnode.net/' . rdf_get_uuid());
   }
+
+  public function to_array() {
+    return array('type' => 'bnode', 'value' => $this->uri);
+  }
 }
 
 /**
@@ -505,6 +591,17 @@ class RDF_Literal {
     $this->value = $value;
     $this->language = $language ? strtolower($language) : NULL;
     $this->datatype = $datatype ? rdf_qname_to_uri($datatype) : NULL;
+  }
+
+  public function to_array() {
+    $array = array('type' => 'literal', 'value' => $this->value);
+    if ($this->language) {
+      $array['lang'] = $this->language;
+    }
+    if ($this->datatype) {
+      $array['datatype'] = $this->datatype;
+    }
+    return $array;
   }
 
   public function __toString() {

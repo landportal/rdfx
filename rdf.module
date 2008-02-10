@@ -16,7 +16,17 @@
  * Implementation of hook_init().
  */
 function rdf_init() {
-  require_once drupal_get_path('module', 'rdf') . '/rdf.api.inc';
+  $path = drupal_get_path('module', 'rdf');
+  require_once $path . '/rdf.api.inc';
+
+  // Attempt to load the ARC2 library, if available. This library must be
+  // manually installed by the administrator due to license incompatibility.
+  @include_once $path . '/vendor/arc2/ARC2.php';
+
+  // Integrate into the Services API, if available.
+  if (module_exists('services')) {
+    require_once $path . '/rdf.services.inc';
+  }
 }
 
 /**
@@ -111,8 +121,13 @@ function rdf_theme() {
       'arguments' => array('value' => NULL),
       'file' => 'rdf.theme.inc',
     ),
+    'rdf_admin_settings' => array(
+      'arguments' => array('form' => NULL),
+      'file' => 'rdf.admin.inc',
+    ),
     'rdf_admin_data' => array(
       'arguments' => array('form' => NULL),
+      'file' => 'rdf.admin.inc',
     ),
   );
 }
@@ -127,11 +142,19 @@ function rdf_rdf_formats() {
   return array(
     'rdf+php' => array(
       'title'       => t('RDF/PHP'),
-      'mime_type'   => 'text/plain',
+      'mime_type'   => 'application/vnd.php.serialized',
       'encoding'    => 'ascii',
       'file_ext'    => 'txt',
-      'serialize'   => 'rdf_php_serialize',
-      'unserialize' => 'rdf_php_unserialize',
+      'serialize'   => 'rdf_serialize_php',
+      'unserialize' => 'rdf_unserialize_php',
+    ),
+    'rdf+json' => array(
+      'title'       => t('RDF/JSON'),
+      'mime_type'   => 'application/json',
+      'encoding'    => 'utf8',
+      'file_ext'    => 'js',
+      'serialize'   => 'rdf_serialize_json',
+      'unserialize' => 'rdf_unserialize_json',
     ),
   );
 }
