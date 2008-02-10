@@ -21,7 +21,9 @@ function rdf_init() {
 
   // Attempt to load the ARC2 library, if available. This library must be
   // manually installed by the administrator due to license incompatibility.
-  @include_once $path . '/vendor/arc2/ARC2.php';
+  if (!class_exists('ARC2')) {
+    @include_once RDF_ARC2_PATH . '/ARC2.php';
+  }
 
   // Integrate into the Services API, if available.
   if (module_exists('services')) {
@@ -34,10 +36,16 @@ function rdf_init() {
  */
 function rdf_help($path, $arg = NULL) {
   switch ($path) {
-    case 'admin/settings/rdf':
-      return '<p>' . t('<a href="http://rdfabout.com/" title="Resource Description Framework">RDF</a> is a <a href="http://www.w3.org/RDF/">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption.') . '</p>';
     case 'admin/content/rdf':
       return '<p>' . t('Any knowledge about anything can be decomposed into statements of <em>triples</em> (3-tuples) consisting of <em>subject</em>, <em>predicate</em>, and <em>object</em>.') . '</p>';
+    case 'admin/settings/rdf':
+      return '<p>' . t('<a href="http://drupal.org/node/219862" title="Resource Description Framework">RDF</a> is a <a href="http://www.w3.org/RDF/">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption.') . '</p>';
+    case 'admin/settings/rdf#formats':
+      return '<p>' . t('RDF data can be serialized into a number of textual formats (also known as representations). The two built-in, always available formats are <a href="http://drupal.org/node/219870">RDF/PHP</a> and <a href="http://drupal.org/node/219874">RDF/JSON</a>. For interoperability with more RDF formats, you can <a href="@modules">enable add-on modules</a> such as <em>RDF Import</em> and <em>RDF Export</em> which add parsing/serialization support for several widespread formats.', array('@modules' => url('admin/build/modules'))) . '</p>';
+    case 'admin/settings/rdf/repositories':
+      return '<p>' . t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') . '</p>';
+    case 'admin/settings/rdf/namespaces':
+      return '<p>' . t('<a href="http://drupal.org/node/219858#namespaces">Namespaces</a> define URI abbreviations for use in <a href="http://drupal.org/node/219856#curie" title="Compact URIs">CURIEs</a> and for purposes of human-friendly display of RDF data.') . '</p>';
   }
 }
 
@@ -142,6 +150,7 @@ function rdf_rdf_formats() {
   return array(
     'rdf+php' => array(
       'title'       => t('RDF/PHP'),
+      'link'        => 'http://drupal.org/node/219870',
       'mime_type'   => 'application/vnd.php.serialized',
       'encoding'    => 'ascii',
       'file_ext'    => 'txt',
@@ -150,6 +159,7 @@ function rdf_rdf_formats() {
     ),
     'rdf+json' => array(
       'title'       => t('RDF/JSON'),
+      'link'        => 'http://drupal.org/node/219874',
       'mime_type'   => 'application/json',
       'encoding'    => 'utf8',
       'file_ext'    => 'js',

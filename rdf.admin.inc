@@ -19,7 +19,7 @@ function rdf_admin_settings() {
   foreach (rdf_get_formats('names') as $key => $value) {
     $formats[$key] = '';
   }
-  $form['formats'] = array('#type' => 'fieldset', '#title' => t('Formats'), '#collapsible' => TRUE, '#collapsed' => FALSE);
+  $form['formats'] = array('#type' => 'fieldset', '#title' => t('Formats'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#description' => rdf_help('admin/settings/rdf#formats'));
   $form['formats']['rdf_format'] = array('#type' => 'radios', '#options' => $formats, '#default_value' => RDF_FORMAT);
 
   return array_merge(system_settings_form($form), array('#theme' => 'rdf_admin_settings'));
@@ -29,7 +29,13 @@ function theme_rdf_admin_settings($form) {
   $head = array(t('Default'), t('Name'), t('MIME type'), t('Readable'), t('Writable'));
   $rows = array();
   foreach (rdf_get_formats() as $format) {
-    $rows[] = array(drupal_render($form['formats']['rdf_format'][$format->name]), $format->title, $format->mime_type, !empty($format->unserialize) ? t('Yes') : t('No'), !empty($format->serialize) ? t('Yes') : t('No'));
+    $rows[] = array(
+      drupal_render($form['formats']['rdf_format'][$format->name]),
+      !empty($format->link) ? l($format->title, $format->link) : $format->title,
+      $format->mime_type,
+      !empty($format->unserialize) ? t('Yes') : t('No'),
+      !empty($format->serialize) ? t('Yes') : t('No')
+    );
   }
 
   $form['formats']['#value'] = theme('table', $head, $rows, array('class' => 'formats'));
