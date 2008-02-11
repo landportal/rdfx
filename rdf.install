@@ -16,13 +16,16 @@
  * Implementation of hook_enable().
  */
 function rdf_enable() {
+  rdf_install();
   drupal_set_message(t('RDF API successfully installed. Please review the available <a href="@settings">configuration settings</a>.', array('@settings' => url('admin/settings/rdf'))));
 }
 
 /**
  * Implementation of hook_install().
  */
-function rdf_install() {}
+function rdf_install() {
+  db_query("UPDATE {system} SET weight = -10 WHERE name = 'rdf' AND type = 'module'");
+}
 
 /**
  * Implementation of hook_uninstall().

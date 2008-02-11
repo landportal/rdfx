@@ -180,6 +180,18 @@ function rdf_uri_to_qname($uri, &$namespaces, $gensym = TRUE) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// ARC2 interoperability
+
+function rdf_convert_arc2_triple($triple) {   
+  $subject   = $triple['s']; // FIXME
+  $predicate = $triple['p'];
+  $object    = $triple['o_type'] == 'iri' ?
+    rdf_uriref($triple['o']) :
+    rdf_literal($triple['o'], $triple['o_lang'], $triple['o_dt']); 
+  return array($subject, $predicate, $object);
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // RDF/PHP normalization & serialization
 
 function rdf_normalize($input) {
@@ -228,9 +240,9 @@ function rdf_objectify_value($value, &$bnodes = array()) {
 
 function rdf_deobjectify($input) {
   $output = array();
-  foreach ($input as $s => &$ps) {
-    foreach ($ps as $p => &$os) {
-      foreach ($os as &$o) {
+  foreach ($input as $s => $ps) {
+    foreach ($ps as $p => $os) {
+      foreach ($os as $o) {
         $output[$s][$p][] = is_object($o) ? $o->to_array() : (!is_array($o) ? array('type' => 'literal', 'value' => (string)$o) : $o); // FIXME
       }
     }
@@ -245,12 +257,18 @@ function rdf_serialize($data, array $options = array()) {
   $data    = is_array($data) ? $data : rdf_normalize($data); // support RDF_QueryIterator
   $formats = rdf_get_formats('info', 'w');
   $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
+  if (isset($formats[$format]->file)) {
+    require_once drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
+  }
   return isset($formats[$format]) ? call_user_func($formats[$format]->serialize, $data, $options) : FALSE;
 }
 
 function rdf_unserialize($text, array $options = array()) {
   $formats = rdf_get_formats('info', 'r');
   $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
+  if (isset($formats[$format]->file)) {
+    require_once drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
+  }
   return isset($formats[$format]) ? call_user_func($formats[$format]->unserialize, $text, $options) : FALSE;
 }
 
@@ -258,7 +276,7 @@ function rdf_unserialize($text, array $options = array()) {
  * @see http://n2.talis.com/wiki/RDF_JSON_Specification#rdf.2Fphp
  */
 function rdf_serialize_php($data, array $options = array()) {
-  return serialize(rdf_deobjectify($input));
+  return serialize(rdf_deobjectify($data));
 }
 
 /**
@@ -370,6 +388,11 @@ function rdf_get_prefixes(array $data, $namespaces = NULL) {
 //////////////////////////////////////////////////////////////////////////////
 // RDF API functions
 
+function rdf_add_autodiscovery_link($title, $path, $format = RDF_FORMAT) {
+  $formats = rdf_get_formats();
+  drupal_add_link(array('rel'   => 'meta', 'type'  => $formats[$format]->mime_type, 'title' => $title, 'href'  => $path));
+}
+
 function rdf_get_uuid() {
   return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
     mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
@@ -383,13 +406,17 @@ function rdf_get_formats($what = 'info', $mode = '') {
   foreach (module_implements('rdf_formats') as $module) {
     if ($result = module_invoke($module, 'rdf_formats')) {
       foreach ($result as $k => &$v) {
-        $formats[$k] = (object)(isset($formats[$k]) ? array_merge($formats[$k], $v) : $v);
-        $formats[$k]->name = $k;
-        $formats[$k]->module = $module;
+        $formats[$k] = isset($formats[$k]) ? array_merge($formats[$k], $v) : $v;
+        $formats[$k]['name'] = $k;
+        $formats[$k]['module'] = $module;
       }
     }
   }
   ksort($formats);
+
+  foreach ($formats as $k => &$v) {
+    $formats[$k] = (object)$v;
+  }
 
   if (preg_match('/^[rw]$/', $mode)) {
     foreach ($formats as $k => &$v) {
@@ -407,8 +434,18 @@ function rdf_get_formats($what = 'info', $mode = '') {
   return $formats;
 }
 
-function rdf_get_repositories($what = 'info') {
+function rdf_get_repositories($what = 'info', $filters = array()) {
   $repos = module_invoke_all('rdf_repositories');
+  if (!empty($filters)) {
+    foreach ($repos as $k => &$v) {
+      foreach ($filters as $filter => $value) {
+        if ($v[$filter] != $value) {
+          unset($repos[$k]);
+          continue 2;
+        }
+      }
+    }
+  }
   if ($what == 'names') {
     foreach ($repos as $k => &$v) {
       $repos[$k] = $v['title'];
@@ -463,6 +500,8 @@ function _rdf_query_arg($uri_or_qname) {
 }
 
 function _rdf_invoke_callbacks($name, $args, $default = FALSE) {
+  call_user_func_array('module_invoke_all', array_merge('rdf', $args)); // trigger hook_rdf()
+
   foreach (_rdf_get_callbacks($name) as $callback) {
     list($callable, $callable_args) = $callback;
     if ($result = call_user_func_array($callable, array_merge($callable_args, $args))) {
@@ -608,7 +647,7 @@ class RDF_Literal {
   public function __toString() {
     return $this->value . // FIXME
       ($this->language ? '@' . $this->language : '') .
-      ($this->datatype ? '^^' . $this->datatype : '');
+      ($this->datatype ? '^^<' . $this->datatype . '>' : '');
   }
 }
 
@@ -616,3 +655,4 @@ class RDF_Literal {
  * @see http://www.w3.org/TR/rdf-concepts/#section-XMLLiteral
  */
 class RDF_XMLLiteral {} // TODO
+

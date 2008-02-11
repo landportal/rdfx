@@ -161,7 +161,7 @@ function rdf_rdf_formats() {
       'title'       => t('RDF/JSON'),
       'link'        => 'http://drupal.org/node/219874',
       'mime_type'   => 'application/json',
-      'encoding'    => 'utf8',
+      'encoding'    => 'utf-8',
       'file_ext'    => 'js',
       'serialize'   => 'rdf_serialize_json',
       'unserialize' => 'rdf_unserialize_json',
