@@ -1,0 +1,7 @@
+; $Id$
+name = RDF Export
+description = Exports Drupal data in the RDF/XML, TriX, Turtle and N-Triples formats.
+package = RDF
+dependencies[] = rdf
+core = 6.x
+php = 5.2
