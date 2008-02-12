@@ -227,7 +227,7 @@ function rdf_rdf_data() {
       'dc:type'        => rdf_uriref('http://purl.org/dc/dcmitype/Service'),
       'dc:format'      => 'text/html',
       'dc:language'    => array_keys(language_list()),
-      'dc:title'       => variable_get('site_name', 'Drupal'),
+      'dc:title'       => rdf_literal(variable_get('site_name', 'Drupal'), 'en'),
       'dc:description' => variable_get('site_mission', ''),
       'dc:publisher'   => rdf_uriref('mailto:' . variable_get('site_mail', ini_get('sendmail_from'))),
       'dc:creator'     => rdf_uriref('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),

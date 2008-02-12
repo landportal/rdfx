@@ -6,7 +6,7 @@ keep both pieces.
 
 REQUIREMENTS
 ------------
-This module requires Drupal 6.x and PHP 5.2.x or newer
+This module requires Drupal 6.x and PHP 5.2.x (or newer).
 
 INSTALLATION
 ------------

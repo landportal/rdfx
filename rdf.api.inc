@@ -16,6 +16,13 @@ define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc2');
 define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
 
 //////////////////////////////////////////////////////////////////////////////
+// RDF API repository selection
+
+function rdf_use_repository($name = NULL) {
+  // TODO
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // RDF API statement-centric functions
 
 /**
@@ -33,6 +40,17 @@ function rdf_insert($subject, $predicate, $object, array $options = array()) {
   $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
   $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
   return _rdf_invoke_callbacks('insert', array($subject, $predicate, $object, $options));
+}
+
+/**
+ * Inserts multiple new statements into the repository.
+ */
+function rdf_insert_all($data, array $options = array()) {
+  $result = TRUE;
+  foreach ($data as $stmt) {
+    $result = call_user_func_array('rdf_insert', array_merge($stmt, array($options))) && $result;
+  }
+  return $result;
 }
 
 /**
@@ -105,6 +123,10 @@ function r($uri) { return rdf_uriref($uri); }
 
 function rdf_bnode() {
   return RDF_BNode::generate();
+}
+
+function rdf_datetime($timestamp = NULL) {
+  return rdf_literal(strftime('%Y-%m-%dT%H:%M:%SZ', !is_null($timestamp) ? (int)$timestamp : gmmktime()), NULL, 'xsd:date');
 }
 
 function rdf_literal($value, $language = NULL, $datatype = NULL) {
@@ -500,7 +522,7 @@ function _rdf_query_arg($uri_or_qname) {
 }
 
 function _rdf_invoke_callbacks($name, $args, $default = FALSE) {
-  call_user_func_array('module_invoke_all', array_merge('rdf', $args)); // trigger hook_rdf()
+  call_user_func_array('module_invoke_all', array_merge(array('rdf'), $args)); // trigger hook_rdf()
 
   foreach (_rdf_get_callbacks($name) as $callback) {
     list($callable, $callable_args) = $callback;
@@ -655,4 +677,3 @@ class RDF_Literal {
  * @see http://www.w3.org/TR/rdf-concepts/#section-XMLLiteral
  */
 class RDF_XMLLiteral {} // TODO
-
