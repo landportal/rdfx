@@ -18,57 +18,20 @@ define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
 //////////////////////////////////////////////////////////////////////////////
 // RDF API repository selection
 
+/**
+ * Limits future queries and operations to a particular repository.
+ */
 function rdf_use_repository($name = NULL) {
-  // TODO
+  if (is_null($name)) {
+    unset($GLOBALS['rdf_repository']);
+  }
+  else {
+    $GLOBALS['rdf_repository'] = $name;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// RDF API statement-centric functions
-
-/**
- * Inserts a new statement into the repository.
- *
- * @param $subject
- * @param $predicate
- * @param $object
- * @param $options
- * @return
- *   TRUE, or a repository-specific non-NULL value, if the statement was
- *   successfully inserted; FALSE if an error occurred.
- */
-function rdf_insert($subject, $predicate, $object, array $options = array()) {
-  $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
-  $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
-  return _rdf_invoke_callbacks('insert', array($subject, $predicate, $object, $options));
-}
-
-/**
- * Inserts multiple new statements into the repository.
- */
-function rdf_insert_all($data, array $options = array()) {
-  $result = TRUE;
-  foreach ($data as $stmt) {
-    $result = call_user_func_array('rdf_insert', array_merge($stmt, array($options))) && $result;
-  }
-  return $result;
-}
-
-/**
- * Deletes an existing statement from the repository.
- *
- * @param $subject
- * @param $predicate
- * @param $object
- * @param $options
- * @return
- *   TRUE, or a repository-specific non-NULL value, if the statement was
- *   successfully deleted; FALSE if an error occurred.
- */
-function rdf_delete($subject, $predicate, $object, array $options = array()) {
-  $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
-  $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
-  return _rdf_invoke_callbacks('delete', array($subject, $predicate, $object, $options));
-}
+// RDF API statement-centric queries
 
 /**
  * Determines whether a given statement exists in the repository.
@@ -97,15 +60,72 @@ function rdf_exists($subject, $predicate = NULL, $object = NULL, array $options 
 function rdf_query($subject = NULL, $predicate = NULL, $object = NULL, array $options = array()) {
   $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
   $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
+  $repos     = isset($options['repository']) ? array($options['repository']) : NULL;
 
   $results   = new RDF_QueryIterator();
-  foreach (_rdf_get_callbacks('query') as $callback) {
+  foreach (_rdf_get_callbacks('query', $repos) as $callback) {
     list($callable, $callable_args) = $callback;
     $args = array($subject, $predicate, $object, $options);
     $args = !is_array($callable_args) ? $args : array_merge($callable_args, $args);
     $results->append(new IteratorIterator(new RDF_QueryCallback($callable, $args)));
   }
   return $results;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF API statement-centric operations
+
+/**
+ * Inserts multiple new statements into the repository.
+ *
+ * @param $statements
+ * @return
+ *   TRUE if all statements were successfully inserted, FALSE otherwise.
+ */
+function rdf_insert_all($statements, array $options = array()) {
+  $result = TRUE;
+  foreach ($statements as $statement) {
+    $result = call_user_func_array('rdf_insert', array_merge($statement, array($options))) && $result;
+  }
+  return $result;
+}
+
+/**
+ * Inserts a new statement into the repository.
+ *
+ * @param $subject
+ * @param $predicate
+ * @param $object
+ * @param $options
+ * @return
+ *   TRUE, or a repository-specific non-NULL value, if the statement was
+ *   successfully inserted; FALSE if an error occurred.
+ */
+function rdf_insert($subject, $predicate, $object, array $options = array()) {
+  $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
+  $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
+  $repos     = isset($options['repository']) ? array($options['repository']) : NULL;
+
+  return _rdf_invoke_op('insert', array($subject, $predicate, $object, $options), $repos);
+}
+
+/**
+ * Deletes an existing statement from the repository.
+ *
+ * @param $subject
+ * @param $predicate
+ * @param $object
+ * @param $options
+ * @return
+ *   TRUE, or a repository-specific non-NULL value, if the statement was
+ *   successfully deleted; FALSE if an error occurred.
+ */
+function rdf_delete($subject, $predicate, $object, array $options = array()) {
+  $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
+  $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
+  $repos     = isset($options['repository']) ? array($options['repository']) : NULL;
+
+  return _rdf_invoke_op('delete', array($subject, $predicate, $object, $options), $repos);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -353,7 +373,7 @@ function rdf_select($input, $subject = TRUE, $predicate = FALSE, $object = FALSE
   return $output;
 }
 
-function rdf_filter($input, $subject = NULL, $predicate = NULL, $object = NULL, $options = array()) {
+function _rdf_filter($input, $subject = NULL, $predicate = NULL, $object = NULL, $options = array()) {
   extract($options, EXTR_SKIP | EXTR_REFS);
 
   $output = array();
@@ -521,10 +541,10 @@ function _rdf_query_arg($uri_or_qname) {
   return is_object($uri_or_qname) ? (string)$uri_or_qname : $uri_or_qname;
 }
 
-function _rdf_invoke_callbacks($name, $args, $default = FALSE) {
+function _rdf_invoke_op($name, $args, $repos = NULL, $default = FALSE) {
   call_user_func_array('module_invoke_all', array_merge(array('rdf'), $args)); // trigger hook_rdf()
 
-  foreach (_rdf_get_callbacks($name) as $callback) {
+  foreach (_rdf_get_callbacks($name, $repos) as $callback) {
     list($callable, $callable_args) = $callback;
     if ($result = call_user_func_array($callable, array_merge($callable_args, $args))) {
       return $result;
@@ -533,9 +553,12 @@ function _rdf_invoke_callbacks($name, $args, $default = FALSE) {
   return $default;
 }
 
-function _rdf_get_callbacks($op) {
+function _rdf_get_callbacks($op, $repos = NULL) {
   $callbacks = array();
-  foreach (rdf_get_repositories() as $repo) {
+  $repos = !empty($repos) ? $repos : (isset($GLOBALS['rdf_repository']) ? array($GLOBALS['rdf_repository']) : NULL);
+  $repos = !empty($repos) ? array_intersect_key(rdf_get_repositories(), array_flip($repos)) : rdf_get_repositories();
+
+  foreach ($repos as $repo) {
     if (isset($repo['callbacks'][$op])) {
       $callback = $repo['callbacks'][$op]['function'];
       if (is_callable($callback)) {
@@ -544,6 +567,7 @@ function _rdf_get_callbacks($op) {
       }
     }
   }
+
   return $callbacks;
 }
 

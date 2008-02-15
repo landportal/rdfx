@@ -14,6 +14,7 @@
 
 define('RDF_DB_TABLE_DEFAULT', 'rdf_data');
 define('RDF_DB_TABLE_PREFIX',  'rdf_data_');
+define('RDF_DB_CHECK_DUPLICATES', TRUE);
 
 //////////////////////////////////////////////////////////////////////////////
 // Core API hooks
@@ -130,6 +131,7 @@ function rdf_db_rdf_repositories() {
         'insert'   => array('function' => 'rdf_db_rdf_insert', 'arguments' => array($table)),
         'delete'   => array('function' => 'rdf_db_rdf_delete', 'arguments' => array($table)),
         'query'    => array('function' => 'rdf_db_rdf_query',  'arguments' => array($table)),
+        'flush'    => array('function' => 'rdf_db_rdf_flush',  'arguments' => array($table)),
       ),
     );
   }
@@ -154,17 +156,20 @@ function rdf_db_rdf_delete($table, $subject, $predicate, $object, array $options
 
   $conditions = $values = array();
   foreach (get_object_vars($record) as $key => $value) {
-    $conditions[] = $key . ' = ' . db_type_placeholder($schema['fields'][$key]['type']);
-    $values[] = $value;
+    if (!is_null($value)) {
+      $conditions[] = $key . ' = ' . db_type_placeholder($schema['fields'][$key]['type']);
+      $values[] = $value;
+    }
   }
-  return !!db_query('DELETE FROM {' . $table . '} WHERE ' . implode(' AND ', $conditions), $values);
+
+  return !!db_query('DELETE FROM {' . $table . '}' . (empty($conditions) ? '' : (' WHERE ' . implode(' AND ', $conditions))), $values);
 }
 
 /**
  * Implementation of hook_rdf_query().
  */
 function rdf_db_rdf_query($table, $subject, $predicate, $object, array $options = array()) {
-  $result = db_query(_rdf_db_sql_select($table, $subject, $predicate, $object));
+  $result = db_query(_rdf_db_sql_select($table, $subject, $predicate, $object, $options));
 
   $data = array();
   while ($row = db_fetch_object($result)) {
@@ -266,13 +271,13 @@ function _rdf_db_make_record($subject, $predicate, $object, array $options = arr
   $is_literal = is_object($object) && ($object instanceof RDF_Literal);
 
   $record = (object)array();
-  $record->gid  = NULL;
-  $record->sid  = _rdf_db_uri_to_id($subject);
-  $record->pid  = _rdf_db_uri_to_id($predicate);
-  $record->oid  = $is_uri ? _rdf_db_uri_to_id((string)$object) : NULL;
-  $record->tid  = rdf_get_datatype($object) ? _rdf_db_uri_to_id(rdf_qname_to_uri(rdf_get_datatype($object))) : NULL;
-  $record->lang = $is_literal ? $object->language : NULL;
-  $record->data = $is_uri ? NULL : ($is_literal ? $object->value : (string)$object);
+  $record->gid  = isset($options['graph']) ? _rdf_db_uri_to_id($options['graph']) : NULL;
+  $record->sid  = $subject ? _rdf_db_uri_to_id($subject) : NULL;
+  $record->pid  = $predicate ? _rdf_db_uri_to_id($predicate) : NULL;
+  $record->oid  = $object && $is_uri ? _rdf_db_uri_to_id((string)$object) : NULL;
+  $record->tid  = $object && rdf_get_datatype($object) ? _rdf_db_uri_to_id(rdf_qname_to_uri(rdf_get_datatype($object))) : NULL;
+  $record->lang = $object && $is_literal ? $object->language : NULL;
+  $record->data = $object && !$is_uri ? ($is_literal ? $object->value : (string)$object) : NULL;
   return $record;
 }
 
@@ -289,15 +294,20 @@ function _rdf_db_uri_to_id_select($uri) {
   return (int)db_result(db_query("SELECT r.rid FROM {rdf_resources} r WHERE r.uri = '%s'", $uri));
 }
 
-function _rdf_db_sql_select($table, $subject, $predicate, $object) {
+function _rdf_db_sql_select($table, $subject, $predicate, $object, $options = array()) {
   $query = $where = array();
 
-  $sql = 'SELECT s.uri s, p.uri p, o.uri o, t.uri type, d.lang, d.data FROM {%s} d
+  $sql = 'SELECT g.uri g, s.uri s, p.uri p, o.uri o, t.uri type, d.lang, d.data FROM {%s} d
+            LEFT JOIN  {rdf_resources} g ON d.gid = g.rid
             INNER JOIN {rdf_resources} s ON d.sid = s.rid
             INNER JOIN {rdf_resources} p ON d.pid = p.rid
             LEFT JOIN  {rdf_resources} o ON d.oid = o.rid
             LEFT JOIN  {rdf_resources} t ON d.tid = t.rid';
   $query[] = sprintf($sql, db_escape_table($table));
+
+  if (isset($options['graph'])) {
+    $where[] = sprintf("g.uri = '%s'", db_escape_string((string)$options['graph']));
+  }
 
   if ($subject) {
     $where[] = sprintf("s.uri = '%s'", db_escape_string((string)$subject));

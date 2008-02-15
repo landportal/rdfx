@@ -118,7 +118,7 @@ function rdf_admin_repositories() {
     $rows[] = array(
       l($info['title'], 'admin/settings/rdf/repositories/edit/' . $name,
         array('attributes' => array('title' => @$info['dc:description']))),
-      $name == 'system' ? t('n/a') : (empty($info['statements']) ? '-' : $info['statements']),
+      $name == 'system' ? t('n/a') : (empty($info['statements']) ? '-' : number_format($info['statements'])),
       !empty($info['persistent']) ? t('Yes') : t('No'),
       !empty($info['mutable']) ? t('Yes') : t('No'),
       !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/edit/' . $name),
