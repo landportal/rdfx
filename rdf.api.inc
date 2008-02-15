@@ -146,7 +146,7 @@ function rdf_bnode() {
 }
 
 function rdf_datetime($timestamp = NULL) {
-  return rdf_literal(strftime('%Y-%m-%dT%H:%M:%SZ', !is_null($timestamp) ? (int)$timestamp : gmmktime()), NULL, 'xsd:date');
+  return rdf_literal(gmstrftime('%Y-%m-%dT%H:%M:%SZ', !is_null($timestamp) ? (int)$timestamp : gmmktime()), NULL, 'xsd:dateTime');
 }
 
 function rdf_literal($value, $language = NULL, $datatype = NULL) {
@@ -350,11 +350,11 @@ function rdf_select_resources($input) {
 }
 
 function rdf_select_predicates($input) {
-  return array_unique(call_user_func_array('array_merge', rdf_select($input, FALSE, TRUE, FALSE)));
+  return !empty($input) ? array_unique(call_user_func_array('array_merge', rdf_select($input, FALSE, TRUE, FALSE))) : array();
 }
 
 function rdf_select_values($input) {
-  return array_unique(call_user_func_array('array_merge', rdf_select($input, FALSE, FALSE, TRUE)));
+  return !empty($input) ? array_unique(call_user_func_array('array_merge', rdf_select($input, FALSE, FALSE, TRUE))) : array();
 }
 
 function rdf_select($input, $subject = TRUE, $predicate = FALSE, $object = FALSE) {
