@@ -139,6 +139,20 @@ function rdf_db_rdf_repositories() {
 }
 
 /**
+ * Implementation of hook_rdf_contexts().
+ */
+function rdf_db_rdf_contexts() {
+  $contexts = array();
+  foreach (rdf_db_get_repository_names() as $name => $table) {
+    $result = db_query('SELECT DISTINCT g.uri g FROM {'. db_escape_table($table) . '} d INNER JOIN {rdf_resources} g ON d.gid = g.rid');
+    while ($row = db_fetch_object($result)) {
+      $contexts[$row->g] = TRUE;
+    }
+  }
+  return array_keys($contexts);
+}
+
+/**
  * Implementation of hook_rdf_insert().
  */
 function rdf_db_rdf_insert($table, $subject, $predicate, $object, array $options = array()) {

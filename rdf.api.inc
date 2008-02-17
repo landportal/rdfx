@@ -15,6 +15,8 @@
 define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc2');
 define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
 
+rdf_define_namespaces(); // TODO: replace with autoload-based solution
+
 //////////////////////////////////////////////////////////////////////////////
 // RDF API repository selection
 
@@ -31,6 +33,33 @@ function rdf_use_repository($name = NULL) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// RDF API namespace support
+
+function rdf_define_namespaces() {
+  $properties = rdf_rdf_properties();
+  foreach (rdf_rdf_namespaces() as $prefix => $base_uri) {
+    if (isset($properties[$prefix])) {
+      rdf_define_namespace($prefix, $base_uri, $properties[$prefix]);
+    }
+  }
+}
+
+function rdf_define_namespace($class, $base_uri, array $properties) {
+  if (!class_exists('RDF_Namespace')) {
+    eval('abstract class RDF_Namespace {}');
+  }
+
+  $code = array();
+  $code[] = "abstract class $class extends RDF_Namespace {";
+  foreach ($properties as $property) {
+    $code[] = "\tconst $property = '{$base_uri}{$property}';";
+  }
+  $code[] = "static function uriref(\$property) { return rdf_uriref('{$base_uri}'. \$property); }";
+  $code[] = '}';
+  return eval(implode("\n", $code));
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // RDF API statement-centric queries
 
 /**
@@ -44,7 +73,20 @@ function rdf_use_repository($name = NULL) {
  *   TRUE if the statement exists, FALSE otherwise.
  */
 function rdf_exists($subject, $predicate = NULL, $object = NULL, array $options = array()) {
-  return count(rdf_lookup($subject, $predicate, $object, $options)) > 0;
+  return rdf_count($subject, $predicate, $object, $options) > 0;
+}
+
+/**
+ * Returns the number of matching statements in the repository.
+ *
+ * @param $subject
+ * @param $predicate
+ * @param $object
+ * @param $options
+ * @return
+ */
+function rdf_count($subject, $predicate = NULL, $object = NULL, array $options = array()) {
+  return count(rdf_query($subject, $predicate, $object, $options));
 }
 
 /**
@@ -503,6 +545,10 @@ function rdf_get_namespaces() {
     ksort($namespaces);
   }
   return $namespaces;
+}
+
+function rdf_get_contexts() {
+  return module_invoke_all('rdf_contexts');
 }
 
 function rdf_get_predicates($prefix) {

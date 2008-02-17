@@ -39,13 +39,15 @@ function rdf_help($path, $arg = NULL) {
     case 'admin/content/rdf':
       return '<p>' . t('Any knowledge about anything can be decomposed into statements of <em>triples</em> (3-tuples) consisting of <em>subject</em>, <em>predicate</em>, and <em>object</em>.') . '</p>';
     case 'admin/settings/rdf':
-      return '<p>' . t('<a href="http://drupal.org/node/219862" title="Resource Description Framework">RDF</a> is a <a href="http://www.w3.org/RDF/">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption.') . '</p>';
+      return '<p>' . t('<a href="http://drupal.org/handbook/modules/rdf" title="Resource Description Framework">RDF</a> is a <a href="http://www.w3.org/RDF/">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption.') . '</p>';
     case 'admin/settings/rdf#formats':
       return '<p>' . t('RDF data can be serialized into a number of textual formats (also known as representations). The two built-in, always available formats are <a href="http://drupal.org/node/219870">RDF/PHP</a> and <a href="http://drupal.org/node/219874">RDF/JSON</a>. For interoperability with more RDF formats, you can <a href="@modules">enable add-on modules</a> such as <em>RDF Import</em> and <em>RDF Export</em> which add parsing/serialization support for several widespread formats.', array('@modules' => url('admin/build/modules'))) . '</p>';
-    case 'admin/settings/rdf/repositories':
-      return '<p>' . t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') . '</p>';
     case 'admin/settings/rdf/namespaces':
       return '<p>' . t('<a href="http://drupal.org/node/219858#namespaces">Namespaces</a> define URI abbreviations for use in <a href="http://drupal.org/node/219856#curie" title="Compact URIs">CURIEs</a> and for purposes of human-friendly display of RDF data.') . '</p>';
+    case 'admin/settings/rdf/contexts':
+      return '<p>' . t('<a href="http://drupal.org/node/219858#contexts">Contexts</a>, also known as <a href="http://www.w3.org/2004/03/trix/">named graphs</a>,  ....') . '</p>';
+    case 'admin/settings/rdf/repositories':
+      return '<p>' . t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') . '</p>';
   }
 }
 
@@ -85,25 +87,56 @@ function rdf_menu() {
       'page arguments' => array('rdf_admin_settings'),
       'file' => 'rdf.admin.inc',
     ),
-    'admin/settings/rdf/repositories' => array(
-      'title' => 'Repositories',
-      'access arguments' => array('administer RDF repositories'),
-      'page callback' => 'rdf_admin_repositories',
-      'file' => 'rdf.admin.inc',
-    ),
-    'admin/settings/rdf/repositories/list' => array(
-      'title' => 'List',
-      'type' => MENU_DEFAULT_LOCAL_TASK,
-    ),
     'admin/settings/rdf/namespaces' => array(
       'title' => 'Namespaces',
       'access arguments' => array('administer RDF namespaces'),
       'page callback' => 'rdf_admin_namespaces',
       'file' => 'rdf.admin.inc',
+      'weight' => 10,
     ),
     'admin/settings/rdf/namespaces/list' => array(
       'title' => 'List',
       'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+    'admin/settings/rdf/contexts' => array(
+      'title' => 'Contexts',
+      'access arguments' => array('administer RDF data'),
+      'page callback' => 'rdf_admin_contexts',
+      'file' => 'rdf.admin.inc',
+      'weight' => 20,
+    ),
+    'admin/settings/rdf/contexts/list' => array(
+      'title' => 'List',
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+    'admin/settings/rdf/repositories' => array(
+      'title' => 'Repositories',
+      'access arguments' => array('administer RDF repositories'),
+      'page callback' => 'rdf_admin_repositories',
+      'file' => 'rdf.admin.inc',
+      'weight' => 30,
+    ),
+    'admin/settings/rdf/repositories/list' => array(
+      'title' => 'List',
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_hook_info()
+ */
+function rdf_hook_info() {
+  return array(
+    'rdf' => array(
+      'rdf' => array(
+        'insert' => array(
+          'runs when' => t('After inserting a new RDF statement'),
+        ),
+        'update' => array(
+          'runs when' => t('After deleting an existing RDF statement'),
+        ),
+      ),
     ),
   );
 }
@@ -187,6 +220,30 @@ function rdf_rdf_namespaces() {
 }
 
 /**
+ * Implementation of hook_rdf_properties().
+ */
+function rdf_rdf_properties() {
+  return array(
+    'rdf'      => array('first', 'object', 'predicate', 'rest', 'subject', 'type', 'value'),
+    'rdfs'     => array('comment', 'domain', 'isDefinedBy', 'label', 'member', 'range', 'seeAlso', 'subClassOf', 'subPropertyOf'),
+    'xsd'      => array('base64Binary', 'boolean', 'byte', 'date', 'dateTime', 'decimal', 'double', 'duration', 'float', 'hexBinary', 'int', 'integer', 'language', 'long', 'short', 'string', 'time', 'token'),
+    'owl'      => array('allValuesFrom', 'backwardCompatibleWith', 'cardinality', 'complementOf', 'differentFrom', 'disjointWith', 'distinctMembers', 'equivalentClass', 'equivalentProperty', 'hasValue', 'imports', 'incompatibleWith', 'intersectionOf', 'inverseOf', 'maxCardinality', 'minCardinality', 'oneOf', 'onProperty', 'priorVersion', 'sameAs', 'someValuesFrom', 'unionOf', 'versionInfo'),
+    'dc'       => array('contributor', 'coverage', 'creator', 'date', 'description', 'format', 'identifier', 'language', 'publisher', 'relation', 'rights', 'source', 'subject', 'title', 'type'),
+    'dcterms'  => array('abstract_', 'accessRights', 'accrualMethod', 'accrualPeriodicity', 'accrualPolicy', 'alternative', 'audience', 'available', 'bibliographicCitation', 'conformsTo', 'contributor', 'coverage', 'created', 'creator', 'date', 'dateAccepted', 'dateCopyrighted', 'dateSubmitted', 'description', 'educationLevel', 'extent', 'format', 'hasFormat', 'hasPart', 'hasVersion', 'identifier', 'instructionalMethod', 'isFormatOf', 'isPartOf', 'isReferencedBy', 'isReplacedBy', 'isRequiredBy', 'issued', 'isVersionOf', 'language', 'license', 'mediator', 'medium', 'modified', 'provenance', 'publisher', 'references', 'relation', 'replaces', 'requires', 'rights', 'rightsHolder', 'source', 'spatial', 'subject', 'tableOfContents', 'temporal', 'title', 'type', 'valid'),
+    'dcmitype' => array(),
+  );
+}
+
+/**
+ * Implementation of hook_rdf_contexts().
+ */
+function rdf_rdf_contexts() {
+  return array(
+    url(NULL, array('absolute' => TRUE)),
+  );
+}
+
+/**
  * Implementation of hook_rdf_repositories().
  */
 function rdf_rdf_repositories() {
@@ -224,13 +281,13 @@ function rdf_rdf_data() {
   $site_url = url(NULL, array('absolute' => TRUE));
   return array(
     $site_url => rdf_expand_qnames(array(
-      'dc:type'        => rdf_uriref('http://purl.org/dc/dcmitype/Service'),
-      'dc:format'      => 'text/html',
-      'dc:language'    => array_keys(language_list()),
-      'dc:title'       => rdf_literal(variable_get('site_name', 'Drupal'), 'en'),
-      'dc:description' => variable_get('site_mission', ''),
-      'dc:publisher'   => rdf_uriref('mailto:' . variable_get('site_mail', ini_get('sendmail_from'))),
-      'dc:creator'     => rdf_uriref('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),
+      dc::type        => dcmitype::uriref('Service'),
+      dc::format      => 'text/html',
+      dc::language    => array_keys(language_list()),
+      dc::title       => rdf_literal(variable_get('site_name', 'Drupal'), 'en'),
+      dc::description => variable_get('site_mission', ''),
+      dc::publisher   => rdf_uriref('mailto:' . variable_get('site_mail', ini_get('sendmail_from'))),
+      dc::creator     => rdf_uriref('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),
     )),
   );
 }
