@@ -16,7 +16,7 @@
 function rdf_unserialize_xml($text, array $options = array()) {
   $parser = ARC2::getRDFXMLParser();
   $parser->parse(@$options['uri'], $text);
-  return array_map('rdf_convert_arc2_triple', $parser->getTriples());
+  return array_map('_rdf_deconstruct_arc2_triple', $parser->getTriples());
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -25,7 +25,7 @@ function rdf_unserialize_xml($text, array $options = array()) {
 function rdf_unserialize_turtle($text, array $options = array()) {
   $parser = ARC2::getTurtleParser();
   $parser->parse(@$options['uri'], $text);
-  return array_map('rdf_convert_arc2_triple', $parser->getTriples());
+  return array_map('_rdf_deconstruct_arc2_triple', $parser->getTriples());
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -15,7 +15,7 @@
 define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc2');
 define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
 
-rdf_define_namespaces(); // TODO: replace with autoload-based solution
+rdf_define_vocabularies(); // TODO: replace with autoload-based solution
 
 //////////////////////////////////////////////////////////////////////////////
 // RDF API repository selection
@@ -35,22 +35,26 @@ function rdf_use_repository($name = NULL) {
 //////////////////////////////////////////////////////////////////////////////
 // RDF API namespace support
 
-function rdf_define_namespaces() {
+function rdf_define_vocabularies() {
   $properties = rdf_rdf_properties();
   foreach (rdf_rdf_namespaces() as $prefix => $base_uri) {
     if (isset($properties[$prefix])) {
-      rdf_define_namespace($prefix, $base_uri, $properties[$prefix]);
+      rdf_define_vocabulary($prefix, $base_uri, $properties[$prefix]);
     }
   }
 }
 
-function rdf_define_namespace($class, $base_uri, array $properties) {
+/**
+ * Defines an RDF namespace class for predicate URI construction based on a
+ * given base URI and a set of properties.
+ */
+function rdf_define_vocabulary($class_name, $base_uri, array $properties) {
   if (!class_exists('RDF_Namespace')) {
     eval('abstract class RDF_Namespace {}');
   }
 
   $code = array();
-  $code[] = "abstract class $class extends RDF_Namespace {";
+  $code[] = "abstract class $class_name extends RDF_Namespace {";
   foreach ($properties as $property) {
     $code[] = "\tconst $property = '{$base_uri}{$property}';";
   }
@@ -63,7 +67,7 @@ function rdf_define_namespace($class, $base_uri, array $properties) {
 // RDF API statement-centric queries
 
 /**
- * Determines whether a given statement exists in the repository.
+ * Determines whether a given statement exists.
  *
  * @param $subject
  * @param $predicate
@@ -77,7 +81,7 @@ function rdf_exists($subject, $predicate = NULL, $object = NULL, array $options 
 }
 
 /**
- * Returns the number of matching statements in the repository.
+ * Returns the number of matching statements.
  *
  * @param $subject
  * @param $predicate
@@ -90,7 +94,7 @@ function rdf_count($subject, $predicate = NULL, $object = NULL, array $options =
 }
 
 /**
- * Finds all statements in the repository matching a given triple pattern.
+ * Finds all statements matching a given triple pattern.
  *
  * @param $subject
  * @param $predicate
@@ -118,7 +122,7 @@ function rdf_query($subject = NULL, $predicate = NULL, $object = NULL, array $op
 // RDF API statement-centric operations
 
 /**
- * Inserts multiple new statements into the repository.
+ * Inserts multiple new statements.
  *
  * @param $statements
  * @return
@@ -133,7 +137,7 @@ function rdf_insert_all($statements, array $options = array()) {
 }
 
 /**
- * Inserts a new statement into the repository.
+ * Inserts a new statement.
  *
  * @param $subject
  * @param $predicate
@@ -152,7 +156,7 @@ function rdf_insert($subject, $predicate, $object, array $options = array()) {
 }
 
 /**
- * Deletes an existing statement from the repository.
+ * Deletes an existing statement.
  *
  * @param $subject
  * @param $predicate
@@ -183,8 +187,8 @@ function rdf_uriref($uri) {
 
 function r($uri) { return rdf_uriref($uri); }
 
-function rdf_bnode() {
-  return RDF_BNode::generate();
+function rdf_bnode($id = NULL) {
+  return $id ? RDF_BNode::id($id) : RDF_BNode::generate();
 }
 
 function rdf_datetime($timestamp = NULL) {
@@ -195,8 +199,21 @@ function rdf_literal($value, $language = NULL, $datatype = NULL) {
   return new RDF_Literal($value, $language, $datatype);
 }
 
+function rdf_var($name) {
+  return new RDF_Variable($name);
+}
+
+function rdf_is_var($value) {
+  return is_object($value) && ($value instanceof RDF_Variable);
+}
+
 //////////////////////////////////////////////////////////////////////////////
-// RDF API data coercions
+// RDF API helper functions
+
+function rdf_is_local_uri($uri) {
+  $base_uri = $GLOBALS['base_url'] . '/'; // FIXME?
+  return (strpos($uri, $base_uri) === 0) ? substr($uri, strlen($base_uri)) : FALSE;
+}
 
 function rdf_is_valid_uri($uri) {
   return rdf_is_valid_url($uri) || rdf_is_valid_urn($uri);
@@ -266,13 +283,28 @@ function rdf_uri_to_qname($uri, &$namespaces, $gensym = TRUE) {
 //////////////////////////////////////////////////////////////////////////////
 // ARC2 interoperability
 
-function rdf_convert_arc2_triple($triple) {   
-  $subject   = $triple['s']; // FIXME
-  $predicate = $triple['p'];
-  $object    = $triple['o_type'] == 'iri' ?
-    rdf_uriref($triple['o']) :
-    rdf_literal($triple['o'], $triple['o_lang'], $triple['o_dt']); 
+function _rdf_deconstruct_arc2_triple($triple) {
+  $subject   = _rdf_deconstruct_arc2_value($triple, 's');
+  $predicate = _rdf_deconstruct_arc2_value($triple, 'p');
+  $object    = _rdf_deconstruct_arc2_value($triple, 'o');
   return array($subject, $predicate, $object);
+}
+
+function _rdf_deconstruct_arc2_value($triple, $name) {
+  switch ($triple[$name .'_type']) {
+    case 'iri':
+      return rdf_uriref($triple[$name]);
+    case 'bnode':
+      return rdf_bnode($triple[$name]);
+    case 'literal':
+    case 'literal1':
+    case 'literal2':
+    case 'literal_long1':
+    case 'literal_long2':
+      return rdf_literal($triple[$name], $triple[$name .'_lang'], $triple[$name .'_dt']);
+    case 'var':
+      return rdf_var($triple[$name]);
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -472,6 +504,9 @@ function rdf_get_prefixes(array $data, $namespaces = NULL) {
 //////////////////////////////////////////////////////////////////////////////
 // RDF API functions
 
+/**
+ * Adds an RDF auto-discovery <link> tag to the page's <head> element.
+ */
 function rdf_add_autodiscovery_link($title, $path, $format = RDF_FORMAT) {
   $formats = rdf_get_formats();
   drupal_add_link(array('rel'   => 'meta', 'type'  => $formats[$format]->mime_type, 'title' => $title, 'href'  => $path));
@@ -554,16 +589,6 @@ function rdf_get_contexts() {
 function rdf_get_predicates($prefix) {
   $predicates = module_invoke_all('rdf_predicates');
   return isset($predicates[$prefix]) ? $predicates[$prefix] : array();
-}
-
-function rdf_is_local_resource($uri) {
-  global $base_url;
-  $base_uri = $base_url . '/'; // FIXME?
-
-  if (strpos($uri, $base_uri) === 0) {
-    return substr($uri, strlen($base_uri));
-  }
-  return FALSE;
 }
 
 function rdf_get_datatype($value) {
@@ -652,7 +677,7 @@ class RDF_QueryIterator extends AppendIterator {
   }
 
   public function key() {
-    // By reindexing the aggregated results, we guarantee that e.g. 
+    // By reindexing the aggregated results, we guarantee that e.g.
     // iterator_to_array() will work correctly despite overlapping keys
     // likely being returned by the inner iterators.
     return $this->index++;
@@ -705,7 +730,11 @@ class RDF_URIRef {
  */
 class RDF_BNode extends RDF_URIRef {
   public static function generate() {
-    return self::uri('http://bnode.net/' . rdf_get_uuid());
+    return self::id(rdf_get_uuid());
+  }
+
+  public static function id($id) {
+    return self::uri('http://bnode.net/'. $id);
   }
 
   public function to_array() {
@@ -747,3 +776,14 @@ class RDF_Literal {
  * @see http://www.w3.org/TR/rdf-concepts/#section-XMLLiteral
  */
 class RDF_XMLLiteral {} // TODO
+
+class RDF_Variable {
+  public $name;
+
+  function __construct($name) {
+    $this->name = $name;
+  }
+  function __toString() {
+    return '?' . $this->name;
+  }
+}
