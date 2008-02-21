@@ -220,27 +220,10 @@ function rdf_rdf_namespaces() {
 }
 
 /**
- * Implementation of hook_rdf_properties().
- */
-function rdf_rdf_properties() {
-  return array(
-    'rdf'      => array('first', 'object', 'predicate', 'rest', 'subject', 'type', 'value'),
-    'rdfs'     => array('comment', 'domain', 'isDefinedBy', 'label', 'member', 'range', 'seeAlso', 'subClassOf', 'subPropertyOf'),
-    'xsd'      => array('base64Binary', 'boolean', 'byte', 'date', 'dateTime', 'decimal', 'double', 'duration', 'float', 'hexBinary', 'int', 'integer', 'language', 'long', 'short', 'string', 'time', 'token'),
-    'owl'      => array('allValuesFrom', 'backwardCompatibleWith', 'cardinality', 'complementOf', 'differentFrom', 'disjointWith', 'distinctMembers', 'equivalentClass', 'equivalentProperty', 'hasValue', 'imports', 'incompatibleWith', 'intersectionOf', 'inverseOf', 'maxCardinality', 'minCardinality', 'oneOf', 'onProperty', 'priorVersion', 'sameAs', 'someValuesFrom', 'unionOf', 'versionInfo'),
-    'dc'       => array('contributor', 'coverage', 'creator', 'date', 'description', 'format', 'identifier', 'language', 'publisher', 'relation', 'rights', 'source', 'subject', 'title', 'type'),
-    'dcterms'  => array('abstract_', 'accessRights', 'accrualMethod', 'accrualPeriodicity', 'accrualPolicy', 'alternative', 'audience', 'available', 'bibliographicCitation', 'conformsTo', 'contributor', 'coverage', 'created', 'creator', 'date', 'dateAccepted', 'dateCopyrighted', 'dateSubmitted', 'description', 'educationLevel', 'extent', 'format', 'hasFormat', 'hasPart', 'hasVersion', 'identifier', 'instructionalMethod', 'isFormatOf', 'isPartOf', 'isReferencedBy', 'isReplacedBy', 'isRequiredBy', 'issued', 'isVersionOf', 'language', 'license', 'mediator', 'medium', 'modified', 'provenance', 'publisher', 'references', 'relation', 'replaces', 'requires', 'rights', 'rightsHolder', 'source', 'spatial', 'subject', 'tableOfContents', 'temporal', 'title', 'type', 'valid'),
-    'dcmitype' => array(),
-  );
-}
-
-/**
  * Implementation of hook_rdf_contexts().
  */
 function rdf_rdf_contexts() {
-  return array(
-    url(NULL, array('absolute' => TRUE)),
-  );
+  return array(RDF_SITE_URI);
 }
 
 /**
@@ -260,34 +243,54 @@ function rdf_rdf_repositories() {
         'query'    => array('function' => 'rdf_rdf_query', 'arguments' => array()),
       ),
       'filters'    => array(
-        'subject'  => url(NULL, array('absolute' => TRUE)),
+        'subject'  => RDF_SITE_URI,
       ),
     ),
   );
 }
 
 /**
- * Implementation of hook_rdf_query().
+ * Implementation of hook_rdf_properties().
  */
-function rdf_rdf_query($subject, $predicate, $object) {
-  static $data;
-  return rdf_denormalize(_rdf_filter(empty($data) ? $data = rdf_rdf_data() : $data, $subject, $predicate, $object));
+function rdf_rdf_properties() {
+  return array(
+    'rdf'      => array('first', 'object', 'predicate', 'rest', 'subject', 'type', 'value'),
+    'rdfs'     => array('comment', 'domain', 'isDefinedBy', 'label', 'member', 'range', 'seeAlso', 'subClassOf', 'subPropertyOf'),
+    'xsd'      => array('base64Binary', 'boolean', 'byte', 'date', 'dateTime', 'decimal', 'double', 'duration', 'float', 'hexBinary', 'int', 'integer', 'language', 'long', 'short', 'string', 'time', 'token'),
+    'owl'      => array('allValuesFrom', 'backwardCompatibleWith', 'cardinality', 'complementOf', 'differentFrom', 'disjointWith', 'distinctMembers', 'equivalentClass', 'equivalentProperty', 'hasValue', 'imports', 'incompatibleWith', 'intersectionOf', 'inverseOf', 'maxCardinality', 'minCardinality', 'oneOf', 'onProperty', 'priorVersion', 'sameAs', 'someValuesFrom', 'unionOf', 'versionInfo'),
+    'dc'       => array('contributor', 'coverage', 'creator', 'date', 'description', 'format', 'identifier', 'language', 'publisher', 'relation', 'rights', 'source', 'subject', 'title', 'type'),
+    'dcterms'  => array('abstract_', 'accessRights', 'accrualMethod', 'accrualPeriodicity', 'accrualPolicy', 'alternative', 'audience', 'available', 'bibliographicCitation', 'conformsTo', 'contributor', 'coverage', 'created', 'creator', 'date', 'dateAccepted', 'dateCopyrighted', 'dateSubmitted', 'description', 'educationLevel', 'extent', 'format', 'hasFormat', 'hasPart', 'hasVersion', 'identifier', 'instructionalMethod', 'isFormatOf', 'isPartOf', 'isReferencedBy', 'isReplacedBy', 'isRequiredBy', 'issued', 'isVersionOf', 'language', 'license', 'mediator', 'medium', 'modified', 'provenance', 'publisher', 'references', 'relation', 'replaces', 'requires', 'rights', 'rightsHolder', 'source', 'spatial', 'subject', 'tableOfContents', 'temporal', 'title', 'type', 'valid'),
+    'dcmitype' => array(),
+  );
 }
 
 /**
- * Implementation of hook_rdf_data().
+ * Implementation of hook_rdf_resources().
  */
-function rdf_rdf_data() {
-  $site_url = url(NULL, array('absolute' => TRUE));
-  return array(
-    $site_url => rdf_expand_qnames(array(
-      dc::type        => dcmitype::uriref('Service'),
-      dc::format      => 'text/html',
-      dc::language    => array_keys(language_list()),
-      dc::title       => rdf_literal(variable_get('site_name', 'Drupal'), 'en'),
-      dc::description => variable_get('site_mission', ''),
-      dc::publisher   => rdf_uriref('mailto:' . variable_get('site_mail', ini_get('sendmail_from'))),
-      dc::creator     => rdf_uriref('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),
-    )),
-  );
+function rdf_rdf_resources($context) {
+  switch ($context) {
+    case NULL:
+    case RDF_SITE_URI:
+      return array(RDF_SITE_URI => new RDF_QueryCallback('rdf_load_site'));
+  }
+}
+
+/**
+ * Implementation of hook_rdf_query().
+ */
+function rdf_rdf_query($subject, $predicate, $object, $options = array()) {
+  $context = isset($options['context']) ? $options['context'] : NULL;
+
+  $data = array();
+  foreach (module_implements('rdf_resources') as $module) {
+    $function = $module . '_rdf_resources';
+    if ($resources = $function($context)) {
+      foreach ($resources as $uri => $callback) {
+        if (!$subject || (string)$subject == $uri) {
+          $data = array_merge_recursive($data, _rdf_filter(array($uri => rdf_expand_qnames($callback->call())), $subject, $predicate, $object, $options));
+        }
+      }
+    }
+  }
+  return rdf_denormalize($data);
 }

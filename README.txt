@@ -23,15 +23,15 @@ that the API is required by all the others.)
 
   RDF Schema (rdf_schema)
   ~~~~~~~~~~
-  Provides an RDF Schema (RDFS) vocabulary for Drupal.
+  Provides an RDF Schema (RDFS) vocabulary for Drupal data.
 
   RDF Export (rdf_export)
   ~~~~~~~~~~
-  Exports Drupal data in the RDF/XML, TriX, N3, Turtle and N-Triples formats.
+  Exports Drupal data in the RDF/XML, TriX, Turtle and N-Triples formats.
 
   RDF Import (rdf_import)
   ~~~~~~~~~~
-  Imports RDF metadata from the N-Triples format.
+  Imports RDF data in the RDF/XML, Turtle and N-Triples formats.
 
 
 BUG REPORTS

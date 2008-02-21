@@ -22,7 +22,7 @@ function rdf_admin_settings() {
   $form['formats'] = array('#type' => 'fieldset', '#title' => t('Formats'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#description' => rdf_help('admin/settings/rdf#formats'));
   $form['formats']['rdf_format'] = array('#type' => 'radios', '#options' => $formats, '#default_value' => RDF_FORMAT);
 
-  return array_merge(system_settings_form($form), array('#theme' => 'rdf_admin_settings'));
+  return array_merge_recursive(system_settings_form($form), array('#theme' => 'rdf_admin_settings', 'buttons' => array('#weight' => 99)));
 }
 
 function theme_rdf_admin_settings($form) {

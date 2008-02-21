@@ -13,7 +13,8 @@
 // RDF API settings
 
 define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc2');
-define('RDF_FORMAT', variable_get('rdf_format', 'rdf+json'));
+define('RDF_FORMAT',    variable_get('rdf_format', 'rdf+json'));
+define('RDF_SITE_URI',  url(NULL, array('absolute' => TRUE)));
 
 rdf_define_vocabularies(); // TODO: replace with autoload-based solution
 
@@ -179,6 +180,10 @@ function rdf_delete($subject, $predicate, $object, array $options = array()) {
 
 function rdf_triple($subject, $predicate, $object) {
   return func_get_args();
+}
+
+function rdf_mailto($email) {
+  return rdf_uriref('mailto:' . $email);
 }
 
 function rdf_uriref($uri) {
@@ -603,6 +608,18 @@ function rdf_get_datatype($value) {
   }
 }
 
+function rdf_load_site() {
+  return array(
+    dc::type         => dcmitype::uriref('Service'),
+    dc::format       => 'text/html',
+    dc::language     => array_keys(language_list()),
+    dc::title        => rdf_literal(variable_get('site_name', 'Drupal'), 'en'),
+    dc::description  => variable_get('site_mission', ''),
+    dc::publisher    => rdf_mailto(variable_get('site_mail', ini_get('sendmail_from'))),
+    dc::creator      => rdf_uriref('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),
+  );
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Miscellaneous
 
@@ -766,9 +783,10 @@ class RDF_Literal {
   }
 
   public function __toString() {
+    $namespaces = rdf_get_namespaces();
     return $this->value . // FIXME
       ($this->language ? '@' . $this->language : '') .
-      ($this->datatype ? '^^<' . $this->datatype . '>' : '');
+      ($this->datatype ? '^^<' . rdf_uri_to_qname($this->datatype, $namespaces) . '>' : '');
   }
 }
 
