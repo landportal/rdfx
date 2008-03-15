@@ -46,10 +46,74 @@ function rdf_schema_menu() {
  * Implementation of hook_form_alter().
  */
 function rdf_schema_form_alter(&$form, $form_state, $form_id) {
-  if ($form_id == 'rdf_admin_settings') {
-    $form['schema'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 10);
-    $form['schema']['rdf_schema_uri'] = array('#type' => 'textfield', '#title' => t('RDFS base URI'), '#default_value' => RDF_SCHEMA_URI, '#maxlength' => 255, '#required' => TRUE, '#description' => t('') /* TODO */);
+  switch ($form_id) {
+    // Administer >> Site configuration >> RDF settings
+    case 'rdf_admin_settings':
+      $form['schema'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 10);
+      $form['schema']['rdf_schema_uri'] = array('#type' => 'textfield', '#title' => t('RDFS base URI'), '#default_value' => RDF_SCHEMA_URI, '#maxlength' => 255, '#required' => TRUE, '#description' => t('') /* TODO */);
+      break;
+
+    // Administer >> User management >> Profiles >> Edit
+    case 'profile_field_form':
+      // The submitted value is stored using the callback function defined below.
+      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
+      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => isset($form['fid']['#value']) ? variable_get('rdf_schema_property_profile_' . $form['fid']['#value'], '') : '', '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['submit']['#weight'] = 40;
+      $form['#submit'][] = 'rdf_schema_profile_field_form_submit';
+      break;
+
+    // Administer >> Content management >> Taxonomy >> Edit vocabulary
+    case 'taxonomy_form_vocabulary':
+      // The submitted value is stored in our implementation of hook_taxonomy()
+      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
+      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => isset($form['vid']['#value']) ? variable_get('rdf_schema_property_vocabulary_' . $form['vid']['#value'], '') : '', '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['submit']['#weight'] = 40;
+      $form['delete']['#weight'] = 45;
+      break;
+
+    // Administer >> Content management >> Content types >> Edit
+    case 'node_type_form':
+      // The submitted value is auto-saved by node.module as a configuration variable with a name in the form 'rdf_schema_class_TYPE'
+      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => TRUE, '#collapsed' => TRUE, '#weight' => 1);
+      $form['rdf_mapping']['rdf_schema_class'] = array('#type' => 'textfield', '#title' => t('RDF class'), '#default_value' => '', '#maxlength' => 255, '#description' => t('') /* TODO */);
+      break;
+
+    // Administer >> Content management >> Content types >> (content type) >> Manage fields >> Configure
+    case '_content_admin_field':
+      // TODO
+      break;
   }
+}
+
+/**
+ * Implementation of hook_taxonomy().
+ */
+function rdf_schema_taxonomy($op, $type, $array = NULL) {
+  if ($type == 'vocabulary') {
+    switch ($op) {
+      case 'insert':
+      case 'update':
+        if (!empty($array['rdf_property'])) {
+          variable_set('rdf_schema_property_vocabulary_' . $array['vid'], $array['rdf_property']);
+        }
+        else {
+          variable_del('rdf_schema_property_vocabulary_' . $array['vid']);
+        }
+        break;
+      case 'delete':
+        variable_del('rdf_schema_property_vocabulary_' . $array['vid']);
+        break;
+    }
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Forms API callbacks
+
+function rdf_schema_profile_field_form_submit($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  variable_set('rdf_schema_property_profile_' . $fid, $rdf_property);
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -95,6 +95,19 @@ function rdf_count($subject, $predicate = NULL, $object = NULL, array $options =
 }
 
 /**
+ * @param $subject
+ * @param $predicate
+ * @param $default
+ * @param $options
+ */
+function rdf_value($subject, $predicate, $default = NULL, array $options = array()) {
+  foreach (rdf_query($subject, $predicate, NULL, $options) as $statement) {
+    return $statement[2]; // object
+  }
+  return $default;
+}
+
+/**
  * Finds all statements matching a given triple pattern.
  *
  * @param $subject
@@ -296,7 +309,7 @@ function _rdf_deconstruct_arc2_triple($triple) {
 }
 
 function _rdf_deconstruct_arc2_value($triple, $name) {
-  switch ($triple[$name .'_type']) {
+  switch ($name == 'p' ? 'iri' : $triple[$name .'_type']) {
     case 'iri':
       return rdf_uriref($triple[$name]);
     case 'bnode':
@@ -319,7 +332,7 @@ function rdf_normalize($input) {
   $output = array();
   foreach ($input as $triple) {
     list($subject, $predicate, $object) = $triple;
-    $output[$subject][$predicate][] = $object;
+    $output[(string)$subject][(string)$predicate][] = $object;
   }
   return $output;
 }
@@ -710,6 +723,20 @@ class RDF_QueryIterator extends AppendIterator {
   }
 }
 
+class RDF_Statement {
+  public $subject, $predicate, $object;
+
+  public function __construct($subject, $predicate, $object) {
+    foreach (get_defined_vars() as $k => $v) {
+      $this->$k = $v;
+    }
+  }
+
+  public function to_n3() {
+    // TODO
+  }
+}
+
 /**
  * @see http://www.w3.org/TR/rdf-concepts/#section-Graph-URIref
  */
@@ -731,6 +758,10 @@ class RDF_URIRef {
 
   public function to_array() {
     return array('type' => 'uri', 'value' => $this->uri);
+  }
+
+  public function to_n3() {
+    return '<' . $this->uri . '>';
   }
 
   public function __toString() {
@@ -757,6 +788,10 @@ class RDF_BNode extends RDF_URIRef {
   public function to_array() {
     return array('type' => 'bnode', 'value' => $this->uri);
   }
+
+  public function to_n3() {
+    return '_:' . substr($this->uri, strlen('http://bnode.net/')); // FIXME
+  }
 }
 
 /**
@@ -782,11 +817,15 @@ class RDF_Literal {
     return $array;
   }
 
+  public function to_n3() {
+    return $this->__toString();
+  }
+
   public function __toString() {
     $namespaces = rdf_get_namespaces();
-    return $this->value . // FIXME
-      ($this->language ? '@' . $this->language : '') .
-      ($this->datatype ? '^^<' . rdf_uri_to_qname($this->datatype, $namespaces) . '>' : '');
+    return '"'. $this->value .'"'. // FIXME
+      ($this->language ? '@'. $this->language : '') .
+      ($this->datatype ? '^^<'. rdf_uri_to_qname($this->datatype, $namespaces) .'>' : '');
   }
 }
 
@@ -801,6 +840,11 @@ class RDF_Variable {
   function __construct($name) {
     $this->name = $name;
   }
+
+  function to_n3() {
+    return $this->__toString();
+  }
+
   function __toString() {
     return '?' . $this->name;
   }

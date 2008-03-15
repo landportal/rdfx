@@ -16,12 +16,14 @@ function theme_rdf_property_table($data) {
   $rows = array();
 
   if (!empty($data)) {
+    $data = is_object($data) ? rdf_normalize($data) : $data;
+
     foreach ($data as $subject => $predicates) {
       foreach ($predicates as $predicate => $objects) {
         foreach ($objects as $object) {
           $rows[] = array(
-            array('data' => $predicate, 'header' => TRUE),
-            theme('rdf_triple_column', $object),
+            array('data' => theme('rdf_triple_cell', $predicate), 'header' => TRUE),
+            theme('rdf_triple_cell', $object),
           );
         }
       }
@@ -43,6 +45,8 @@ function theme_rdf_triple_table($data, array $options = array()) {
   $rows = array();
 
   if (!empty($data)) {
+    $data = is_object($data) ? rdf_normalize($data) : $data;
+
     foreach ($data as $subject => $predicates) {
       foreach ($predicates as $predicate => $objects) {
         foreach ($objects as $object) {

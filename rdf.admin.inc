@@ -136,19 +136,19 @@ function rdf_admin_namespaces() {
 // RDF repository management
 
 function rdf_admin_repositories() {
-  $header = array(t('Name'), t('Statements'), t('Persistent'), t('Mutable'), array('data' => t('Operations'), 'colspan' => '2'));
+  $header = array(t('Name'), t('Statements'), t('Mutable'), t('Module'), array('data' => t('Operations'), 'colspan' => '2'));
 
   $rows = array();
   foreach (rdf_get_repositories() as $name => $info) {
     $mutable = !empty($info['mutable']) && $name != 'default'; // FIXME
     $rows[] = array(
-      l($info['title'], 'admin/settings/rdf/repositories/edit/' . $name,
+      l($info['title'], 'admin/settings/rdf/repositories/'. $info['module'] .'/edit/'. $name,
         array('attributes' => array('title' => @$info['dc:description']))),
       $name == 'system' ? t('n/a') : (empty($info['statements']) ? '-' : number_format($info['statements'])),
-      !empty($info['persistent']) ? t('Yes') : t('No'),
       !empty($info['mutable']) ? t('Yes') : t('No'),
-      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/edit/' . $name),
-      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/repositories/delete/' . $name),
+      $info['module'],
+      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/'. $info['module'] .'/edit/'. $name),
+      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/repositories/'. $info['module'] .'/delete/'. $name),
     );
   }
 

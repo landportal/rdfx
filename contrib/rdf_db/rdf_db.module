@@ -66,20 +66,20 @@ function rdf_db_menu() {
       'file' => 'rdf_db.admin.inc',
     ),
     // Administer >> Site configuration >> RDF settings >> Repositories
-    'admin/settings/rdf/repositories/add/local' => array(
+    'admin/settings/rdf/repositories/local/add' => array(
       'title' => 'Add local repository',
       'type' => MENU_LOCAL_TASK,
       'weight' => 1,
       'page callback' => 'rdf_db_admin_db_edit',
       'file' => 'rdf_db.admin.inc',
     ),
-    'admin/settings/rdf/repositories/edit' => array(
+    'admin/settings/rdf/repositories/local/edit' => array(
       'title' => 'Edit local repository',
       'type' => MENU_CALLBACK,
       'page callback' => 'rdf_db_admin_db_edit',
       'file' => 'rdf_db.admin.inc',
     ),
-    'admin/settings/rdf/repositories/delete' => array(
+    'admin/settings/rdf/repositories/local/delete' => array(
       'title' => 'Delete local repository',
       'type' => MENU_CALLBACK,
       'page callback' => 'drupal_get_form',
