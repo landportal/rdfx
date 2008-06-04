@@ -17,88 +17,6 @@ define('RDF_DB_TABLE_PREFIX',  'rdf_data_');
 define('RDF_DB_CHECK_DUPLICATES', TRUE);
 
 //////////////////////////////////////////////////////////////////////////////
-// Core API hooks
-
-/**
- * Implementation of hook_help().
- */
-function rdf_db_help($path, $arg = NULL) {
-  switch ($path) {
-    case 'admin/settings/rdf/repositories/add/local':
-      return '<p>' . t('To create a new local RDF repository, enter the human-readable name, the machine-readable name, and all other relevant fields that are on this page.') . '</p>';
-      break;
-  }
-}
-
-/**
- * Implementation of hook_menu().
- */
-function rdf_db_menu() {
-  return array(
-    // Administer >> Content management >> RDF data
-    'admin/content/rdf/add' => array(
-      'title' => 'Add statement',
-      'type' => MENU_LOCAL_TASK,
-      'weight' => 1,
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('rdf_db_admin_data_form'),
-      'file' => 'rdf_db.admin.inc',
-    ),
-    // Administer >> Site configuration >> RDF settings >> Namespaces
-    'admin/settings/rdf/namespaces/add' => array(
-      'title' => 'Add namespace',
-      'type' => MENU_LOCAL_TASK,
-      'weight' => 1,
-      'page callback' => 'rdf_db_admin_ns_edit',
-      'file' => 'rdf_db.admin.inc',
-    ),
-    'admin/settings/rdf/namespaces/edit' => array(
-      'title' => 'Edit namespace',
-      'type' => MENU_CALLBACK,
-      'page callback' => 'rdf_db_admin_ns_edit',
-      'file' => 'rdf_db.admin.inc',
-    ),
-    'admin/settings/rdf/namespaces/delete' => array(
-      'title' => 'Delete namespace',
-      'type' => MENU_CALLBACK,
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('rdf_db_admin_ns_delete'),
-      'file' => 'rdf_db.admin.inc',
-    ),
-    // Administer >> Site configuration >> RDF settings >> Repositories
-    'admin/settings/rdf/repositories/local/add' => array(
-      'title' => 'Add local repository',
-      'type' => MENU_LOCAL_TASK,
-      'weight' => 1,
-      'page callback' => 'rdf_db_admin_db_edit',
-      'file' => 'rdf_db.admin.inc',
-    ),
-    'admin/settings/rdf/repositories/local/edit' => array(
-      'title' => 'Edit local repository',
-      'type' => MENU_CALLBACK,
-      'page callback' => 'rdf_db_admin_db_edit',
-      'file' => 'rdf_db.admin.inc',
-    ),
-    'admin/settings/rdf/repositories/local/delete' => array(
-      'title' => 'Delete local repository',
-      'type' => MENU_CALLBACK,
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('rdf_db_admin_db_delete'),
-      'file' => 'rdf_db.admin.inc',
-    ),
-  );
-}
-
-/**
- * Implementation of hook_cron().
- */
-function rdf_db_cron() {
-  // TODO: Run CHECK TABLE on {rdf_data_*}
-  // TODO: Purge unused URLs from {rdf_resources} ?
-  // TODO: Merge duplicate statements in {rdf_data_*} ?
-}
-
-//////////////////////////////////////////////////////////////////////////////
 // RDF API hooks
 
 /**
@@ -126,7 +44,7 @@ function rdf_db_rdf_repositories() {
       'mutable'    => TRUE,
       'enabled'    => TRUE,
       'statements' => rdf_db_count_repository_triples($name != 'local' ? $name : NULL),
-      'module'     => 'rdf_db',
+      'module'     => 'rdf',
       'callbacks'  => array(
         'insert'   => array('function' => 'rdf_db_rdf_insert', 'arguments' => array($table)),
         'delete'   => array('function' => 'rdf_db_rdf_delete', 'arguments' => array($table)),

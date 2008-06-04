@@ -16,7 +16,6 @@
  * Implementation of hook_enable().
  */
 function rdf_enable() {
-  rdf_install();
   drupal_set_message(t('RDF API successfully installed. Please review the available <a href="@settings">configuration settings</a>.', array('@settings' => url('admin/settings/rdf'))));
 }
 
@@ -25,12 +24,18 @@ function rdf_enable() {
  */
 function rdf_install() {
   db_query("UPDATE {system} SET weight = -10 WHERE name = 'rdf' AND type = 'module'");
+
+  drupal_install_schema('rdf');
+  variable_set('rdf_db_repository[local]', array('dc:title' => t('Local'), 'dc:description' => ''));
 }
 
 /**
  * Implementation of hook_uninstall().
  */
-function rdf_uninstall() {}
+function rdf_uninstall() {
+  drupal_uninstall_schema('rdf');
+  variable_del('rdf_db_repository[local]');
+}
 
 /**
  * Implementation of hook_requirements().
@@ -50,4 +55,68 @@ function rdf_requirements($phase) {
   }
 
   return $status;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Schema API hooks
+
+/**
+ * Implementation of hook_schema().
+ */
+function rdf_schema() {
+  $schema = array(
+    'rdf_namespaces' => array(
+      'description' => t(''),
+      'fields' => array(
+        'prefix'  => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE),
+        'uri'  => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      ),
+      'primary key' => array('prefix'),
+      'indexes' => array('uri' => array('uri')),
+    ),
+
+    'rdf_resources' => array(
+      'description' => t(''),
+      'fields' => array(
+        'rid'  => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+        'uri'  => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+      ),
+      'primary key' => array('rid'),
+      'unique keys' => array('uri' => array('uri')),
+    ),
+
+    'rdf_data' => array(
+      'description' => t(''),
+      'fields' => array(
+        'did'  => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+        'gid'  => array('type' => 'int', 'unsigned' => TRUE),
+        'sid'  => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'pid'  => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
+        'oid'  => array('type' => 'int', 'unsigned' => TRUE),
+        'tid'  => array('type' => 'int', 'unsigned' => TRUE),
+        'lang' => array('type' => 'varchar', 'length' => 12),
+        'data' => array('type' => 'text', 'size' => 'big'),
+      ),
+      'primary key' => array('did'),
+      'indexes' => array(
+        'gspo' => array('gid', 'sid', 'pid', 'oid'),
+        'gpos' => array('gid', 'pid', 'oid', 'sid'),
+        'gosp' => array('gid', 'oid', 'sid', 'pid'),
+      ),
+    ),
+  );
+
+  // This is not executed on installation/uninstallation, but only when the
+  // schema is loaded at runtime; it's needed in order for RDF repositories
+  // created by third-party modules to have a schema without them having to
+  // duplicate the definition of the {rdf_data} table, above.
+  if (function_exists('rdf_db_get_repository_tables')) {
+    foreach (rdf_db_get_repository_tables() as $table) {
+      if ($table != RDF_DB_TABLE_DEFAULT) {
+        $schema[$table] = $schema[RDF_DB_TABLE_DEFAULT];
+      }
+    }
+  }
+
+  return $schema;
 }

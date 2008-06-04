@@ -3,6 +3,5 @@ name = RDF Schema
 description = Provides an RDF Schema (RDFS) vocabulary for Drupal data.
 package = RDF
 dependencies[] = rdf
-dependencies[] = rdf_export
 core = 6.x
 php = 5.2

@@ -1,7 +1,0 @@
-; $Id$
-name = RDF DB
-description = Provides RDF data storage in local RDBMS-based repositories.
-package = RDF
-dependencies[] = rdf
-core = 6.x
-php = 5.2

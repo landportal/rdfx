@@ -1,13 +1,12 @@
 <?php
 // $Id$
 /**
- * rdf_export.pages.inc - RDF Export page callbacks.
+ * rdf.pages.inc - RDF page callbacks.
  *
  * @author Arto Bendiken <http://bendiken.net/>
  * @copyright Copyright (c) 2007-2008 Arto Bendiken. All rights reserved.
  * @license GPL <http://creativecommons.org/licenses/GPL/2.0/>
  * @package rdf.module
- * @subpackage rdf_export.module
  */
 
 //////////////////////////////////////////////////////////////////////////////
@@ -24,7 +23,7 @@ function rdf_export_entity($type, $id) {
 }
 
 function rdf_export($data, $filename = 'export', $format = RDF_FORMAT, $options = array()) {
-  require_once drupal_get_path('module', 'rdf_export') . '/rdf_export.inc';
+  //require_once drupal_get_path('module', 'rdf_export') . '/rdf_export.inc';
 
   $formats = rdf_get_formats();
   $format = isset($formats[@$_GET['format']]) ? $_GET['format'] : $format;

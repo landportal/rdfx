@@ -37,7 +37,7 @@ function rdf_schema_menu() {
       'access arguments' => array('access RDF data'),
       'page callback' => 'rdf_export',
       'page arguments' => array('rdf_schema_data', 'schema'),
-      'file' => '../rdf_export/rdf_export.pages.inc', // HACK
+      'file' => '../../rdf.pages.inc', // HACK
     ),
   );
 }
