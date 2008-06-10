@@ -64,7 +64,7 @@ function rdf_requirements($phase) {
  * Implementation of hook_schema().
  */
 function rdf_schema() {
-  $schema = array(
+  return array(
     'rdf_namespaces' => array(
       'description' => t(''),
       'fields' => array(
@@ -105,7 +105,12 @@ function rdf_schema() {
       ),
     ),
   );
+}
 
+/**
+ * Implementation of hook_schema_alter().
+ */
+function rdf_schema_alter($schema) {
   // This is not executed on installation/uninstallation, but only when the
   // schema is loaded at runtime; it's needed in order for RDF repositories
   // created by third-party modules to have a schema without them having to
@@ -117,6 +122,4 @@ function rdf_schema() {
       }
     }
   }
-
-  return $schema;
 }

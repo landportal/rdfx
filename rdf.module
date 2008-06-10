@@ -20,6 +20,11 @@ function rdf_init() {
   require_once $path . '/rdf.api.inc';
   require_once $path . '/rdf.db.inc';
 
+  rdf_define_vocabularies(); // TODO: replace with autoload-based solution
+
+  global $rdf_namespaces;
+  $rdf_namespaces = rdf_get_namespaces();
+
   if (user_access('access RDF data')) {
     rdf_add_autodiscovery_link(t('RDF'), url('rdf'));
   }
@@ -53,7 +58,7 @@ function rdf_help($path, $arg = NULL) {
       return '<p>' . t('<a href="http://drupal.org/node/219858#contexts">Contexts</a>, also known as <a href="http://www.w3.org/2004/03/trix/">named graphs</a>,  ....') . '</p>';
     case 'admin/settings/rdf/repositories':
       return '<p>' . t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') . '</p>';
-    case 'admin/settings/rdf/repositories/add/local':
+    case 'admin/settings/rdf/repositories/rdf/add':
       return '<p>' . t('To create a new local RDF repository, enter the human-readable name, the machine-readable name, and all other relevant fields that are on this page.') . '</p>';
   }
 }
@@ -152,6 +157,7 @@ function rdf_menu() {
     // Administer >> Site configuration >> RDF settings
     'admin/settings/rdf' => array(
       'title' => 'RDF settings',
+      'description' => 'Settings for the RDF API.',
       'access arguments' => array('administer site configuration'),
       'page callback' => 'drupal_get_form',
       'page arguments' => array('rdf_admin_settings'),
@@ -219,7 +225,7 @@ function rdf_menu() {
       'title' => 'List',
       'type' => MENU_DEFAULT_LOCAL_TASK,
     ),
-    'admin/settings/rdf/repositories/local/add' => array(
+    'admin/settings/rdf/repositories/rdf/add' => array(
       'title' => 'Add local repository',
       'type' => MENU_LOCAL_TASK,
       'weight' => 1,
@@ -227,14 +233,14 @@ function rdf_menu() {
       'page callback' => 'rdf_db_admin_db_edit',
       'file' => 'rdf.admin.inc',
     ),
-    'admin/settings/rdf/repositories/local/edit' => array(
+    'admin/settings/rdf/repositories/rdf/edit' => array(
       'title' => 'Edit local repository',
       'type' => MENU_CALLBACK,
       'access arguments' => array('administer RDF repositories'),
       'page callback' => 'rdf_db_admin_db_edit',
       'file' => 'rdf.admin.inc',
     ),
-    'admin/settings/rdf/repositories/local/delete' => array(
+    'admin/settings/rdf/repositories/rdf/delete' => array(
       'title' => 'Delete local repository',
       'type' => MENU_CALLBACK,
       'access arguments' => array('administer RDF repositories'),
@@ -281,6 +287,10 @@ function rdf_theme() {
       'file' => 'rdf.theme.inc',
     ),
     'rdf_triple_cell' => array(
+      'arguments' => array('value' => NULL),
+      'file' => 'rdf.theme.inc',
+    ),
+    'rdf_value' => array(
       'arguments' => array('value' => NULL),
       'file' => 'rdf.theme.inc',
     ),
@@ -364,7 +374,6 @@ function rdf_rdf_formats() {
       'file_ext'    => 'rdf',
       'serialize'   => 'rdf_serialize_xml',
       'unserialize' => class_exists('ARC2') ? 'rdf_unserialize_xml' : NULL,
-      //'file'        => 'rdf_import.inc',
     ),
     'trix' => array(
       'title'       => t('TriX'),
@@ -374,7 +383,6 @@ function rdf_rdf_formats() {
       'file_ext'    => 'xml',
       'serialize'   => 'rdf_serialize_trix',
       'unserialize' => NULL,
-      //'file'        => 'rdf_export.inc',
     ),
     'turtle' => array(
       'title'       => t('Turtle'),
@@ -384,7 +392,6 @@ function rdf_rdf_formats() {
       'file_ext'    => 'ttl',
       'serialize'   => 'rdf_serialize_turtle',
       'unserialize' => class_exists('ARC2') ? 'rdf_unserialize_turtle' : NULL,
-      //'file'        => 'rdf_import.inc',
     ),
     'ntriples' => array(
       'title'       => t('N-Triples'),
@@ -394,7 +401,6 @@ function rdf_rdf_formats() {
       'file_ext'    => 'nt',
       'serialize'   => 'rdf_serialize_ntriples',
       'unserialize' => class_exists('ARC2') ? 'rdf_unserialize_ntriples' : NULL,
-      //'file'        => 'rdf_import.inc',
     ),
   );
 }
@@ -403,7 +409,7 @@ function rdf_rdf_formats() {
  * Implementation of hook_rdf_namespaces().
  */
 function rdf_rdf_namespaces() {
-  return array(
+  return array_merge(array(
     '_'        => 'http://bnode.net/',
     'rdf'      => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     'rdfs'     => 'http://www.w3.org/2000/01/rdf-schema#',
@@ -413,21 +419,22 @@ function rdf_rdf_namespaces() {
     'dc'       => 'http://purl.org/dc/elements/1.1/',
     'dcterms'  => 'http://purl.org/dc/terms/',
     'dcmitype' => 'http://purl.org/dc/dcmitype/',
-  );
+    'foaf'     => 'http://xmlns.com/foaf/0.1/',
+  ), rdf_db_rdf_namespaces());
 }
 
 /**
  * Implementation of hook_rdf_contexts().
  */
 function rdf_rdf_contexts() {
-  return array(RDF_SITE_URI);
+  return array_merge(array(RDF_SITE_URI), rdf_db_rdf_contexts());
 }
 
 /**
  * Implementation of hook_rdf_repositories().
  */
 function rdf_rdf_repositories() {
-  return array(
+  return array_merge(array(
     'system' => array(
       'title'      => t('System'),
       'type'       => 'system',
@@ -443,7 +450,7 @@ function rdf_rdf_repositories() {
         'subject'  => RDF_SITE_URI,
       ),
     ),
-  );
+  ), rdf_db_rdf_repositories());
 }
 
 /**
@@ -458,6 +465,7 @@ function rdf_rdf_properties() {
     'dc'       => array('contributor', 'coverage', 'creator', 'date', 'description', 'format', 'identifier', 'language', 'publisher', 'relation', 'rights', 'source', 'subject', 'title', 'type'),
     'dcterms'  => array('abstract_', 'accessRights', 'accrualMethod', 'accrualPeriodicity', 'accrualPolicy', 'alternative', 'audience', 'available', 'bibliographicCitation', 'conformsTo', 'contributor', 'coverage', 'created', 'creator', 'date', 'dateAccepted', 'dateCopyrighted', 'dateSubmitted', 'description', 'educationLevel', 'extent', 'format', 'hasFormat', 'hasPart', 'hasVersion', 'identifier', 'instructionalMethod', 'isFormatOf', 'isPartOf', 'isReferencedBy', 'isReplacedBy', 'isRequiredBy', 'issued', 'isVersionOf', 'language', 'license', 'mediator', 'medium', 'modified', 'provenance', 'publisher', 'references', 'relation', 'replaces', 'requires', 'rights', 'rightsHolder', 'source', 'spatial', 'subject', 'tableOfContents', 'temporal', 'title', 'type', 'valid'),
     'dcmitype' => array(),
+    'foaf'     => array(/*stable:*/'homepage', 'made', 'maker', 'mbox', 'member', /*testing:*/'depiction', 'depicts', 'family_name', 'firstName', 'gender', 'givenname', 'img', 'interest', 'isPrimaryTopicOf', 'knows', 'logo', 'mbox_sha1sum', 'name', 'nick', 'page', 'phone', 'primaryTopic', 'surname', 'thumbnail', 'title', 'topic', 'weblog'),
   );
 }
 

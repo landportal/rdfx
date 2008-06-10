@@ -16,8 +16,6 @@ define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc2');
 define('RDF_FORMAT',    variable_get('rdf_format', 'rdf+json'));
 define('RDF_SITE_URI',  url(NULL, array('absolute' => TRUE)));
 
-rdf_define_vocabularies(); // TODO: replace with autoload-based solution
-
 //////////////////////////////////////////////////////////////////////////////
 // RDF API repository selection
 
@@ -90,8 +88,9 @@ function rdf_exists($subject, $predicate = NULL, $object = NULL, array $options 
  * @param $options
  * @return
  */
-function rdf_count($subject, $predicate = NULL, $object = NULL, array $options = array()) {
-  return count(rdf_query($subject, $predicate, $object, $options));
+function rdf_count($subject = NULL, $predicate = NULL, $object = NULL, array $options = array()) {
+  $results = rdf_query($subject, $predicate, $object, $options);
+  return count(is_object($results) ? $results->to_array() : $results);
 }
 
 /**
@@ -120,7 +119,7 @@ function rdf_value($subject, $predicate, $default = NULL, array $options = array
 function rdf_query($subject = NULL, $predicate = NULL, $object = NULL, array $options = array()) {
   $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
   $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
-  $repos     = isset($options['repository']) ? array($options['repository']) : NULL;
+  $repos     = isset($options['repository']) ? $options['repository'] : NULL;
 
   $results   = new RDF_QueryIterator();
   foreach (_rdf_get_callbacks('query', $repos) as $callback) {
@@ -164,7 +163,7 @@ function rdf_insert_all($statements, array $options = array()) {
 function rdf_insert($subject, $predicate, $object, array $options = array()) {
   $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
   $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
-  $repos     = isset($options['repository']) ? array($options['repository']) : NULL;
+  $repos     = isset($options['repository']) ? $options['repository'] : NULL;
 
   return _rdf_invoke_op('insert', array($subject, $predicate, $object, $options), $repos);
 }
@@ -183,7 +182,7 @@ function rdf_insert($subject, $predicate, $object, array $options = array()) {
 function rdf_delete($subject, $predicate, $object, array $options = array()) {
   $subject   = $subject   ? _rdf_query_arg($subject)   : $subject;
   $predicate = $predicate ? _rdf_query_arg($predicate) : $predicate;
-  $repos     = isset($options['repository']) ? array($options['repository']) : NULL;
+  $repos     = isset($options['repository']) ? $options['repository'] : NULL;
 
   return _rdf_invoke_op('delete', array($subject, $predicate, $object, $options), $repos);
 }
@@ -214,7 +213,7 @@ function rdf_datetime($timestamp = NULL) {
 }
 
 function rdf_literal($value, $language = NULL, $datatype = NULL) {
-  return new RDF_Literal($value, $language, $datatype);
+  return empty($language) && empty($datatype) ? $value : new RDF_Literal($value, $language, $datatype);
 }
 
 function rdf_var($name) {
@@ -267,12 +266,14 @@ function rdf_qname_to_uriref($qname) {
   return rdf_uriref(rdf_qname_to_uri($qname)); // TODO: cache?
 }
 
-function rdf_uri_to_qname($uri, &$namespaces, $gensym = TRUE) {
+function rdf_uri_to_qname($uri, $gensym = TRUE) {
+  global $rdf_namespaces;
+
   $uri = (string)$uri;
   $best_prefix = $best_match = '';
 
   // Attempt to find the longest substring match
-  foreach ($namespaces as $prefix => $match) {
+  foreach ($rdf_namespaces as $prefix => $match) {
     if (strpos($uri, $match) === 0 && strlen($match) > strlen($best_match)) {
       $best_match = $match;
       $best_prefix = $prefix;
@@ -290,7 +291,7 @@ function rdf_uri_to_qname($uri, &$namespaces, $gensym = TRUE) {
     static $gensym = 0;
     $prefix = 'g.' . ++$gensym; // Good ol' Lisp tradition continues...
     $local_part = $matches[1];
-    $namespaces[$prefix] = substr($uri, 0, -strlen($local_part));
+    $rdf_namespaces[$prefix] = substr($uri, 0, -strlen($local_part));
     return implode(':', array($prefix, $local_part));
   }
 
@@ -319,7 +320,7 @@ function _rdf_deconstruct_arc2_value($triple, $name) {
     case 'literal2':
     case 'literal_long1':
     case 'literal_long2':
-      return rdf_literal($triple[$name], $triple[$name .'_lang'], $triple[$name .'_dt']);
+      return rdf_literal($triple[$name], $triple[$name .'_lang'], $triple[$name .'_datatype']);
     case 'var':
       return rdf_var($triple[$name]);
   }
@@ -341,8 +342,13 @@ function rdf_denormalize($input) {
   $output = array();
   foreach ($input as $subject => $predicates) {
     foreach ($predicates as $predicate => $objects) {
-      foreach ($objects as $object) {
-        $output[] = array($subject, $predicate, $object);
+      if (!is_array($objects)) {
+        $output[] = array($subject, $predicate, $objects);
+      }
+      else {
+        foreach ($objects as $object) {
+          $output[] = array($subject, $predicate, $object);
+        }
       }
     }
   }
@@ -394,7 +400,11 @@ function rdf_serialize($data, array $options = array()) {
   if (isset($formats[$format]->file)) {
     require_once drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
   }
-  return isset($formats[$format]) ? call_user_func($formats[$format]->serialize, $data, $options) : FALSE;
+  if (!isset($formats[$format])) {
+    return FALSE;
+  }
+  ob_start() && call_user_func($formats[$format]->serialize, $data, $options);
+  return ob_get_clean();
 }
 
 function rdf_unserialize($text, array $options = array()) {
@@ -410,7 +420,7 @@ function rdf_unserialize($text, array $options = array()) {
  * @see http://n2.talis.com/wiki/RDF_JSON_Specification#rdf.2Fphp
  */
 function rdf_serialize_php($data, array $options = array()) {
-  return serialize(rdf_deobjectify($data));
+  print serialize(rdf_deobjectify($data));
 }
 
 /**
@@ -424,7 +434,7 @@ function rdf_unserialize_php($text, array $options = array()) {
  * @see http://n2.talis.com/wiki/RDF_JSON_Specification
  */
 function rdf_serialize_json($data, array $options = array()) {
-  return drupal_to_js(rdf_deobjectify($data));
+  print drupal_to_js(rdf_deobjectify($data));
 }
 
 /**
@@ -470,7 +480,7 @@ function rdf_serialize_xml($data, array $options = array()) {
     $xml->writeAttribute('rdf:about', $subject);
 
     foreach ($predicates as $predicate => $objects) {
-      $qname = rdf_uri_to_qname($predicate, $namespaces);
+      $qname = rdf_uri_to_qname($predicate);
 
       foreach ($objects as $object) { // FIXME:
 
@@ -562,7 +572,7 @@ function rdf_serialize_turtle($data, array $options = array()) {
 
     $new_subject = TRUE;
     foreach ($predicates as $predicate => $objects) {
-      $qname = rdf_uri_to_qname($predicate, $namespaces);
+      $qname = rdf_uri_to_qname($predicate);
 
       foreach ($objects as $object) {
         printf(!$new_subject ? " ;\n\t" : "\t");
@@ -691,7 +701,7 @@ function rdf_get_prefixes(array $data, $namespaces = NULL) {
 
   foreach ($data as $subject => $predicates) {
     foreach ($predicates as $predicate => $objects) {
-      $qname = rdf_uri_to_qname($predicate, $namespaces);
+      $qname = rdf_uri_to_qname($predicate);
       list($prefix, ) = explode(':', $qname);
       if (!isset($result[$prefix])) {
         $result[$prefix] = $namespaces[$prefix];
@@ -792,6 +802,18 @@ function rdf_get_predicates($prefix) {
   return isset($predicates[$prefix]) ? $predicates[$prefix] : array();
 }
 
+function rdf_get_type($value) {
+  if (!is_object($value)) {
+    return 'string'; // plain literal
+  }
+  else if ($value instanceof RDF_Literal) {
+    return 'literal'; // language/datatype-tagged literal
+  }
+  else { // RDF_URIRef, or the like
+    return 'uri'; // TODO: bnode
+  }
+}
+
 function rdf_get_datatype($value) {
   switch (gettype($value)) {
     case 'object':   return ($value instanceof RDF_Literal) ? $value->datatype : NULL;
@@ -839,7 +861,8 @@ function _rdf_invoke_op($name, $args, $repos = NULL, $default = FALSE) {
 
 function _rdf_get_callbacks($op, $repos = NULL) {
   $callbacks = array();
-  $repos = !empty($repos) ? $repos : (isset($GLOBALS['rdf_repository']) ? array($GLOBALS['rdf_repository']) : NULL);
+  $repos = !empty($repos) ? $repos : (isset($GLOBALS['rdf_repository']) ? $GLOBALS['rdf_repository'] : NULL);
+  $repos = !empty($repos) && !is_array($repos) ? array($repos) : $repos;
   $repos = !empty($repos) ? array_intersect_key(rdf_get_repositories(), array_flip($repos)) : rdf_get_repositories();
 
   foreach ($repos as $repo) {
@@ -939,6 +962,10 @@ class RDF_URIRef {
     return self::$resources[$uri];
   }
 
+  public function qname() {
+    return rdf_uri_to_qname($this->uri);
+  }
+
   public function to_array() {
     return array('type' => 'uri', 'value' => $this->uri);
   }
@@ -968,6 +995,10 @@ class RDF_BNode extends RDF_URIRef {
     return self::uri('http://bnode.net/'. $id);
   }
 
+  public function qname() {
+    return '_:' . $id;
+  }
+
   public function to_array() {
     return array('type' => 'bnode', 'value' => $this->uri);
   }
@@ -989,6 +1020,10 @@ class RDF_Literal {
     $this->datatype = $datatype ? rdf_qname_to_uri($datatype) : NULL;
   }
 
+  public function qname() {
+    return rdf_uri_to_qname($this->datatype);
+  }
+
   public function to_array() {
     $array = array('type' => 'literal', 'value' => $this->value);
     if ($this->language) {
@@ -1005,10 +1040,9 @@ class RDF_Literal {
   }
 
   public function __toString() {
-    $namespaces = rdf_get_namespaces();
     return '"'. $this->value .'"'. // FIXME
       ($this->language ? '@'. $this->language : '') .
-      ($this->datatype ? '^^<'. rdf_uri_to_qname($this->datatype, $namespaces) .'>' : '');
+      ($this->datatype ? '^^<'. $this->qname() .'>' : '');
   }
 }
 

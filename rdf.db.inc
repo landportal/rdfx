@@ -166,6 +166,7 @@ function rdf_db_create_repository($name, $metadata = array()) {
   $schema = drupal_get_schema(RDF_DB_TABLE_DEFAULT);
   db_create_table($results, db_escape_table(RDF_DB_TABLE_PREFIX . $name), $schema);
   rdf_db_update_repository_metadata($name, $metadata);
+  drupal_get_schema(db_escape_table(RDF_DB_TABLE_PREFIX . $name), TRUE); // clear the schema cache
   return $results[0]['success'];
 }
 

@@ -72,21 +72,36 @@ function theme_rdf_triple_row($subject, $predicate, $object, array $options = ar
 }
 
 function theme_rdf_triple_cell($value, array $options = array()) {
-  $namespaces = rdf_get_namespaces();
-
   $value = (string)$value; // FIXME
 
   if (rdf_is_valid_uri($value)) { // FIXME
     $uri = $value;
-    $qname = @rdf_uri_to_qname($uri, $namespaces, FALSE);
+    $qname = @rdf_uri_to_qname($uri, FALSE);
     $title = !empty($options['brackets']) ? ($qname ? "[$qname]" : "<$uri>") : ($qname ? $qname : $uri);
-
-    $function = isset($options['link']) ? $options['link'] : 'l';
-    return $function(
-      preg_replace('/ \.\.\.$/', '...', truncate_utf8($title, 32, TRUE, TRUE)),
-      $uri, array('attributes' => array('title' => $uri)));
+    return _rdf_truncate_uri($uri, $title, $options);
   }
   else {
     return check_plain(truncate_utf8($value, 56, TRUE, TRUE));
   }
+}
+
+function theme_rdf_value($value) {
+  switch (rdf_get_type($value)) {
+    case 'bnode':
+    case 'uri':
+      return _rdf_truncate_uri((string)$value, rdf_uri_to_qname((string)$value, FALSE));
+    case 'string':
+      return check_plain(truncate_utf8($value, 56, TRUE, TRUE));
+    case 'literal':
+      $tooltip = !empty($value->language) ? '@' . $value->language : $value->qname();
+      return '<span' . drupal_attributes(array('title' => $tooltip)) . '>' . check_plain($value->value) . '</span>';
+  }
+}
+
+function _rdf_truncate_uri($uri, $title = NULL, $options = array()) {
+  $title = $title ? $title : $uri;
+  $function = isset($options['link']) ? $options['link'] : 'l';
+  return $function(
+    preg_replace('/ \.\.\.$/', '...', truncate_utf8($title, 32, TRUE, TRUE)),
+    $uri, array('attributes' => array('title' => $uri)));
 }
