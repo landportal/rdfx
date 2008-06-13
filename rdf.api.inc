@@ -268,6 +268,9 @@ function rdf_qname_to_uriref($qname) {
 
 function rdf_uri_to_qname($uri, $gensym = TRUE) {
   global $rdf_namespaces;
+  if (empty($rdf_namespaces)) {
+    rdf_get_namespaces();
+  }
 
   $uri = (string)$uri;
   $best_prefix = $best_match = '';
@@ -785,12 +788,12 @@ function rdf_get_repositories($what = 'info', $filters = array()) {
 }
 
 function rdf_get_namespaces() {
-  static $namespaces = array();
-  if (empty($namespaces)) {
-    $namespaces = module_invoke_all('rdf_namespaces');
-    ksort($namespaces);
+  global $rdf_namespaces;
+  if (empty($rdf_namespaces)) {
+    $rdf_namespaces = module_invoke_all('rdf_namespaces');
+    ksort($rdf_namespaces);
   }
-  return $namespaces;
+  return $rdf_namespaces;
 }
 
 function rdf_get_contexts() {

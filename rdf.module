@@ -22,9 +22,6 @@ function rdf_init() {
 
   rdf_define_vocabularies(); // TODO: replace with autoload-based solution
 
-  global $rdf_namespaces;
-  $rdf_namespaces = rdf_get_namespaces();
-
   if (user_access('access RDF data')) {
     rdf_add_autodiscovery_link(t('RDF'), url('rdf'));
   }
