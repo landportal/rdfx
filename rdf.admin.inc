@@ -1,13 +1,5 @@
 <?php
 // $Id$
-/**
- * rdf.admin.inc - RDF API admin page callbacks.
- *
- * @author Arto Bendiken <http://bendiken.net/>
- * @copyright Copyright (c) 2007-2008 Arto Bendiken. All rights reserved.
- * @license GPL <http://creativecommons.org/licenses/GPL/2.0/>
- * @package rdf.module
- */
 
 //////////////////////////////////////////////////////////////////////////////
 // RDF settings form

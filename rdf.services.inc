@@ -1,13 +1,5 @@
 <?php
 // $Id$
-/**
- * rdf.services.inc - Integrates the RDF API with the Services API.
- *
- * @author Arto Bendiken <http://bendiken.net/>
- * @copyright Copyright (c) 2007-2008 Arto Bendiken. All rights reserved.
- * @license GPL <http://creativecommons.org/licenses/GPL/2.0/>
- * @package rdf.module
- */
 
 //////////////////////////////////////////////////////////////////////////////
 // Services API hooks

@@ -1,13 +1,5 @@
 <?php
 // $Id$
-/**
- * rdf.api.inc - RDF API for Drupal 6.x & PHP 5.2+.
- *
- * @author Arto Bendiken <http://bendiken.net/>
- * @copyright Copyright (c) 2007-2008 Arto Bendiken. All rights reserved.
- * @license GPL <http://creativecommons.org/licenses/GPL/2.0/>
- * @package rdf.module
- */
 
 //////////////////////////////////////////////////////////////////////////////
 // RDF API settings

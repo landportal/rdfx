@@ -1,14 +1,5 @@
 <?php
 // $Id$
-/**
- * rdf_schema.inc - RDF Schema API and metamodel for Drupal 6.x.
- *
- * @author Arto Bendiken <http://bendiken.net/>
- * @copyright Copyright (c) 2007-2008 Arto Bendiken. All rights reserved.
- * @license GPL <http://creativecommons.org/licenses/GPL/2.0/>
- * @package rdf.module
- * @subpackage rdf_schema.module
- */
 
 //////////////////////////////////////////////////////////////////////////////
 // RDF Schema API
