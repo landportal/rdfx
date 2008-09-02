@@ -105,7 +105,7 @@ function rdf_db_rdf_query($table, $subject, $predicate, $object, array $options 
 
   $data = array();
   while ($row = db_fetch_object($result)) {
-    $object = $row->o ? rdf_uriref($row->o) : rdf_literal($row->data, $row->lang, $row->type);
+    $object = $row->o ? rdf_uri($row->o) : rdf_literal($row->data, $row->lang, $row->type);
     $data[] = array($row->s, $row->p, $object);
   }
   return $data;

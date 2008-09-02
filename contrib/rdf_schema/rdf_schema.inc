@@ -99,12 +99,12 @@ function rdf_schema_get_resources() {
 function rdf_schema_load_schema() {
   return array(
     rdf::type         => rdf_qname_to_uriref('owl:Ontology'),
-    rdfs::seeAlso     => rdf_uriref(url('rdf', array('absolute' => TRUE))),
+    rdfs::seeAlso     => rdf_uri(url('rdf', array('absolute' => TRUE))),
     rdfs::label       => t('RDF schema for @site_name', array('@site_name' => variable_get('site_name', 'Drupal'))),
     dc::type          => rdf_qname_to_uriref('dcmitype:Dataset'),
     dc::format        => RDF_FORMAT,
-    dc::publisher     => rdf_uriref(RDF_SITE_URI),
-    dc::creator       => rdf_uriref(RDF_SCHEMA_MODULE_URI),
+    dc::publisher     => rdf_uri(RDF_SITE_URI),
+    dc::creator       => rdf_uri(RDF_SCHEMA_MODULE_URI),
   );
 }
 
@@ -113,7 +113,7 @@ function rdf_schema_load_schema_class($class, $class_info, $comment = NULL) {
   $comment = !empty($comment) ? $comment : module_invoke($class_info['module'], 'help', 'admin/help#' . $class_info['module'], NULL);
   return array(
     rdf::type         => rdf_qname_to_uriref('rdfs:Class'),
-    rdfs::isDefinedBy => rdf_uriref(RDF_SCHEMA_URI),
+    rdfs::isDefinedBy => rdf_uri(RDF_SCHEMA_URI),
     rdfs::subClassOf  => rdf_qname_to_uriref('rdfs:Resource'),
     rdfs::label       => rdf_literal($class_info['title'], 'en'),
     rdfs::comment     => !empty($comment) ? rdf_literal(strip_tags($comment), 'en') : NULL,
@@ -124,8 +124,8 @@ function rdf_schema_load_schema_property($class, $field_name, $field_info, $form
   $title = isset($form_info['#title']) ? $form_info['#title'] : @$field_info['description'];
   return array(
     rdf::type         => rdf_qname_to_uriref('rdf:Property'),
-    rdfs::isDefinedBy => rdf_uriref(RDF_SCHEMA_URI),
-    rdfs::domain      => rdf_uriref(rdf_schema_get_class_uri($class)),
+    rdfs::isDefinedBy => rdf_uri(RDF_SCHEMA_URI),
+    rdfs::domain      => rdf_uri(rdf_schema_get_class_uri($class)),
     rdfs::range       => rdf_qname_to_uriref('rdfs:Literal'), // TODO: should we map these to xsd:* types?
     rdfs::label       => !empty($title) ? rdf_literal($title, 'en') : NULL,
     rdfs::comment     => !empty($form_info['#description']) ? rdf_literal($form_info['#description'], 'en') : NULL,
@@ -137,14 +137,14 @@ function rdf_schema_load_schema_property($class, $field_name, $field_info, $form
 
 function rdf_schema_load_site() {
   return array(
-    rdf::type         => rdf_uriref(rdf_qname_to_uri('drupal:site')),
+    rdf::type         => rdf_uri(rdf_qname_to_uri('drupal:site')),
   );
 }
 
 function rdf_schema_load_user($user) {
   $user = is_object($user) ? $user : user_load((int)$user);
   return array(
-    rdf::type         => rdf_uriref(rdf_qname_to_uri('drupal:user')),
+    rdf::type         => rdf_uri(rdf_qname_to_uri('drupal:user')),
     'user:uid'        => (int)$user->uid,
     'user:name'       => $user->name,
     'user:mail'       => rdf_mailto($user->mail),
@@ -158,7 +158,7 @@ function rdf_schema_load_user($user) {
 function rdf_schema_load_node($node) {
   $node = is_object($node) ? $node : node_load((int)$node);
   return array(
-    rdf::type         => rdf_uriref(rdf_qname_to_uri(variable_get('rdf_schema_class_' . $node->type, 'drupal:node'))),
+    rdf::type         => rdf_uri(rdf_qname_to_uri(variable_get('rdf_schema_class_' . $node->type, 'drupal:node'))),
     'node:nid'        => (int)$node->nid,
     'node:vid'        => (int)$node->vid,
     'node:uid'        => (int)$node->uid,

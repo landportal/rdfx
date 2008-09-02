@@ -26,7 +26,7 @@ INSTALLATION
 
        <http://arc.semsol.org/download>
 
-     ...and unzip it to modules/rdf/vendor/arc2/ under the Drupal directory.
+     ...and unzip it to modules/rdf/vendor/arc/ under the Drupal directory.
 
   5. Also, if you have installed ARC2, you may wish to install the related
      SPARQL module to provide support for powerful pattern matching against

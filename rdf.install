@@ -68,8 +68,19 @@ function rdf_schema() {
     'rdf_namespaces' => array(
       'description' => t(''),
       'fields' => array(
-        'prefix'  => array('type' => 'varchar', 'length' => 64, 'not null' => TRUE),
-        'uri'  => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+        'prefix'  => array(
+          'description' => t('Namespace prefix.'),
+          'type' => 'varchar',
+          'length' => 64,
+          'not null' => TRUE,
+        ),
+        'uri'  => array(
+          'description' => t('Namespace URI.'),
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+        ),
       ),
       'primary key' => array('prefix'),
       'indexes' => array('uri' => array('uri')),
@@ -78,8 +89,19 @@ function rdf_schema() {
     'rdf_resources' => array(
       'description' => t(''),
       'fields' => array(
-        'rid'  => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-        'uri'  => array('type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''),
+        'rid'  => array(
+          'description' => t('Resource ID.'),
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'uri'  => array(
+          'description' => t('Resource URI.'),
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+        ),
       ),
       'primary key' => array('rid'),
       'unique keys' => array('uri' => array('uri')),
@@ -88,14 +110,61 @@ function rdf_schema() {
     'rdf_data' => array(
       'description' => t(''),
       'fields' => array(
-        'did'  => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
-        'gid'  => array('type' => 'int', 'unsigned' => TRUE),
-        'sid'  => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-        'pid'  => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0),
-        'oid'  => array('type' => 'int', 'unsigned' => TRUE),
-        'tid'  => array('type' => 'int', 'unsigned' => TRUE),
-        'lang' => array('type' => 'varchar', 'length' => 12),
-        'data' => array('type' => 'text', 'size' => 'big'),
+        'did'  => array(
+          'description' => t('The datum, or reified statement, identifier for this statement.'),
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'uid'  => array(     // added in 6.x-1.0-alpha4
+          'description' => t('The user ID from {users}.uid.'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+        ),
+        'created'  => array( // added in 6.x-1.0-alpha4
+          'description' => t('The Unix timestamp when the statement was created.'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+        ),
+        'gid'  => array(
+          'description' => t('The graph/context URI from {rdf_resources}.rid.'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+        ),
+        'sid'  => array(
+          'description' => t('The subject URI from {rdf_resources}.rid.'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'pid'  => array(
+          'description' => t('The predicate URI from {rdf_resources}.rid.'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'oid'  => array(
+          'description' => t('The object URI from {rdf_resources}.rid.'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+        ),
+        'tid'  => array(
+          'description' => t('The object literal datatype URI from {rdf_resources}.rid.'),
+          'type' => 'int',
+          'unsigned' => TRUE,
+        ),
+        'lang' => array(
+          'description' => t('The object literal language.'),
+          'type' => 'varchar',
+          'length' => 12,
+        ),
+        'data' => array(
+          'description' => t('The object literal data.'),
+          'type' => 'text',
+          'size' => 'big',
+        ),
       ),
       'primary key' => array('did'),
       'indexes' => array(
@@ -122,4 +191,22 @@ function rdf_schema_alter($schema) {
       }
     }
   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Schema API updates
+
+/**
+ * Converts RDF DB tables from 6.x-1.0-alpha3 to 6.x-1.0-alpha4.
+ */
+function rdf_update_6000() {
+  $updates = array();
+
+  module_load_include('inc', 'rdf', 'rdf.db');
+  foreach (rdf_db_get_repository_tables() as $table) {
+    db_add_field($updates, $table, 'uid', array('type' => 'int', 'unsigned' => TRUE));
+    db_add_field($updates, $table, 'created', array('type' => 'int', 'unsigned' => TRUE));
+  }
+
+  return $updates;
 }

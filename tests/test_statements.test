@@ -61,11 +61,11 @@ class StatementTestCase extends DrupalTestCase {
     return rdf_denormalize(array(
       'http://drupal.org/project/rdf' => array(
         dc::title      => 'RDF API',
-        dc::creator    => rdf_uriref('http://ar.to/#self'),
+        dc::creator    => rdf_uri('http://ar.to/#self'),
       ),
       'http://ar.to/#self' => array(
         foaf::name     => 'Arto Bendiken',
-        foaf::homepage => rdf_uriref('http://bendiken.net/'),
+        foaf::homepage => rdf_uri('http://bendiken.net/'),
       ),
     ));
   }

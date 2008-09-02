@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // RDF API settings
 
-define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc2');
+define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc');
 define('RDF_FORMAT',    variable_get('rdf_format', 'rdf+json'));
 define('RDF_SITE_URI',  url(NULL, array('absolute' => TRUE)));
 
@@ -57,7 +57,7 @@ function rdf_define_vocabulary($class_name, $base_uri, array $properties) {
   foreach ($properties as $property) {
     $code[] = "\tconst $property = '{$base_uri}{$property}';";
   }
-  $code[] = "static function uriref(\$property) { return rdf_uriref('{$base_uri}'. \$property); }";
+  $code[] = "static function uriref(\$property) { return rdf_uri('{$base_uri}'. \$property); }";
   $code[] = '}';
   return eval(implode("\n", $code));
 }
@@ -195,14 +195,15 @@ function rdf_triple($subject, $predicate, $object) {
 }
 
 function rdf_mailto($email) {
-  return rdf_uriref('mailto:' . $email);
+  return rdf_uri('mailto:' . $email);
 }
 
-function rdf_uriref($uri) {
+function rdf_uri($uri) {
   return RDF_URIRef::uri($uri);
 }
 
-function r($uri) { return rdf_uriref($uri); }
+function rdf_uriref($uri) { return rdf_uri($uri); } /* deprecated */
+function r($uri)          { return rdf_uri($uri); }
 
 function rdf_bnode($id = NULL) {
   return $id ? RDF_BNode::id($id) : RDF_BNode::generate();
@@ -263,7 +264,7 @@ function rdf_qname_to_uri($qname) {
 }
 
 function rdf_qname_to_uriref($qname) {
-  return rdf_uriref(rdf_qname_to_uri($qname)); // TODO: cache?
+  return rdf_uri(rdf_qname_to_uri($qname)); // TODO: cache?
 }
 
 function rdf_uri_to_qname($uri, $gensym = TRUE) {
@@ -315,7 +316,7 @@ function _rdf_deconstruct_arc2_triple($triple) {
 function _rdf_deconstruct_arc2_value($triple, $name) {
   switch ($name == 'p' ? 'iri' : $triple[$name .'_type']) {
     case 'iri':
-      return rdf_uriref($triple[$name]);
+      return rdf_uri($triple[$name]);
     case 'bnode':
       return rdf_bnode($triple[$name]);
     case 'literal':
@@ -373,9 +374,9 @@ function rdf_objectify($input) {
 function rdf_objectify_value($value, &$bnodes = array()) {
   switch ($value['type']) {
     case 'bnode':
-      return rdf_uriref($value['value']); // FIXME
+      return rdf_uri($value['value']); // FIXME
     case 'uri':
-      return rdf_uriref($value['value']);
+      return rdf_uri($value['value']);
     case 'literal':
       return !isset($value['lang']) && !isset($value['datatype']) ? $value['value'] : rdf_literal($value['value'], $value['lang'], $value['datatype']);
   }
@@ -611,14 +612,14 @@ function rdf_serialize_ntriples($data, array $options = array()) {
         printf('<%s> <%s> ', (string)$subject, (string)$predicate);
 
         if (!is_object($object)) { // plain literal
-          printf('"%s"', (string)$object); // FIXME: string escaping
+          printf('"%s"', _rdf_serialize_ntriples_escape((string)$object));
         }
         else if ($object instanceof RDF_Literal) { // typed literal
-          printf('"%s"', (string)$object->value); // FIXME: string escaping
+          printf('"%s"', _rdf_serialize_ntriples_escape((string)$object->value));
           if ($object->language)
             printf('@%s', $object->language);
           if ($object->datatype)
-            printf('^^%s', $object->datatype);
+            printf('^^<%s>', $object->datatype);
         }
         else { // RDF_URIRef, or the like
           printf('<%s>', (string)$object);
@@ -628,6 +629,10 @@ function rdf_serialize_ntriples($data, array $options = array()) {
       }
     }
   }
+}
+
+function _rdf_serialize_ntriples_escape($string) {
+  return str_replace(array('\\', '"', "\t", "\n", "\r"), array('\\\\', '\\"', '\\t', '\\n', '\\r'), $string);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -837,7 +842,7 @@ function rdf_load_site() {
     dc::title        => rdf_literal(variable_get('site_name', 'Drupal'), 'en'),
     dc::description  => variable_get('site_mission', ''),
     dc::publisher    => rdf_mailto(variable_get('site_mail', ini_get('sendmail_from'))),
-    dc::creator      => rdf_uriref('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),
+    dc::creator      => rdf_uri('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),
   );
 }
 
