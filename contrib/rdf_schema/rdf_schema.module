@@ -14,7 +14,19 @@ define('RDF_SCHEMA_MODULE_URI', 'http://drupal.org/project/rdf#schema');
  * Implementation of hook_init().
  */
 function rdf_schema_init() {
-  require_once drupal_get_path('module', 'rdf_schema') . '/rdf_schema.inc';
+  module_load_include('inc', 'rdf_schema');
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function rdf_schema_perm() {
+  return array(
+    'export site settings',
+    'import site settings',
+    'export enabled modules',
+    'import enabled modules',
+  );
 }
 
 /**
@@ -29,6 +41,20 @@ function rdf_schema_menu() {
       'page callback' => 'rdf_export',
       'page arguments' => array('rdf_schema_data', 'schema'),
       'file' => '../../rdf.pages.inc', // HACK
+    ),
+    'rdf/settings' => array(
+      'type' => MENU_CALLBACK,
+      'access callback' => 'rdf_schema_menu_access',
+      'access arguments' => array('export site settings', 'import site settings'),
+      'page callback' => 'rdf_schema_export_settings',
+      'file' => 'rdf_schema.pages.inc',
+    ),
+    'rdf/modules' => array(
+      'type' => MENU_CALLBACK,
+      'access callback' => 'rdf_schema_menu_access',
+      'access arguments' => array('export enabled modules', 'import enabled modules'),
+      'page callback' => 'rdf_schema_export_modules',
+      'file' => 'rdf_schema.pages.inc',
     ),
   );
 }
@@ -216,4 +242,11 @@ function rdf_schema_rdf_resources($context) {
     case RDF_SCHEMA_URI:
       return rdf_schema_get_classes();
   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Miscellaneous helpers
+
+function rdf_schema_menu_access($perm_get, $perm_post) {
+  return user_access($_SERVER['REQUEST_METHOD'] == 'POST' ? $perm_post : $perm_get);
 }
