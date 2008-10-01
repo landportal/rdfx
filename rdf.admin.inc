@@ -114,10 +114,10 @@ function rdf_admin_namespaces() {
   foreach (rdf_get_namespaces() as $prefix => $uri) {
     $mutable = isset($mutables[$prefix]);
     $rows[] = array(
-      $prefix, //l($prefix, 'admin/settings/rdf/predicates/' . $prefix),
+      $prefix, //l($prefix, 'admin/settings/rdf/predicates/'. $prefix),
       check_plain($uri),
-      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/namespaces/edit/' . $prefix),
-      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/namespaces/delete/' . $prefix),
+      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/namespaces/edit/'. $prefix),
+      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/namespaces/delete/'. $prefix),
     );
   }
 
@@ -462,7 +462,7 @@ function rdf_export_admin_screen_validate($form, &$form_state) {
 }
 
 function rdf_export_admin_screen_submit($form, &$form_state) {
-  require_once drupal_get_path('module', 'rdf') . '/rdf.pages.inc';
+  require_once drupal_get_path('module', 'rdf') .'/rdf.pages.inc';
 
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
   $repos = array_values(array_filter($repos, 'is_string'));

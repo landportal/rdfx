@@ -53,7 +53,7 @@ function rdf_db_rdf_repositories() {
 function rdf_db_rdf_contexts() {
   $contexts = array();
   foreach (rdf_db_get_repository_names() as $name => $table) {
-    $result = db_query('SELECT DISTINCT g.uri g FROM {'. db_escape_table($table) . '} d INNER JOIN {rdf_resources} g ON d.gid = g.rid');
+    $result = db_query('SELECT DISTINCT g.uri g FROM {'. db_escape_table($table) .'} d INNER JOIN {rdf_resources} g ON d.gid = g.rid');
     while ($row = db_fetch_object($result)) {
       $contexts[$row->g] = TRUE;
     }
@@ -80,12 +80,12 @@ function rdf_db_rdf_delete($table, $subject, $predicate, $object, array $options
   $conditions = $values = array();
   foreach (get_object_vars($record) as $key => $value) {
     if (!is_null($value)) {
-      $conditions[] = $key . ' = ' . db_type_placeholder($schema['fields'][$key]['type']);
+      $conditions[] = $key .' = '. db_type_placeholder($schema['fields'][$key]['type']);
       $values[] = $value;
     }
   }
 
-  return !!db_query('DELETE FROM {' . $table . '}' . (empty($conditions) ? '' : (' WHERE ' . implode(' AND ', $conditions))), $values);
+  return !!db_query('DELETE FROM {'. $table .'}'. (empty($conditions) ? '' : (' WHERE '. implode(' AND ', $conditions))), $values);
 }
 
 /**
@@ -139,7 +139,7 @@ function rdf_db_get_repository_tables() {
   }
 
   if (!empty($result)) {
-    $prefix_length = strlen(db_prefix_tables('{' . RDF_DB_TABLE_PREFIX . '}')) - strlen(RDF_DB_TABLE_PREFIX);
+    $prefix_length = strlen(db_prefix_tables('{'. RDF_DB_TABLE_PREFIX .'}')) - strlen(RDF_DB_TABLE_PREFIX);
     while ($row = db_fetch_array($result)) {
       $table = reset($row); // first column
       $tables[] = substr($table, $prefix_length);
@@ -149,7 +149,7 @@ function rdf_db_get_repository_tables() {
 }
 
 function rdf_db_load_repository($name) {
-  $metadata = variable_get('rdf_db_repository[' . $name . ']', array());
+  $metadata = variable_get('rdf_db_repository['. $name .']', array());
   return (object)array('name' => $name, 'title' => @$metadata['dc:title'], 'description' => @$metadata['dc:description']);
 }
 
@@ -175,16 +175,16 @@ function rdf_db_rename_repository($old_name, $new_name) {
 }
 
 function rdf_db_update_repository_metadata($name, $metadata = array()) {
-  variable_set('rdf_db_repository[' . $name . ']', $metadata);
+  variable_set('rdf_db_repository['. $name .']', $metadata);
 }
 
 function rdf_db_delete_repository_metadata($name) {
-  variable_del('rdf_db_repository[' . $name . ']');
+  variable_del('rdf_db_repository['. $name .']');
 }
 
 function rdf_db_count_repository_triples($name = NULL) {
   $table = db_escape_table(!$name ? RDF_DB_TABLE_DEFAULT : RDF_DB_TABLE_PREFIX . $name);
-  return db_result(db_query('SELECT COUNT(did) FROM {' . $table . '}'));
+  return db_result(db_query('SELECT COUNT(did) FROM {'. $table .'}'));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -248,7 +248,7 @@ function _rdf_db_sql_select($table, $subject, $predicate, $object, $options = ar
     $where[] = sprintf(is_object($object) ? "o.uri = '%s'" : "d.data = '%s'", db_escape_string((string)$object));
   }
 
-  $query[] = empty($where) ? '' : 'WHERE (' . implode(') AND (', $where) . ')';
+  $query[] = empty($where) ? '' : 'WHERE ('. implode(') AND (', $where) .')';
   $query[] = 'ORDER BY d.did ASC';
   return implode("\n", $query);
 }

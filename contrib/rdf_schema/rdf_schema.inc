@@ -13,7 +13,7 @@ function rdf_schema_get_class_uri($class) {
 }
 
 function rdf_schema_get_property_uri($class, $property) {
-  return RDF_SCHEMA_URI . $class . '#' . $property;
+  return RDF_SCHEMA_URI . $class .'#'. $property;
 }
 
 function rdf_schema_get_entities() {
@@ -59,7 +59,7 @@ function rdf_schema_get_resources() {
     while ($row = db_fetch_array($result)) {
       $uri = $class_info['uri'];
       foreach ($row as $field => $value) {
-        $uri = str_replace('%' . $field, $value, $uri);
+        $uri = str_replace('%'. $field, $value, $uri);
       }
 
       $uri_options = array();
@@ -100,8 +100,8 @@ function rdf_schema_load_schema() {
 }
 
 function rdf_schema_load_schema_class($class, $class_info, $comment = NULL) {
-  $comment = !empty($comment) ? $comment : module_invoke($class_info['module'], 'help', 'node/add/#' . $class, NULL);
-  $comment = !empty($comment) ? $comment : module_invoke($class_info['module'], 'help', 'admin/help#' . $class_info['module'], NULL);
+  $comment = !empty($comment) ? $comment : module_invoke($class_info['module'], 'help', 'node/add/#'. $class, NULL);
+  $comment = !empty($comment) ? $comment : module_invoke($class_info['module'], 'help', 'admin/help#'. $class_info['module'], NULL);
   return array(
     rdf::type         => rdf_qname_to_uriref('rdfs:Class'),
     rdfs::isDefinedBy => rdf_uri(RDF_SCHEMA_URI),
@@ -149,7 +149,7 @@ function rdf_schema_load_user($user) {
 function rdf_schema_load_node($node) {
   $node = is_object($node) ? $node : node_load((int)$node);
   return array(
-    rdf::type         => rdf_uri(rdf_qname_to_uri(variable_get('rdf_schema_class_' . $node->type, 'drupal:node'))),
+    rdf::type         => rdf_uri(rdf_qname_to_uri(variable_get('rdf_schema_class_'. $node->type, 'drupal:node'))),
     'node:nid'        => (int)$node->nid,
     'node:vid'        => (int)$node->vid,
     'node:uid'        => (int)$node->uid,
@@ -171,7 +171,7 @@ function rdf_schema_load_node($node) {
 // Forms API helper functions
 
 function _rdf_schema_get_form($entity) {
-  $form_builder = '_rdf_schema_get_' . $entity . '_form';
+  $form_builder = '_rdf_schema_get_'. $entity .'_form';
   $form = function_exists($form_builder) ? $form_builder() : array();
   return _rdf_schema_cleanup_form($form);
 }
@@ -182,7 +182,7 @@ function _rdf_schema_get_user_form() {
 }
 
 function _rdf_schema_get_vocabulary_form() {
-  require_once drupal_get_path('module', 'taxonomy') . '/taxonomy.admin.inc';
+  require_once drupal_get_path('module', 'taxonomy') .'/taxonomy.admin.inc';
 
   $form = @taxonomy_form_vocabulary($form_state);
   $form['vid']['#title'] = t('ID');
@@ -190,7 +190,7 @@ function _rdf_schema_get_vocabulary_form() {
 }
 
 function _rdf_schema_get_term_form() {
-  require_once drupal_get_path('module', 'taxonomy') . '/taxonomy.admin.inc';
+  require_once drupal_get_path('module', 'taxonomy') .'/taxonomy.admin.inc';
 
   // TODO: pass a fake $vocabulary object to get all fields?
   $form = @taxonomy_form_term($form_state);
@@ -199,7 +199,7 @@ function _rdf_schema_get_term_form() {
 }
 
 function _rdf_schema_get_node_form($type = 'page') {
-  require_once drupal_get_path('module', 'node') . '/node.pages.inc';
+  require_once drupal_get_path('module', 'node') .'/node.pages.inc';
 
   $user = user_load(1);
   $node = array('uid' => $user->uid, 'name' => $user->name, 'type' => $type, 'language' => '');

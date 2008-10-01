@@ -10,12 +10,12 @@ function rdf_export_site() {
 }
 
 function rdf_export_entity($type, $id) {
-  $data = rdf_query(url($type . '/' . $id, array('absolute' => TRUE)));
+  $data = rdf_query(url($type .'/'. $id, array('absolute' => TRUE)));
   rdf_export($data, implode('-', array($type, $id)));
 }
 
 function rdf_export($data, $filename = 'export', $format = RDF_FORMAT, $options = array()) {
-  //require_once drupal_get_path('module', 'rdf_export') . '/rdf_export.inc';
+  //require_once drupal_get_path('module', 'rdf_export') .'/rdf_export.inc';
 
   $formats = rdf_get_formats();
   $format = isset($formats[@$_GET['format']]) ? $_GET['format'] : $format;
@@ -29,8 +29,8 @@ function rdf_export($data, $filename = 'export', $format = RDF_FORMAT, $options 
   $output = rdf_serialize(is_string($data) ? $data() : $data, array('format' => $format->name));
 
   //$format->mime_type = 'text/plain'; // FIXME
-  header('Content-Disposition: inline; filename=' . $filename);
-  header('Content-Type: ' . $format->mime_type . '; charset=' . $format->encoding);
-  header('Content-Length: ' . strlen($output));
+  header('Content-Disposition: inline; filename='. $filename);
+  header('Content-Type: '. $format->mime_type .'; charset='. $format->encoding);
+  header('Content-Length: '. strlen($output));
   die($output);
 }

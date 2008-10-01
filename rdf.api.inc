@@ -4,7 +4,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // RDF API settings
 
-define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc');
+define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') .'/vendor/arc');
 define('RDF_FORMAT',    variable_get('rdf_format', 'rdf+json'));
 define('RDF_SITE_URI',  url(NULL, array('absolute' => TRUE)));
 
@@ -187,7 +187,7 @@ function rdf_triple($subject, $predicate, $object) {
 }
 
 function rdf_mailto($email) {
-  return rdf_uri('mailto:' . $email);
+  return rdf_uri('mailto:'. $email);
 }
 
 function rdf_uri($uri) {
@@ -221,7 +221,7 @@ function rdf_is_var($value) {
 // RDF API helper functions
 
 function rdf_is_local_uri($uri) {
-  $base_uri = $GLOBALS['base_url'] . '/'; // FIXME?
+  $base_uri = $GLOBALS['base_url'] .'/'; // FIXME?
   return (strpos($uri, $base_uri) === 0) ? substr($uri, strlen($base_uri)) : FALSE;
 }
 
@@ -285,13 +285,13 @@ function rdf_uri_to_qname($uri, $gensym = TRUE) {
   // No existing namespace prefix found, make one up
   if ($gensym && preg_match('@([\w\d-_]+)$@', $uri, $matches)) {
     static $gensym = 0;
-    $prefix = 'g.' . ++$gensym; // Good ol' Lisp tradition continues...
+    $prefix = 'g.'. ++$gensym; // Good ol' Lisp tradition continues...
     $local_part = $matches[1];
     $rdf_namespaces[$prefix] = substr($uri, 0, -strlen($local_part));
     return implode(':', array($prefix, $local_part));
   }
 
-  //trigger_error('Could not convert URI ' . $uri . ' to QName', E_USER_WARNING);
+  //trigger_error('Could not convert URI '. $uri .' to QName', E_USER_WARNING);
   return NULL;
 }
 
@@ -394,7 +394,7 @@ function rdf_serialize($data, array $options = array()) {
   $formats = rdf_get_formats('info', 'w');
   $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
   if (isset($formats[$format]->file)) {
-    require_once drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
+    require_once drupal_get_path('module', $formats[$format]->module) .'/'. $formats[$format]->file;
   }
   if (!isset($formats[$format])) {
     return FALSE;
@@ -407,7 +407,7 @@ function rdf_unserialize($text, array $options = array()) {
   $formats = rdf_get_formats('info', 'r');
   $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
   if (isset($formats[$format]->file)) {
-    require_once drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
+    require_once drupal_get_path('module', $formats[$format]->module) .'/'. $formats[$format]->file;
   }
   return isset($formats[$format]) ? call_user_func($formats[$format]->unserialize, $text, $options) : FALSE;
 }
@@ -468,7 +468,7 @@ function rdf_serialize_xml($data, array $options = array()) {
 
   $namespaces = rdf_get_prefixes($data, $namespaces);
   foreach ($namespaces as $prefix => $uri) {
-    $xml->writeAttribute('xmlns:' . $prefix, $uri);
+    $xml->writeAttribute('xmlns:'. $prefix, $uri);
   }
 
   foreach ($data as $subject => $predicates) {
@@ -834,7 +834,7 @@ function rdf_load_site() {
     dc::title        => rdf_literal(variable_get('site_name', 'Drupal'), 'en'),
     dc::description  => variable_get('site_mission', ''),
     dc::publisher    => rdf_mailto(variable_get('site_mail', ini_get('sendmail_from'))),
-    dc::creator      => rdf_uri('http://drupal.org/#' . DRUPAL_CORE_COMPATIBILITY),
+    dc::creator      => rdf_uri('http://drupal.org/#'. DRUPAL_CORE_COMPATIBILITY),
   );
 }
 
@@ -971,7 +971,7 @@ class RDF_URIRef {
   }
 
   public function to_n3() {
-    return '<' . $this->uri . '>';
+    return '<'. $this->uri .'>';
   }
 
   public function __toString() {
@@ -996,7 +996,7 @@ class RDF_BNode extends RDF_URIRef {
   }
 
   public function qname() {
-    return '_:' . $id;
+    return '_:'. $id;
   }
 
   public function to_array() {
@@ -1004,7 +1004,7 @@ class RDF_BNode extends RDF_URIRef {
   }
 
   public function to_n3() {
-    return '_:' . substr($this->uri, strlen('http://bnode.net/')); // FIXME
+    return '_:'. substr($this->uri, strlen('http://bnode.net/')); // FIXME
   }
 }
 
@@ -1063,6 +1063,6 @@ class RDF_Variable {
   }
 
   function __toString() {
-    return '?' . $this->name;
+    return '?'. $this->name;
   }
 }

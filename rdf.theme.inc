@@ -85,8 +85,8 @@ function theme_rdf_value($value) {
     case 'string':
       return check_plain(truncate_utf8($value, 56, TRUE, TRUE));
     case 'literal':
-      $tooltip = !empty($value->language) ? '@' . $value->language : $value->qname();
-      return '<span' . drupal_attributes(array('title' => $tooltip)) . '>' . check_plain($value->value) . '</span>';
+      $tooltip = !empty($value->language) ? '@'. $value->language : $value->qname();
+      return '<span'. drupal_attributes(array('title' => $tooltip)) .'>'. check_plain($value->value) .'</span>';
   }
 }
 
