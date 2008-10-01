@@ -7,12 +7,51 @@
 function rdf_admin_settings() {
   $form = array();
 
+  // Formats
+  $form['formats'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => t('Formats'),
+    '#collapsible' => TRUE,
+    '#collapsed'   => FALSE,
+    '#description' => rdf_help('admin/settings/rdf#formats'),
+  );
+
   $formats = array();
   foreach (rdf_get_formats('names') as $key => $value) {
     $formats[$key] = '';
   }
-  $form['formats'] = array('#type' => 'fieldset', '#title' => t('Formats'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#description' => rdf_help('admin/settings/rdf#formats'));
   $form['formats']['rdf_format'] = array('#type' => 'radios', '#options' => $formats, '#default_value' => RDF_FORMAT);
+
+  // Maintenance
+  $form['maintenance'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => t('Maintenance'),
+    '#collapsible' => TRUE,
+    '#collapsed'   => TRUE,
+    '#description' => rdf_help('admin/settings/rdf#maintenance'),
+    '#weight'      => 70,
+  );
+  $form['maintenance']['rdf_db_prevent_duplicates'] = array(
+    '#type'          => 'radios',
+    '#title'         => t('Prevent duplicate statement insertion'),
+    '#default_value' => (int)variable_get('rdf_db_prevent_duplicates', FALSE),
+    '#options'       => array(FALSE => t('Disabled'), TRUE => t('Enabled')),
+    '#description'   => t('Whether to always perform a check to see if an RDF statement that is about to be inserted into a local RDF repository already exists in said repository, in which case the insertion request can be silently ignored. Note that this involves a slight performance hit, and it may be a good idea to disable this option e.g. when importing large RDF data sets.'),
+  );
+  $form['maintenance']['rdf_db_merge_duplicates'] = array(
+    '#type'          => 'radios',
+    '#title'         => t('Merge duplicate statements on cron runs'),
+    '#default_value' => (int)variable_get('rdf_db_merge_duplicates', FALSE),
+    '#options'       => array(FALSE => t('Disabled'), TRUE => t('Enabled')),
+    '#description'   => t('Whether to check for and remove superfluous identical RDF statements in each local RDF repository during cron runs, ensuring each repository contains only unique statements. It may be useful to enable this after importing large RDF data sets if the real-time duplicate prevention option was disabled during the import.'),
+  );
+  $form['maintenance']['rdf_db_purge_resources'] = array(
+    '#type'          => 'radios',
+    '#title'         => t('Purge unused resource URIs on cron runs'),
+    '#default_value' => (int)variable_get('rdf_db_purge_resources', FALSE),
+    '#options'       => array(FALSE => t('Disabled'), TRUE => t('Enabled')),
+    '#description'   => t('Whether to perform periodic purges of unused resource URIs on cron runs, decreasing the size of the <code>rdf_resources</code> table. It may be useful to enable this when dealing with transient RDF data sets that contain large numbers of URIs that are not likely to be seen again once the data sets expire or are removed.'),
+  );
 
   return array_merge_recursive(system_settings_form($form), array('#theme' => 'rdf_admin_settings', 'buttons' => array('#weight' => 99)));
 }
