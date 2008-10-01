@@ -44,7 +44,7 @@ function rdf_help($path, $arg = NULL) {
     case 'admin/settings/rdf/namespaces':
       return '<p>' . t('<a href="http://drupal.org/node/219858#namespaces">Namespaces</a> define URI abbreviations for use in <a href="http://drupal.org/node/219856#curie" title="Compact URIs">CURIEs</a> and for purposes of human-friendly display of RDF data.') . '</p>';
     case 'admin/settings/rdf/contexts':
-      return '<p>' . t('<a href="http://drupal.org/node/219858#contexts">Contexts</a>, also known as <a href="http://www.w3.org/2004/03/trix/">named graphs</a>,  ....') . '</p>';
+      return '<p>' . t('<a href="http://drupal.org/node/219858#contexts">Contexts</a>, also known as <a href="http://www.w3.org/2004/03/trix/">named graphs</a>, provide a mechanism for grouping RDF statements (e.g. by their provenance), facilitating mass operations on a set of statements.') . '</p>';
     case 'admin/settings/rdf/repositories':
       return '<p>' . t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') . '</p>';
     case 'admin/settings/rdf/repositories/rdf/add':
@@ -106,6 +106,7 @@ function rdf_menu() {
     // Administer >> Content management >> RDF data
     'admin/content/rdf' => array(
       'title' => 'RDF data',
+      'description' => 'Query, create, and delete RDF statements.',
       'access arguments' => array('administer RDF data'),
       'page callback' => 'drupal_get_form',
       'page arguments' => array('rdf_admin_data'),
@@ -297,7 +298,7 @@ function rdf_theme() {
 /**
  * Implementation of hook_cron().
  */
-function rdf_db_cron() {
+function rdf_cron() {
   // TODO: Run CHECK TABLE on {rdf_data_*}
   // TODO: Purge unused URLs from {rdf_resources} ?
   // TODO: Merge duplicate statements in {rdf_data_*} ?
