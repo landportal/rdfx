@@ -15,7 +15,7 @@ function rdf_export_entity($type, $id) {
 }
 
 function rdf_export($data, $filename = 'export', $format = RDF_FORMAT, $options = array()) {
-  //require_once drupal_get_path('module', 'rdf_export') .'/rdf_export.inc';
+  //module_load_include('inc', 'rdf_export', 'rdf_export');
 
   $formats = rdf_get_formats();
   $format = isset($formats[@$_GET['format']]) ? $_GET['format'] : $format;

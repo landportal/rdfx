@@ -182,7 +182,7 @@ function _rdf_schema_get_user_form() {
 }
 
 function _rdf_schema_get_vocabulary_form() {
-  require_once drupal_get_path('module', 'taxonomy') .'/taxonomy.admin.inc';
+  module_load_include('inc', 'taxonomy', 'taxonomy.admin');
 
   $form = @taxonomy_form_vocabulary($form_state);
   $form['vid']['#title'] = t('ID');
@@ -190,7 +190,7 @@ function _rdf_schema_get_vocabulary_form() {
 }
 
 function _rdf_schema_get_term_form() {
-  require_once drupal_get_path('module', 'taxonomy') .'/taxonomy.admin.inc';
+  module_load_include('inc', 'taxonomy', 'taxonomy.admin');
 
   // TODO: pass a fake $vocabulary object to get all fields?
   $form = @taxonomy_form_term($form_state);
@@ -199,7 +199,7 @@ function _rdf_schema_get_term_form() {
 }
 
 function _rdf_schema_get_node_form($type = 'page') {
-  require_once drupal_get_path('module', 'node') .'/node.pages.inc';
+  module_load_include('inc', 'node', 'node.pages');
 
   $user = user_load(1);
   $node = array('uid' => $user->uid, 'name' => $user->name, 'type' => $type, 'language' => '');

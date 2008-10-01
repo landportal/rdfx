@@ -462,7 +462,7 @@ function rdf_export_admin_screen_validate($form, &$form_state) {
 }
 
 function rdf_export_admin_screen_submit($form, &$form_state) {
-  require_once drupal_get_path('module', 'rdf') .'/rdf.pages.inc';
+  module_load_include('inc', 'rdf', 'rdf.pages');
 
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
   $repos = array_values(array_filter($repos, 'is_string'));

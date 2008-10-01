@@ -8,9 +8,8 @@
  * Implementation of hook_init().
  */
 function rdf_init() {
-  $path = drupal_get_path('module', 'rdf');
-  require_once $path . '/rdf.api.inc';
-  require_once $path . '/rdf.db.inc';
+  module_load_include('inc', 'rdf', 'rdf.api');
+  module_load_include('inc', 'rdf', 'rdf.db');
 
   rdf_define_vocabularies(); // TODO: replace with autoload-based solution
 
@@ -21,12 +20,12 @@ function rdf_init() {
   // Attempt to load the ARC2 library, if available. This library must be
   // manually installed by the administrator due to license incompatibility.
   if (!class_exists('ARC2')) {
-    @include_once RDF_ARC2_PATH . '/ARC2.php';
+    @include_once RDF_ARC2_PATH .'/ARC2.php';
   }
 
   // Integrate into the Services API, if available.
   if (module_exists('services')) {
-    require_once $path . '/rdf.services.inc';
+    module_load_include('inc', 'rdf', 'rdf.services');
   }
 }
 
@@ -36,19 +35,19 @@ function rdf_init() {
 function rdf_help($path, $arg = NULL) {
   switch ($path) {
     case 'admin/content/rdf':
-      return '<p>' . t('Any knowledge about anything can be decomposed into statements of <em>triples</em> (3-tuples) consisting of <em>subject</em>, <em>predicate</em>, and <em>object</em>.') . '</p>';
+      return '<p>'. t('Any knowledge about anything can be decomposed into statements of <em>triples</em> (3-tuples) consisting of <em>subject</em>, <em>predicate</em>, and <em>object</em>.') .'</p>';
     case 'admin/settings/rdf':
-      return '<p>' . t('<a href="http://drupal.org/handbook/modules/rdf" title="Resource Description Framework">RDF</a> is a <a href="http://www.w3.org/RDF/">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption.') . '</p>';
+      return '<p>'. t('<a href="http://drupal.org/handbook/modules/rdf" title="Resource Description Framework">RDF</a> is a <a href="http://www.w3.org/RDF/">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption.') .'</p>';
     case 'admin/settings/rdf#formats':
-      return '<p>' . t('RDF data can be serialized into a number of textual formats (also known as representations). The two built-in, always available formats are <a href="http://drupal.org/node/219870">RDF/PHP</a> and <a href="http://drupal.org/node/219874">RDF/JSON</a>. For interoperability with more RDF formats, you can <a href="@status">install the ARC2 library</a> which adds parsing/serialization support for several widespread formats.', array('@status' => url('admin/reports/status'))) . '</p>';
+      return '<p>'. t('RDF data can be serialized into a number of textual formats (also known as representations). The two built-in, always available formats are <a href="http://drupal.org/node/219870">RDF/PHP</a> and <a href="http://drupal.org/node/219874">RDF/JSON</a>. For interoperability with more RDF formats, you can <a href="@status">install the ARC2 library</a> which adds parsing/serialization support for several widespread formats.', array('@status' => url('admin/reports/status'))) .'</p>';
     case 'admin/settings/rdf/namespaces':
-      return '<p>' . t('<a href="http://drupal.org/node/219858#namespaces">Namespaces</a> define URI abbreviations for use in <a href="http://drupal.org/node/219856#curie" title="Compact URIs">CURIEs</a> and for purposes of human-friendly display of RDF data.') . '</p>';
+      return '<p>'. t('<a href="http://drupal.org/node/219858#namespaces">Namespaces</a> define URI abbreviations for use in <a href="http://drupal.org/node/219856#curie" title="Compact URIs">CURIEs</a> and for purposes of human-friendly display of RDF data.') .'</p>';
     case 'admin/settings/rdf/contexts':
-      return '<p>' . t('<a href="http://drupal.org/node/219858#contexts">Contexts</a>, also known as <a href="http://www.w3.org/2004/03/trix/">named graphs</a>, provide a mechanism for grouping RDF statements (e.g. by their provenance), facilitating mass operations on a set of statements.') . '</p>';
+      return '<p>'. t('<a href="http://drupal.org/node/219858#contexts">Contexts</a>, also known as <a href="http://www.w3.org/2004/03/trix/">named graphs</a>, provide a mechanism for grouping RDF statements (e.g. by their provenance), facilitating mass operations on a set of statements.') .'</p>';
     case 'admin/settings/rdf/repositories':
-      return '<p>' . t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') . '</p>';
+      return '<p>'. t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') .'</p>';
     case 'admin/settings/rdf/repositories/rdf/add':
-      return '<p>' . t('To create a new local RDF repository, enter the human-readable name, the machine-readable name, and all other relevant fields that are on this page.') . '</p>';
+      return '<p>'. t('To create a new local RDF repository, enter the human-readable name, the machine-readable name, and all other relevant fields that are on this page.') .'</p>';
   }
 }
 
@@ -311,7 +310,7 @@ function rdf_user($op, &$edit, &$account, $category = NULL) {
   switch ($op) {
     case 'view':
       if (user_access('access RDF data')) {
-        rdf_add_autodiscovery_link(t('RDF'), url('user/' . $account->uid . '/rdf'));
+        rdf_add_autodiscovery_link(t('RDF'), url('user/'. $account->uid .'/rdf'));
       }
       break;
   }
@@ -324,7 +323,7 @@ function rdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   switch ($op) {
     case 'view':
       if (user_access('access RDF data')) {
-        rdf_add_autodiscovery_link(t('RDF'), url('node/' . $node->nid . '/rdf'));
+        rdf_add_autodiscovery_link(t('RDF'), url('node/'. $node->nid .'/rdf'));
       }
       break;
   }
@@ -478,7 +477,7 @@ function rdf_rdf_query($subject, $predicate, $object, $options = array()) {
 
   $data = array();
   foreach (module_implements('rdf_resources') as $module) {
-    $function = $module . '_rdf_resources';
+    $function = $module .'_rdf_resources';
     if ($resources = $function($context)) {
       foreach ($resources as $uri => $callback) {
         if (!$subject || (string)$subject == $uri) {
