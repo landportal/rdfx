@@ -247,10 +247,12 @@ function rdf_is_valid_qname($qname) {
 }
 
 function rdf_qname_to_uri($qname) {
-  $namespaces = rdf_get_namespaces();
-  list($prefix, $local_part) = explode(':', $qname, 2);
-  if (isset($namespaces[$prefix])) {
-    return $namespaces[$prefix] . $local_part;
+  if (rdf_is_valid_qname($qname)) {
+    $namespaces = rdf_get_namespaces();
+    list($prefix, $local_part) = explode(':', $qname, 2);
+    if (isset($namespaces[$prefix])) {
+      return $namespaces[$prefix] . $local_part;
+    }
   }
   return $qname; // FIXME!
 }
