@@ -217,6 +217,18 @@ function rdf_is_var($value) {
   return is_object($value) && ($value instanceof RDF_Variable);
 }
 
+function rdf_seq() {
+  return new RDF_Seq(func_get_args());
+}
+
+function rdf_bag() {
+  return new RDF_Seq(func_get_args());
+}
+
+function rdf_alt() {
+  return new RDF_Seq(func_get_args());
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // RDF API helper functions
 
@@ -267,7 +279,10 @@ function rdf_uri_to_qname($uri, $gensym = TRUE) {
     rdf_get_namespaces();
   }
 
-  $uri = (string)$uri;
+  if (!rdf_is_valid_uri($uri = (string)$uri)) {
+    return $uri;
+  }
+
   $best_prefix = $best_match = '';
 
   // Attempt to find the longest substring match
@@ -380,6 +395,7 @@ function rdf_deobjectify($input) {
   $output = array();
   foreach ($input as $s => $ps) {
     foreach ($ps as $p => $os) {
+      $os = is_array($os) ? $os : array($os);
       foreach ($os as $o) {
         $output[$s][$p][] = is_object($o) ? $o->to_array() : (!is_array($o) ? array('type' => 'literal', 'value' => (string)$o) : $o); // FIXME
       }
@@ -459,7 +475,7 @@ function rdf_unserialize_ntriples($text, array $options = array()) {
 }
 
 function rdf_serialize_xml($data, array $options = array()) {
-  $namespaces = @$options['namespaces'];
+  $namespaces = array_merge(rdf_get_namespaces(), is_array(@$options['namespaces']) ? @$options['namespaces'] : array());
 
   $xml = new XMLWriter(); // requires PHP 5.1.2+
   $xml->openMemory();
@@ -473,14 +489,36 @@ function rdf_serialize_xml($data, array $options = array()) {
     $xml->writeAttribute('xmlns:'. $prefix, $uri);
   }
 
+  $bnode_map = array();
+  $bnode_id = 0;
   foreach ($data as $subject => $predicates) {
-    $xml->startElement('rdf:Description');
-    $xml->writeAttribute('rdf:about', $subject);
+    $type = 'rdf:Description';
+
+    // Support the typed node element syntax where possible:
+    foreach ($predicates as $predicate => &$objects) {
+      $qname = rdf_uri_to_qname($predicate);
+      if ($qname == 'rdf:type') {
+        $type = rdf_uri_to_qname(array_shift($objects));
+        if (empty($objects)) {
+          unset($predicates[$predicate]);
+        }
+        break;
+      }
+    }
+
+    $xml->startElement($type);
+    if (RDF_BNode::match($subject)) {
+      $xml->writeAttribute('rdf:nodeID', !isset($bnode_map[$subject]) ? ($bnode_map[$subject] = 'b'. ++$bnode_id) : $bnode_map[$subject]);
+    }
+    else { // RDF_URIRef
+      $xml->writeAttribute('rdf:about', $subject);
+    }
 
     foreach ($predicates as $predicate => $objects) {
       $qname = rdf_uri_to_qname($predicate);
+      $objects = is_array($objects) ? $objects : array($object);
 
-      foreach ($objects as $object) { // FIXME:
+      foreach ($objects as $object) {
 
         if (!is_object($object)) { // plain literal
           $xml->writeElement($qname, (string)$object);
@@ -494,6 +532,11 @@ function rdf_serialize_xml($data, array $options = array()) {
           $xml->text((string)$object->value);
           $xml->endElement();
         }
+        else if ($object instanceof RDF_BNode) { // blank node
+          $xml->startElement($qname);
+          $xml->writeAttribute('rdf:nodeID', !isset($bnode_map[(string)$object]) ? ($bnode_map[(string)$object] = 'b'. ++$bnode_id) : $bnode_map[(string)$object]);
+          $xml->endElement();
+        }
         else { // RDF_URIRef, or the like
           $xml->startElement($qname);
           $xml->writeAttribute('rdf:resource', (string)$object);
@@ -503,7 +546,7 @@ function rdf_serialize_xml($data, array $options = array()) {
       }
     }
 
-    $xml->endElement(); // rdf:Description
+    $xml->endElement(); // rdf:Description, or $type
   }
 
   $xml->endElement(); // rdf:RDF
@@ -710,7 +753,6 @@ function rdf_get_prefixes(array $data, $namespaces = NULL) {
       }
     }
   }
-
   return $result;
 }
 
@@ -720,9 +762,9 @@ function rdf_get_prefixes(array $data, $namespaces = NULL) {
 /**
  * Adds an RDF auto-discovery <link> tag to the page's <head> element.
  */
-function rdf_add_autodiscovery_link($title, $path, $format = RDF_FORMAT) {
+function rdf_add_autodiscovery_link($title, $path, $format = RDF_FORMAT, array $options = array()) {
   $formats = rdf_get_formats();
-  drupal_add_link(array('rel'   => 'meta', 'type'  => $formats[$format]->mime_type, 'title' => $title, 'href'  => $path));
+  drupal_add_link(array_merge(array('rel' => 'meta', 'type' => $formats[$format]->mime_type, 'title' => $title, 'href' => $path), $options));
 }
 
 function rdf_get_uuid() {
@@ -952,12 +994,12 @@ class RDF_URIRef {
   public static $resources = array();
   public $uri;
 
-  public static function uri($uri) {
+  public static function uri($uri, $class = __CLASS__) {
     if (is_object($uri) && $uri instanceof RDF_URIRef) {
       return $uri; // for convenience
     }
     if (!array_key_exists($uri, self::$resources)) {
-      $resource = new RDF_URIRef($uri);
+      $resource = new $class($uri);
       self::$resources[$uri] = $resource;
       return $resource;
     }
@@ -989,12 +1031,16 @@ class RDF_URIRef {
  * @see http://www.w3.org/TR/rdf-concepts/#section-blank-nodes
  */
 class RDF_BNode extends RDF_URIRef {
+  public static function match($uri) {
+    return strpos($uri, 'http://bnode.net/') === 0;
+  }
+
   public static function generate() {
     return self::id(rdf_get_uuid());
   }
 
   public static function id($id) {
-    return self::uri('http://bnode.net/'. $id);
+    return self::uri('http://bnode.net/'. $id, __CLASS__);
   }
 
   public function qname() {
@@ -1067,4 +1113,41 @@ class RDF_Variable {
   function __toString() {
     return '?'. $this->name;
   }
+}
+
+class RDF_Collection implements ArrayAccess {
+  public $items, $uri;
+
+  function __construct(array $items = array()) {
+    $this->items = $items;
+    $this->uri   = rdf_bnode();
+  }
+
+  function offsetExists($offset)      { return isset($this->items[$offset]); }
+  function offsetGet($offset)         { return $this->items[$offset]; }
+  function offsetSet($offset, $value) { return is_null($offset) ? $this->items[] = $value : $this->items[$offset] = $value; }
+  function offsetUnset($offset)       { unset($this->items[$offset]); }
+
+  function uriref()                   { return $this->uri; }
+
+  function to_triples($indexed = FALSE) {
+    $data = array(array($this->uri, 'rdf:type', rdf_qname_to_uriref($this->predicate())));
+    $index = 0;
+    foreach ($this->items as $item) {
+      $data[] = array($this->uri, ($indexed ? 'rdf:_'. ++$index : 'rdf:li'), $item);
+    }
+    return $data;
+  }
+}
+
+class RDF_Seq extends RDF_Collection {
+  function predicate() { return 'rdf:Seq'; }
+}
+
+class RDF_Bag extends RDF_Collection {
+  function predicate() { return 'rdf:Bag'; }
+}
+
+class RDF_Alt extends RDF_Collection {
+  function predicate() { return 'rdf:Alt'; }
 }
