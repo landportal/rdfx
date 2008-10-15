@@ -222,11 +222,11 @@ function rdf_seq() {
 }
 
 function rdf_bag() {
-  return new RDF_Seq(func_get_args());
+  return new RDF_Bag(func_get_args());
 }
 
 function rdf_alt() {
-  return new RDF_Seq(func_get_args());
+  return new RDF_Alt(func_get_args());
 }
 
 //////////////////////////////////////////////////////////////////////////////
