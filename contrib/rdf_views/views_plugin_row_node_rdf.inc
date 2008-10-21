@@ -73,6 +73,7 @@ class views_plugin_row_node_rdf extends views_plugin_row {
       array($item->url, 'rss:title', $item->title),
       array($item->url, 'rss:link', $item->link), // NOTE: it actually *is* defined as an xsd:string property, not a URI.
       array($item->url, 'rss:description', $item_text),
+      array($item->url, 'dc:date', $item->created),
     );
 
     // Query the RDF API for all available information on this node. The RDF
@@ -99,6 +100,17 @@ class views_plugin_row_node_rdf extends views_plugin_row {
             }
           }
         }
+      }
+    }
+
+    // HACK: this snippet provides direct support for the Location module.
+    if (isset($item->location)) {
+      rdf_register_namespace('geo', 'http://www.w3.org/2003/01/geo/wgs84_pos#');
+      if (isset($item->location['latitude'])) {
+        $data[] = array($item->url, 'geo:lat', $item->location['latitude']);
+      }
+      if (isset($item->location['longitude'])) {
+        $data[] = array($item->url, 'geo:long', $item->location['longitude']);
       }
     }
 

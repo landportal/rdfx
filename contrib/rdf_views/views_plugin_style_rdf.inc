@@ -111,7 +111,7 @@ class views_plugin_style_rdf extends views_plugin_style {
     $path = ($path == variable_get('site_frontpage', 'node')) ? '' : $path;
     $link = check_url(url($path, $url_options));
 
-    // TODO: rdf_register_namespace('rss', 'http://purl.org/rss/1.0/');
+    rdf_register_namespace('rss', 'http://purl.org/rss/1.0/');
 
     // Construct the channel's metadata:
     $index   = rdf_seq();
