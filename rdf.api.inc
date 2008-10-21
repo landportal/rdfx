@@ -639,12 +639,16 @@ function rdf_serialize_turtle($data, array $options = array()) {
   }
 }
 
+function rdf_objects($objects) {
+  return is_array($objects) ? $objects : array($objects);
+}
+
 function rdf_serialize_ntriples($data, array $options = array()) {
   $namespaces = @$options['namespaces'];
 
   foreach ($data as $subject => $predicates) {
     foreach ($predicates as $predicate => $objects) {
-      foreach ($objects as $object) {
+      foreach (rdf_objects($objects) as $object) {
 
         printf('<%s> <%s> ', (string)$subject, (string)$predicate);
 
