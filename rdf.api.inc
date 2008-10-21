@@ -832,6 +832,11 @@ function rdf_get_repositories($what = 'info', $filters = array()) {
   return $repos;
 }
 
+function rdf_register_namespace($prefix, $uri) {
+  rdf_get_namespaces();
+  $GLOBALS['rdf_namespaces'][$prefix] = $uri;
+}
+
 function rdf_get_namespaces() {
   global $rdf_namespaces;
   if (empty($rdf_namespaces)) {
