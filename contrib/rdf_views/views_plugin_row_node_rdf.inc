@@ -87,6 +87,21 @@ class views_plugin_row_node_rdf extends views_plugin_row {
       }
     }
 
+    // HACK: this snippet provides direct support for RDF-mapped CCK fields. 
+    // This should eventually be properly handled by the RDF Schema module.
+    if (isset($item->content) && is_array($item->content)) {
+      foreach ($item->content as $field_name => $field_info) {
+        if (($field_uri = variable_get('rdf_schema_property_content_'. $field_name, '')) != '' && rdf_is_valid_uri($field_uri)) {
+          if (isset($item->$field_name)) {
+            $field_values = is_array($item->$field_name) ? $item->$field_name : array($item->$field_name);
+            foreach ($field_values as $field_value) {
+              $data[] = array($item->url, $field_uri, $field_value['value']);
+            }
+          }
+        }
+      }
+    }
+
     return $data;
   }
 }
