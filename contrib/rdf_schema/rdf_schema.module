@@ -72,9 +72,11 @@ function rdf_schema_form_alter(&$form, $form_state, $form_id) {
 
     // Administer >> User management >> Profiles >> Edit
     case 'profile_field_form':
+      $rdf_property = isset($form['fid']['#value']) ? variable_get('rdf_schema_property_profile_'. $form['fid']['#value'], '') : '';
+      $rdf_property = rdf_uri_to_qname($rdf_property, FALSE, $rdf_property);
       // The submitted value is stored using the callback function defined below.
       $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => isset($form['fid']['#value']) ? variable_get('rdf_schema_property_profile_'. $form['fid']['#value'], '') : '', '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => $rdf_property, '#maxlength' => 255, '#description' => t('') /* TODO */);
       $form['submit']['#weight'] = 40;
       $form['#submit'][] = 'rdf_schema_profile_field_form_submit';
       break;
@@ -97,10 +99,13 @@ function rdf_schema_form_alter(&$form, $form_state, $form_id) {
 
     // Administer >> Content management >> Content types >> (content type) >> Manage fields >> Configure
     case 'content_field_edit_form':
+      $rdf_property = variable_get('rdf_schema_property_content_'. $form['field_name']['#value'], '');
+      $rdf_property = rdf_uri_to_qname($rdf_property, FALSE, $rdf_property);
       // The submitted value is stored using the callback function defined below.
       $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => FALSE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF class'), '#default_value' => variable_get('rdf_schema_property_content_'. $form['field_name']['#value'], ''), '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => $rdf_property, '#maxlength' => 255, '#description' => t('') /* TODO */);
       $form['submit']['#weight'] = 90;
+      $form['#validate'][] = 'rdf_schema_field_form_validate';
       $form['#submit'][] = 'rdf_schema_content_field_form_submit';
       break;
   }
@@ -131,16 +136,33 @@ function rdf_schema_taxonomy($op, $type, $array = NULL) {
 //////////////////////////////////////////////////////////////////////////////
 // Forms API callbacks
 
+/**
+ * @see rdf_schema_form_alter()
+ */
+function rdf_schema_field_form_validate($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  if ($rdf_property != '' && !rdf_is_valid_uri($rdf_property) && !rdf_is_valid_curie($rdf_property)) {
+    form_set_error('rdf_property', t('RDF property is not a valid URI or CURIE.'));
+  }
+}
+
+/**
+ * @see rdf_schema_form_alter()
+ */
 function rdf_schema_profile_field_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
-  variable_set('rdf_schema_property_profile_'. $fid, $rdf_property);
+  variable_set('rdf_schema_property_profile_'. $fid, rdf_qname_to_uri($rdf_property));
 }
 
+/**
+ * @see rdf_schema_form_alter()
+ */
 function rdf_schema_content_field_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
-  variable_set('rdf_schema_property_content_'. $field_name, $rdf_property);
+  variable_set('rdf_schema_property_content_'. $field_name, rdf_qname_to_uri($rdf_property));
 }
 
 //////////////////////////////////////////////////////////////////////////////

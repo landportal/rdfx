@@ -273,7 +273,7 @@ function rdf_qname_to_uriref($qname) {
   return rdf_uri(rdf_qname_to_uri($qname)); // TODO: cache?
 }
 
-function rdf_uri_to_qname($uri, $gensym = TRUE) {
+function rdf_uri_to_qname($uri, $gensym = TRUE, $fail = NULL) {
   global $rdf_namespaces;
   if (empty($rdf_namespaces)) {
     rdf_get_namespaces();
@@ -309,7 +309,7 @@ function rdf_uri_to_qname($uri, $gensym = TRUE) {
   }
 
   //trigger_error('Could not convert URI '. $uri .' to QName', E_USER_WARNING);
-  return NULL;
+  return $fail;
 }
 
 //////////////////////////////////////////////////////////////////////////////
