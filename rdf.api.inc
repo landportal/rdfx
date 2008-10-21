@@ -247,7 +247,7 @@ function rdf_is_valid_url($url) {
 }
 
 function rdf_is_valid_urn($urn) {
-  return preg_match('/^mailto:/', $urn); // FIXME
+  return preg_match('/^urn:/', $urn) || preg_match('/^mailto:/', $urn); // FIXME
 }
 
 function rdf_is_valid_curie($curie) {

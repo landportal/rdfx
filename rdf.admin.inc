@@ -274,8 +274,8 @@ function rdf_db_admin_ns_form_validate($form, &$form_state) {
     form_set_error('uri', t('Base URI %uri contains illegal characters.', array('%uri' => $uri)));
   }
 
-  if (!preg_match('@[#/]$@', $uri)) {
-    form_set_error('uri', t('Base URI %uri must terminate with "#" or "/".', array('%uri' => $uri)));
+  if (!preg_match('@[#/:]$@', $uri)) {
+    form_set_error('uri', t('Base URI %uri must terminate with "#", "/" or ":".', array('%uri' => $uri)));
   }
 }
 
