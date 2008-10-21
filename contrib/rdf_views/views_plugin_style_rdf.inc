@@ -125,24 +125,44 @@ class views_plugin_style_rdf extends views_plugin_style {
       ),
     ));
 
-    // Compile the channel index and render the items:
+    // Invoke hook_rdf_views_feed_channel() to allow third-party modules to
+    // manipulate the channel metadata:
+    foreach (module_implements('rdf_views_feed_channel') as $module) {
+      $function = $module .'_rdf_views_feed_channel';
+      $function($this, $channel);
+    }
+
+    // Compile the channel index and render the items into triples:
     $items = array();
     foreach ($this->view->result as $row) {
       $index[] = url('node/'. $row->nid, array('absolute' => TRUE));
       $items = array_merge($items, $this->row_plugin->render($row));
     }
 
+    // Invoke hook_rdf_views_feed() to allow third-party modules to
+    // manipulate the full contents of the feed, including the metadata and
+    // all constituent feed items. Note that unlike the other two hooks,
+    // hook_rdf_views_feed_channel() and hook_rdf_views_feed_item(), the
+    // $data argument to this hook is given in normalized form. This makes
+    // manipulation easier and may be a good reason to implement this hook
+    // instead of the other two which, getting passed the triples in
+    // denormalized form, are more suited to easily adding more triples to
+    // the channel and the feed items than for manipulating existing data. 
+    // Implementers of this hook have final say in the feed output.
     $data = rdf_normalize(array_merge($channel, $index->to_triples(), $items));
+    foreach (module_implements('rdf_views_feed') as $module) {
+      $function = $module .'_rdf_views_feed';
+      $function($this, $data);
+    }
 
     $filename = implode('.', array('feed', $format->file_ext));
-    $content_type = $format->mime_type;
-    //$content_type = 'text/plain'; // DEBUG: disable for production.
+    $content_type = defined('TRACE_TEXT_OUTPUT') ? 'text/plain' : $format->mime_type;
     $content_encoding = $format->encoding;
     $content = rdf_serialize($data, array('format' => $format->name, 'language' => $language->language));
 
     drupal_set_header('Content-Disposition: inline; filename='. $filename);
     drupal_set_header('Content-Type: '. $content_type .'; charset='. $content_encoding);
     drupal_set_header('Content-Length: '. strlen($content));
-    return $content;
+    return ltrim($content);
   }
 }

@@ -102,6 +102,16 @@ class views_plugin_row_node_rdf extends views_plugin_row {
       }
     }
 
+    // Invoke hook_rdf_views_feed_item() to allow third-party modules to
+    // manipulate the already collected triples as well as add any further
+    // triples to the feed item. They can also do this by implementing the
+    // RDF Schema hooks, of course, but this hook provides the ultimate
+    // flexibility in deciding the composition of the RDF feeds' items.
+    foreach (module_implements('rdf_views_feed_item') as $module) {
+      $function = $module .'_rdf_views_feed_item';
+      $function($this, $item, $data);
+    }
+
     return $data;
   }
 }
