@@ -163,6 +163,6 @@ class views_plugin_style_rdf extends views_plugin_style {
     drupal_set_header('Content-Disposition: inline; filename='. $filename);
     drupal_set_header('Content-Type: '. $content_type .'; charset='. $content_encoding);
     drupal_set_header('Content-Length: '. strlen($content));
-    return ltrim($content);
+    die(ltrim($content));
   }
 }
