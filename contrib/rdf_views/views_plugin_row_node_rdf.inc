@@ -73,7 +73,7 @@ class views_plugin_row_node_rdf extends views_plugin_row {
       array($item->url, 'rss:title', $item->title),
       array($item->url, 'rss:link', $item->link), // NOTE: it actually *is* defined as an xsd:string property, not a URI.
       array($item->url, 'rss:description', $item_text),
-      array($item->url, 'dc:date', $item->created),
+      array($item->url, 'dc:date', gmdate('c', $item->created)),
     );
 
     // Query the RDF API for all available information on this node. The RDF
@@ -96,7 +96,9 @@ class views_plugin_row_node_rdf extends views_plugin_row {
           if (isset($item->$field_name)) {
             $field_values = is_array($item->$field_name) ? $item->$field_name : array($item->$field_name);
             foreach ($field_values as $field_value) {
-              $data[] = array($item->url, $field_uri, $field_value['value']);
+              if ($field_value['value'] != '') { // skip empty values
+                $data[] = array($item->url, $field_uri, $field_value['value']);
+              }
             }
           }
         }
