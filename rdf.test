@@ -1,14 +1,55 @@
 <?php
 // $Id$
 
-class StatementTestCase extends DrupalTestCase {
+//////////////////////////////////////////////////////////////////////////////
+// RDF API unit tests (repository operations)
+
+class RepositoryTestCase extends DrupalWebTestCase {
+  function getInfo() {
+    return array(
+      'name'        => t('Repositories'),
+      'description' => t('Creates, renames and deletes a local RDF repository.'),
+      'group'       => t('RDF API'),
+    );
+  }
+
+  function setup() {
+    $this->repository = 'simpletest';
+    $this->table = RDF_DB_TABLE_PREFIX . $this->repository;
+    parent::setup();
+  }
+
+  function test_create_repository() {
+    $this->assertFalse(db_table_exists($this->table), t('Table does not exist'));
+    rdf_db_create_repository($this->repository, array('dc:title' => t('Simpletest'), 'dc:description' => ''));
+    $this->assertTrue(db_table_exists($this->table), t('Table was created'));
+  }
+
+  function test_rename_repository() {
+    rdf_db_rename_repository($this->repository, $this->repository .'_renamed');
+    $this->assertTrue(db_table_exists($this->table .'_renamed'), t('Table was renamed'));
+
+    rdf_db_rename_repository($this->repository .'_renamed', $this->repository);
+    $this->assertTrue(db_table_exists($this->table), t('Table was renamed back'));
+  }
+
+  function test_delete_repository() {
+    rdf_db_delete_repository($this->repository);
+    $this->assertFalse(db_table_exists($this->table), t('Table was deleted'));
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF API unit tests (statement operations)
+
+class StatementTestCase extends DrupalWebTestCase {
   const REPOSITORY = 'simpletest';
 
-  public function get_info() {
+  public function getInfo() {
     return array(
-      'name'  => t('Statements'),
-      'desc'  => t('Inserts, queries and deletes RDF statements.'),
-      'group' => t('RDF'),
+      'name'        => t('Statements'),
+      'description' => t('Inserts, queries and deletes RDF statements.'),
+      'group'       => t('RDF API'),
     );
   }
 
