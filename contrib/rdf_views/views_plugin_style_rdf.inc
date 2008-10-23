@@ -135,7 +135,7 @@ class views_plugin_style_rdf extends views_plugin_style {
     // Compile the channel index and render the items into triples:
     $items = array();
     foreach ($this->view->result as $row) {
-      $index[] = url('node/'. $row->nid, array('absolute' => TRUE));
+      $index[] = url('node/'. $row->nid, array('absolute' => TRUE, 'alias' => TRUE));
       $items = array_merge($items, $this->row_plugin->render($row));
     }
 

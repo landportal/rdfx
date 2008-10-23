@@ -44,38 +44,43 @@ class views_plugin_row_node_rdf extends views_plugin_row {
     if (($item_length = $this->options['item_length']) == 'default') {
       $item_length = variable_get('feed_item_length', 'teaser');
     }
-    if ($item_length != 'title') {
-      $teaser = ($item_length == 'teaser');
-      $item = node_hook($item, 'view') ? node_invoke($item, 'view', $teaser, FALSE) : node_prepare($item, $teaser);
-      node_invoke_nodeapi($item, 'view', $teaser, FALSE);
-    }
 
-    // Prepare the item description:
-    switch ($item_length) {
-      case 'fulltext':
-        $item_text = $item->body;
-        break;
-      case 'teaser':
-        $item_text = $item->teaser;
-        if (!empty($item->readmore)) {
-          $item_text .= '<p>'. l(t('read more'), 'node/'. $item->nid, array('absolute' => TRUE, 'attributes' => array('target' => '_blank'))) .'</p>';
-        }
-        break;
-      case 'title':
-      default:
-        $item_text = '';
-        break;
-    }
+    $teaser = ($item_length == 'teaser');
+    $item = node_hook($item, 'view') ? node_invoke($item, 'view', $teaser, FALSE) : node_prepare($item, $teaser);
+    node_invoke_nodeapi($item, 'view', $teaser, FALSE);
 
-    // Make sure the item has all required & common RSS 1.0 properties:
-    // @see http://web.resource.org/rss/1.0/spec
+    // Make sure the item has all the basic mandatory RSS 1.0 properties:
+    // @see http://web.resource.org/rss/1.0/spec#s5.5
     $data = array(
-      array($item->url, 'rdf:type', rdf_qname_to_uriref('rss:item')),
+      array($item->url, 'rdf:type',  rdf_qname_to_uriref('rss:item')),
       array($item->url, 'rss:title', $item->title),
-      array($item->url, 'rss:link', $item->link), // NOTE: it actually *is* defined as an xsd:string property, not a URI.
-      array($item->url, 'rss:description', $item_text),
-      array($item->url, 'dc:date', gmdate('c', $item->created)),
+      array($item->url, 'rss:link',  $item->link), // NOTE: it actually *is* defined as an xsd:string property, not a URI.
     );
+
+    // Include the node body using a rss:description property unless "Title
+    // only" was selected in the row style configuration. This property is
+    // optional in the spec so leaving it out is fine.
+    if ($item_length != 'title') {
+      // Prepare the item description:
+      switch ($item_length) {
+        case 'fulltext':
+          $item_text = trim($item->body);
+          break;
+        case 'teaser':
+          $item_text = trim($item->teaser);
+          if (!empty($item->readmore)) {
+            $item_text .= '<p>'. l(t('read more'), 'node/'. $item->nid, array('absolute' => TRUE, 'attributes' => array('target' => '_blank'))) .'</p>';
+          }
+          break;
+      }
+      if ($item_text != '') {
+        $data[] = array($item->url, 'rss:description', $item_text);
+      }
+    }
+
+    // Add dc:date for the created date:
+    // @see http://web.resource.org/rss/1.0/modules/dc/
+    $data[] = array($item->url, 'dc:date', rdf_datetime($item->created));
 
     // Add dc:subject properties for the node's taxonomy terms.
     // @see http://web.resource.org/rss/1.0/modules/dc/
