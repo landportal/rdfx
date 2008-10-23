@@ -110,8 +110,13 @@ class views_plugin_row_node_rdf extends views_plugin_row {
           if (isset($item->$field_name)) {
             $field_values = is_array($item->$field_name) ? $item->$field_name : array($item->$field_name);
             foreach ($field_values as $field_value) {
-              if ($field_value['value'] != '') { // skip empty values
-                $data[] = array($item->url, $field_uri, $field_value['value']);
+              if (($value = $field_value['value']) != '') { // skip empty values
+
+                // Cast CCK date field values into the correct RDF datatype:
+                if (isset($field_value['date_type'])) {
+                  $value = rdf_datetime($value); // FIXME: offset by $field_value['timezone'] ?
+                }
+                $data[] = array($item->url, $field_uri, $value);
               }
             }
           }
