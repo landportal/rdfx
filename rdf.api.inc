@@ -229,6 +229,32 @@ function rdf_alt() {
   return new RDF_Alt(func_get_args());
 }
 
+function rdf_val_to_str($value) {
+  return (is_object($value) && $value instanceof RDF_Literal) ? $value->value : (string)$value;
+}
+
+function rdf_str_to_val($string) {
+  $value = $string;
+
+  // Attempt to cast untyped values to the correct RDF datatypes:
+  if (is_string($string)) {
+    if (rdf_is_valid_uri($string)) {           // rdf:resource
+      $value = rdf_uri($string);
+    }
+    else if (rdf_is_valid_datetime($string)) { // xsd:dateTime
+      $tz = date_default_timezone_get();
+      date_default_timezone_set('UTC');
+      $value = rdf_datetime(strtotime($string));
+      date_default_timezone_set($tz);
+    }
+    else if (is_numeric($string)) {            // xsd:numeric
+      // TODO: should we cast to numeric types? this can be ambiguous...
+    }
+  }
+
+  return $value;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // RDF API helper functions
 
@@ -256,6 +282,10 @@ function rdf_is_valid_curie($curie) {
 
 function rdf_is_valid_qname($qname) {
   return preg_match('/^[\w\-]+:[\w\-]+$/', (string)$qname); // FIXME
+}
+
+function rdf_is_valid_datetime($string) {
+  return preg_match('/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):?(\d{2})?/', $string);
 }
 
 function rdf_qname_to_uri($qname) {
