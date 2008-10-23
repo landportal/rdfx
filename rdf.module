@@ -371,8 +371,8 @@ function rdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       break;
 
     case 'view':
-      if (user_access('access RDF data')) {
-        // FIXME: should *not* add this for every node in listings such as views:
+      // Add an RDF autodiscovery link when the node is displayed by itself as a page:
+      if (user_access('access RDF data') && !empty($a4)) {
         rdf_add_autodiscovery_link(t('RDF'), url('node/'. $node->nid .'/rdf'));
       }
       break;
