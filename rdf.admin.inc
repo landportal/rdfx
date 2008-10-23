@@ -393,6 +393,80 @@ function rdf_db_admin_db_delete_submit($form, &$form_state) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// RDF mappings management
+
+function rdf_admin_mappings() {
+  // TODO: this should get refactored for extensibility, at some point.
+
+  if (!module_exists('rdf_schema')) {
+    drupal_set_message(t('To define mappings between Drupal data and RDF classes/properties, you must enable the <a href="@admin-modules">RDF Schema</a> module.', array('@admin-modules' => 'admin/build/modules')), 'warning');
+    return '';
+  }
+
+  $header = array(t('Title'), t('Class/property'), t('RDF mapping'), array('data' => t('Operations'), 'colspan' => '2'));
+  $rows = array();
+
+  // Content types
+  if (module_exists('node')) {
+    $rows[] = array(array('data' => t('Content types'), 'colspan' => 5, 'class' => 'category'));
+    $mapping = NULL;
+    foreach (node_get_types('names') as $node_type => $node_type_title) {
+      $mapping = variable_get('rdf_schema_class_'. $node_type, '');
+      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+      $rows[] = array($node_type_title, $node_type, $mapping, l(t('edit'), 'admin/content/node-type/'. $node_type), '');
+    }
+    if (is_null($mapping)) {
+      $rows[] = array(array('data' => t('No content types defined.'), 'colspan' => 5));
+    }
+  }
+
+  // Content fields
+  if (module_exists('content')) {
+    $rows[] = array(array('data' => t('Content fields'), 'colspan' => 5, 'class' => 'category'));
+    $mapping = NULL;
+    foreach (content_fields() as $field_name => $field_info) {
+      $mapping = variable_get('rdf_schema_property_content_'. $field_name, '');
+      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+      $rows[] = array($field_info['widget']['label'], $field_name, $mapping, l(t('edit'), 'admin/content/types/fields'), ''); // FIXME: link
+    }
+    if (is_null($mapping)) {
+      $rows[] = array(array('data' => t('No content fields defined.'), 'colspan' => 5));
+    }
+  }
+
+  // Taxonomy vocabularies
+  if (module_exists('taxonomy')) {
+    $rows[] = array(array('data' => t('Taxonomy vocabularies'), 'colspan' => 5, 'class' => 'category'));
+    $mapping = NULL;
+    foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
+      $mapping = variable_get('rdf_schema_property_vocabulary_'. $vid, '');
+      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+      $rows[] = array($vocabulary->name, '-', $mapping, l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/'. $vid), '');
+    }
+    if (is_null($mapping)) {
+      $rows[] = array(array('data' => t('No vocabularies defined.'), 'colspan' => 5));
+    }
+  }
+
+  // Profile fields
+  if (module_exists('profile')) {
+    $rows[] = array(array('data' => t('Profile fields'), 'colspan' => 5, 'class' => 'category'));
+    $result = db_query('SELECT fid, title, name FROM {profile_fields} ORDER BY category, weight');
+    $mapping = NULL;
+    while ($field = db_fetch_object($result)) {
+      $mapping = variable_get('rdf_schema_property_profile_'. $field->fid, '');
+      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+      $rows[] = array($field->title, $field->name, $mapping, l(t('edit'), 'admin/user/profile/edit/'. $field->fid), '');
+    }
+    if (is_null($mapping)) {
+      $rows[] = array(array('data' => t('No profile fields defined.'), 'colspan' => 5));
+    }
+  }
+
+  return theme('table', $header, $rows);
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // RDF data import
 
 function rdf_import_admin_screen(&$form_state, $edit = array('repository' => 'local', 'url' => 'http://', 'format' => RDF_FORMAT)) {

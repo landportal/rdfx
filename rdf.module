@@ -53,6 +53,8 @@ function rdf_help($path, $arg = NULL) {
       return '<p>'. t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') .'</p>';
     case 'admin/settings/rdf/repositories/rdf/add':
       return '<p>'. t('To create a new local RDF repository, enter the human-readable name, the machine-readable name, and all other relevant fields that are on this page.') .'</p>';
+    case 'admin/settings/rdf/mappings':
+      return '<p>'. t('This is a summary of the currently defined mappings between Drupal data and RDF classes/properties.') .'</p>';
   }
 }
 
@@ -241,6 +243,19 @@ function rdf_menu() {
       'page callback' => 'drupal_get_form',
       'page arguments' => array('rdf_db_admin_db_delete'),
       'file' => 'rdf.admin.inc',
+    ),
+
+    // Administer >> Site configuration >> RDF settings >> Mappings
+    'admin/settings/rdf/mappings' => array(
+      'title' => 'Mappings',
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'rdf_admin_mappings',
+      'file' => 'rdf.admin.inc',
+      'weight' => 40,
+    ),
+    'admin/settings/rdf/mappings/list' => array(
+      'title' => 'List',
+      'type' => MENU_DEFAULT_LOCAL_TASK,
     ),
   );
 }
