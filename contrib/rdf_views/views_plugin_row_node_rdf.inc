@@ -67,7 +67,8 @@ class views_plugin_row_node_rdf extends views_plugin_row {
         break;
     }
 
-    // Make sure the item has all required RSS 1.0 properties:
+    // Make sure the item has all required & common RSS 1.0 properties:
+    // @see http://web.resource.org/rss/1.0/spec
     $data = array(
       array($item->url, 'rdf:type', rdf_qname_to_uriref('rss:item')),
       array($item->url, 'rss:title', $item->title),
@@ -75,6 +76,14 @@ class views_plugin_row_node_rdf extends views_plugin_row {
       array($item->url, 'rss:description', $item_text),
       array($item->url, 'dc:date', gmdate('c', $item->created)),
     );
+
+    // Add dc:subject properties for the node's taxonomy terms.
+    // @see http://web.resource.org/rss/1.0/modules/dc/
+    if (!empty($item->taxonomy)) {
+      foreach ($item->taxonomy as $tid => $term) {
+        $data[] = array($item->url, 'dc:subject', $term->name);
+      }
+    }
 
     // Query the RDF API for all available information on this node. The RDF
     // Schema module takes care of mapping core fields and CCK fields to RDF
