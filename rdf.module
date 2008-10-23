@@ -23,9 +23,14 @@ function rdf_init() {
     @include_once RDF_ARC2_PATH .'/ARC2.php';
   }
 
-  // Integrate into the Services API, if available.
+  // Integrate some RDF operations into the Services API, if available:
   if (module_exists('services')) {
     module_load_include('inc', 'rdf', 'rdf.services');
+  }
+
+  // Integrate with FeedAPI and the Feed Element Mapper, if installed:
+  if (module_exists('feedapi')) {
+    module_load_include('inc', 'rdf', 'rdf.feedapi');
   }
 }
 
@@ -321,8 +326,38 @@ function rdf_user($op, &$edit, &$account, $category = NULL) {
  */
 function rdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   switch ($op) {
+    case 'load':
+    case 'prepare':
+      $node->rdf = isset($node->rdf) ? $node->rdf : array(); // used e.g. by rdf_feedapi_mapper()
+      break;
+
+    case 'insert':
+    case 'update':
+      // This is a mechanism for overcoming the limitation that when working
+      // with a new $node object that hasn't yet been stored in the
+      // database, and hence doesn't have a $node->nid, it isn't possible to
+      // stores triples relating to the node; a lack of $node->nid implies a
+      // lack of an URI for the node. However, by populating $node->rdf with
+      // properties and values, we'll here take care of inserting triples,
+      // using the node's URI as subject, once the node has been created and
+      // $node->nid is available. For convenience and consistency, we
+      // provide the same facility for node updates, too.
+      //
+      // For example:
+      //   $node->rdf['dc:origin'] = rdf_uri("http://...");
+      // ...will result in the insertion of a triple of:
+      //   array('node/'. $node->nid, 'dc:origin', rdf_uri("http://..."));
+      //
+      if (isset($node->nid) && !empty($node->rdf)) {
+        $uri = url('node/'. $node->nid, array('absolute' => TRUE, 'alias' => TRUE));
+        rdf_insert_all(rdf_denormalize(array($uri => $node->rdf)), !empty($node->rdf_options) ? $node->rdf_options : array());
+        $node->rdf = array();
+      }
+      break;
+
     case 'view':
       if (user_access('access RDF data')) {
+        // FIXME: should *not* add this for every node in listings such as views:
         rdf_add_autodiscovery_link(t('RDF'), url('node/'. $node->nid .'/rdf'));
       }
       break;
