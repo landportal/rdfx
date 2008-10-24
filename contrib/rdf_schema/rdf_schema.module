@@ -72,40 +72,43 @@ function rdf_schema_form_alter(&$form, $form_state, $form_id) {
 
     // Administer >> User management >> Profiles >> Edit
     case 'profile_field_form':
-      $rdf_property = isset($form['fid']['#value']) ? variable_get('rdf_schema_property_profile_'. $form['fid']['#value'], '') : '';
-      $rdf_property = rdf_uri_to_qname($rdf_property, FALSE, $rdf_property);
       // The submitted value is stored using the callback function defined below.
-      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => $rdf_property, '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $rdf_mapping = isset($form['fid']['#value']) ? variable_get('rdf_schema_property_profile_'. $form['fid']['#value'], '') : '';
+      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
+      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
       $form['submit']['#weight'] = 40;
+      $form['#validate'][] = 'rdf_schema_property_form_validate';
       $form['#submit'][] = 'rdf_schema_profile_field_form_submit';
       break;
 
     // Administer >> Content management >> Taxonomy >> Edit vocabulary
     case 'taxonomy_form_vocabulary':
       // The submitted value is stored in our implementation of hook_taxonomy()
-      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => isset($form['vid']['#value']) ? variable_get('rdf_schema_property_vocabulary_'. $form['vid']['#value'], '') : '', '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $rdf_mapping = isset($form['vid']['#value']) ? variable_get('rdf_schema_property_vocabulary_'. $form['vid']['#value'], '') : '';
+      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
+      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
       $form['submit']['#weight'] = 40;
       $form['delete']['#weight'] = 45;
+      $form['#validate'][] = 'rdf_schema_property_form_validate';
       break;
 
     // Administer >> Content management >> Content types >> Edit
     case 'node_type_form':
       // The submitted value is auto-saved by node.module as a configuration variable with a name in the form 'rdf_schema_class_TYPE'
-      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => TRUE, '#collapsed' => TRUE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_schema_class'] = array('#type' => 'textfield', '#title' => t('RDF class'), '#default_value' => '', '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $rdf_mapping = variable_get('rdf_schema_class_'. $form['#node_type']->type, '');
+      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => TRUE, '#collapsed' => TRUE, '#weight' => 1);
+      $form['rdf_mapping']['rdf_schema_class'] = array('#type' => 'textfield', '#title' => t('RDF class'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['#validate'][] = 'rdf_schema_class_form_validate';
       break;
 
     // Administer >> Content management >> Content types >> (content type) >> Manage fields >> Configure
     case 'content_field_edit_form':
-      $rdf_property = variable_get('rdf_schema_property_content_'. $form['field_name']['#value'], '');
-      $rdf_property = rdf_uri_to_qname($rdf_property, FALSE, $rdf_property);
       // The submitted value is stored using the callback function defined below.
-      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF schema settings'), '#collapsible' => FALSE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => $rdf_property, '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $rdf_mapping = variable_get('rdf_schema_property_content_'. $form['field_name']['#value'], '');
+      $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => FALSE, '#collapsed' => FALSE, '#weight' => 1);
+      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
       $form['submit']['#weight'] = 90;
-      $form['#validate'][] = 'rdf_schema_field_form_validate';
+      $form['#validate'][] = 'rdf_schema_property_form_validate';
       $form['#submit'][] = 'rdf_schema_content_field_form_submit';
       break;
   }
@@ -120,7 +123,7 @@ function rdf_schema_taxonomy($op, $type, $array = NULL) {
       case 'insert':
       case 'update':
         if (!empty($array['rdf_property'])) {
-          variable_set('rdf_schema_property_vocabulary_'. $array['vid'], $array['rdf_property']);
+          variable_set('rdf_schema_property_vocabulary_'. $array['vid'], rdf_qname_to_uri($array['rdf_property']));
         }
         else {
           variable_del('rdf_schema_property_vocabulary_'. $array['vid']);
@@ -139,8 +142,24 @@ function rdf_schema_taxonomy($op, $type, $array = NULL) {
 /**
  * @see rdf_schema_form_alter()
  */
-function rdf_schema_field_form_validate($form, &$form_state) {
+function rdf_schema_class_form_validate($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+  $rdf_schema_class = trim($rdf_schema_class);
+
+  if ($rdf_schema_class != '' && !rdf_is_valid_uri($rdf_schema_class) && !rdf_is_valid_curie($rdf_schema_class)) {
+    form_set_error('rdf_schema_class', t('RDF class is not a valid URI or CURIE.'));
+  }
+  else {
+    $rdf_schema_class = rdf_qname_to_uri($rdf_schema_class);
+  }
+}
+
+/**
+ * @see rdf_schema_form_alter()
+ */
+function rdf_schema_property_form_validate($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+  $rdf_property = trim($rdf_property);
 
   if ($rdf_property != '' && !rdf_is_valid_uri($rdf_property) && !rdf_is_valid_curie($rdf_property)) {
     form_set_error('rdf_property', t('RDF property is not a valid URI or CURIE.'));
@@ -153,7 +172,12 @@ function rdf_schema_field_form_validate($form, &$form_state) {
 function rdf_schema_profile_field_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
-  variable_set('rdf_schema_property_profile_'. $fid, rdf_qname_to_uri($rdf_property));
+  if (!empty($rdf_property)) {
+    variable_set('rdf_schema_property_profile_'. $fid, rdf_qname_to_uri($rdf_property));
+  }
+  else {
+    variable_del('rdf_schema_property_profile_'. $fid);
+  }
 }
 
 /**
@@ -162,7 +186,12 @@ function rdf_schema_profile_field_form_submit($form, &$form_state) {
 function rdf_schema_content_field_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
-  variable_set('rdf_schema_property_content_'. $field_name, rdf_qname_to_uri($rdf_property));
+  if (!empty($rdf_property)) {
+    variable_set('rdf_schema_property_content_'. $field_name, rdf_qname_to_uri($rdf_property));
+  }
+  else {
+    variable_del('rdf_schema_property_content_'. $field_name);
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
