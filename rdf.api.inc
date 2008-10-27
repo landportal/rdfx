@@ -206,6 +206,7 @@ function rdf_datetime($timestamp = NULL) {
 }
 
 function rdf_literal($value, $language = NULL, $datatype = NULL) {
+  $language = ($language === TRUE) ? $GLOBALS['language']->language : $language; // for convenience
   return empty($language) && empty($datatype) ? $value : new RDF_Literal($value, $language, $datatype);
 }
 
@@ -535,6 +536,7 @@ function rdf_serialize_xml($data, array $options = array()) {
         break;
       }
     }
+    unset($objects);
 
     $xml->startElement($type);
     if (RDF_BNode::match($subject)) {
@@ -555,10 +557,12 @@ function rdf_serialize_xml($data, array $options = array()) {
         }
         else if ($object instanceof RDF_Literal) { // typed literal
           $xml->startElement($qname);
-          if ($object->language)
+          if ($object->language) {
             $xml->writeAttribute('xml:lang', $object->language);
-          if ($object->datatype)
+          }
+          if ($object->datatype) {
             $xml->writeAttribute('rdf:datatype', $object->datatype);
+          }
           $xml->text((string)$object->value);
           $xml->endElement();
         }
