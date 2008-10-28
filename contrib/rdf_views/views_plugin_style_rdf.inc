@@ -68,15 +68,12 @@ class views_plugin_style_rdf extends views_plugin_style {
   }
 
   function render() {
-    global $base_url, $language;
+    global $base_url;
 
     if (empty($this->row_plugin)) {
       vpr('views_plugin_style_rdf: Missing row plugin');
       return;
     }
-
-    $formats  = rdf_get_formats();
-    $format   = $formats[$this->options['format']];
 
     // Compose the feed title:
     $title = $this->view->display_handler->get_option('sitename_title') ?
@@ -118,9 +115,9 @@ class views_plugin_style_rdf extends views_plugin_style {
     $channel = rdf_denormalize(array(
       $link => array(
         'rdf:type'        => rdf_qname_to_uriref('rss:channel'),
-        'rss:title'       => $title,
+        'rss:title'       => rdf_literal($title, TRUE),
         'rss:link'        => $link, // FIXME: should go to view URL, not feed URL
-        'rss:description' => $description,
+        'rss:description' => rdf_literal($description, TRUE),
         'rss:items'       => $index->uriref(),
       ),
     ));
@@ -155,14 +152,7 @@ class views_plugin_style_rdf extends views_plugin_style {
       $function($this, $data);
     }
 
-    $filename = implode('.', array('feed', $format->file_ext));
-    $content_type = defined('TRACE_TEXT_OUTPUT') ? 'text/plain' : $format->mime_type;
-    $content_encoding = $format->encoding;
-    $content = rdf_serialize($data, array('format' => $format->name, 'language' => $language->language));
-
-    drupal_set_header('Content-Disposition: inline; filename='. $filename);
-    drupal_set_header('Content-Type: '. $content_type .'; charset='. $content_encoding);
-    drupal_set_header('Content-Length: '. strlen($content));
-    die(ltrim($content));
+    module_load_include('inc', 'rdf', 'rdf.pages');
+    rdf_output('feed', $this->options['format'], $data);
   }
 }

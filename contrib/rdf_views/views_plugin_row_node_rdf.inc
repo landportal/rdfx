@@ -53,7 +53,7 @@ class views_plugin_row_node_rdf extends views_plugin_row {
     // @see http://web.resource.org/rss/1.0/spec#s5.5
     $data = array(
       array($item->url, 'rdf:type',  rdf_qname_to_uriref('rss:item')),
-      array($item->url, 'rss:title', $item->title),
+      array($item->url, 'rss:title', rdf_literal($item->title, $item)),
       array($item->url, 'rss:link',  $item->link), // NOTE: it actually *is* defined as an xsd:string property, not a URI.
     );
 
@@ -74,7 +74,7 @@ class views_plugin_row_node_rdf extends views_plugin_row {
           break;
       }
       if ($item_text != '') {
-        $data[] = array($item->url, 'rss:description', $item_text);
+        $data[] = array($item->url, 'rss:description', rdf_literal($item_text, $item));
       }
     }
 
