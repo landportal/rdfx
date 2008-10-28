@@ -206,6 +206,7 @@ function rdf_datetime($timestamp = NULL) {
 }
 
 function rdf_literal($value, $language = NULL, $datatype = NULL) {
+  $language = is_object($language) && isset($language->language) ? $language->language : $language;
   $language = ($language === TRUE) ? $GLOBALS['language']->language : $language; // for convenience
   return empty($language) && empty($datatype) ? $value : new RDF_Literal($value, $language, $datatype);
 }
