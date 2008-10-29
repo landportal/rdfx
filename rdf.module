@@ -10,6 +10,7 @@
 function rdf_init() {
   module_load_include('inc', 'rdf', 'rdf.api');
   module_load_include('inc', 'rdf', 'rdf.db');
+  module_load_include('inc', 'rdf', 'rdf.schema');
 
   rdf_define_vocabularies(); // TODO: replace with autoload-based solution
 

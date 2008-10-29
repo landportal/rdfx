@@ -11,13 +11,6 @@ define('RDF_SCHEMA_MODULE_URI', 'http://drupal.org/project/rdf#schema');
 // Core API hooks
 
 /**
- * Implementation of hook_init().
- */
-function rdf_schema_init() {
-  module_load_include('inc', 'rdf_schema');
-}
-
-/**
  * Implementation of hook_perm().
  */
 function rdf_schema_perm() {
@@ -290,14 +283,14 @@ function rdf_schema_rdf_properties() {
   );
 }
 
-
 /**
  * Implementation of hook_rdf_resources().
  */
 function rdf_schema_rdf_resources($context) {
   switch ($context) {
     case NULL:
-      return array_merge(rdf_schema_get_resources(), rdf_schema_get_classes());
+      return array(); // FIXME
+      //return array_merge(rdf_schema_get_resources(), rdf_schema_get_classes());
     case RDF_SITE_URI:
       return rdf_schema_get_resources();
     case RDF_SCHEMA_URI:
