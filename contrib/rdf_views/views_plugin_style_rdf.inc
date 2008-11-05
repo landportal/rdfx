@@ -40,6 +40,9 @@ class views_plugin_style_rdf extends views_plugin_style {
     $options = parent::option_definition();
     $options['description'] = array('default' => '', 'translatable' => TRUE);
     $options['description_from_mission'] = array('default' => '', 'translatable' => TRUE);
+    $options['update_period'] = array('default' => '', 'translatable' => TRUE);
+    $options['update_frequency'] = array('default' => '', 'translatable' => TRUE);
+    $options['update_base'] = array('default' => '', 'translatable' => TRUE);
     $options['format'] = array('default' => RDF_FORMAT, 'translatable' => TRUE);
     return $options;
   }
@@ -57,6 +60,28 @@ class views_plugin_style_rdf extends views_plugin_style {
       '#description' => t('This will appear as the channel description in the RDF feed.'),
       '#process' => array('views_process_dependency'),
       '#dependency' => array('edit-style-options-override' => array(FALSE)),
+    );
+    $form['update_period'] = array(
+      '#type' => 'select',
+      '#title' => t('Update period'),
+      '#default_value' => $this->options['update_period'],
+      '#options' => array('' => t('<not specified>'), 'hourly' => t('hourly'), 'daily' => t('daily'), 'weekly' => t('weekly'), 'monthly' => t('monthly'), 'yearly' => t('yearly')),
+      '#description' => t('Provides <a href="http://web.resource.org/rss/1.0/modules/syndication/">RSS 1.0 syndication hints</a> to aggregators and others picking up this RSS feed regarding how often it is updated.'),
+    );
+    $form['update_frequency'] = array(
+      '#type' => 'select',
+      '#title' => t('Update frequency'),
+      '#default_value' => $this->options['update_frequency'],
+      '#options' => array_merge(array('' => t('<not specified>')), drupal_map_assoc(range(1, 24))),
+      '#description' => t('Used to describe the frequency of updates in relation to the update period. This is a positive integer that indicates how many times in that period the channel is updated. For example, an update period of <em>daily</em> with an update frequency of <em>2</em> indicates the channel is updated twice daily. If omitted, a value of <em>1</em> is assumed.'),
+    );
+    $form['update_base'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Update base date'),
+      '#default_value' => $this->options['update_base'],
+      '#description' => t('Defines a base date to be used in concert with the update period and update frequency to calculate the publishing schedule. The date format takes the form: <code>yyyy-mm-ddThh:mm</code>.'),
+      '#size' => 16,
+      '#maxlength' => 16,
     );
     $form['format'] = array(
       '#type' => 'select',
@@ -122,6 +147,19 @@ class views_plugin_style_rdf extends views_plugin_style {
       ),
     ));
 
+    // Support for RSS 1.0 Syndication hints
+    // @see http://web.resource.org/rss/1.0/modules/syndication/
+    rdf_register_namespace('sy', 'http://purl.org/rss/1.0/modules/syndication/');
+    if (!empty($this->options['update_period'])) {
+      $channel[] = array($link, 'sy:updatePeriod', check_plain($this->options['update_period']));
+    }
+    if (!empty($this->options['update_frequency'])) {
+      $channel[] = array($link, 'sy:updateFrequency', check_plain($this->options['update_frequency']));
+    }
+    if (!empty($this->options['update_base'])) {
+      $channel[] = array($link, 'sy:updateBase', check_plain($this->options['update_base']));
+    }
+
     // Invoke hook_rdf_views_feed_channel() to allow third-party modules to
     // manipulate the channel metadata:
     foreach (module_implements('rdf_views_feed_channel') as $module) {
@@ -154,5 +192,6 @@ class views_plugin_style_rdf extends views_plugin_style {
 
     module_load_include('inc', 'rdf', 'rdf.pages');
     rdf_output('feed', $this->options['format'], $data);
+    exit;
   }
 }
