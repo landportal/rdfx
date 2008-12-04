@@ -74,7 +74,7 @@ function rdf_db_rdf_insert($table, $subject, $predicate, $object, array $options
  * Implementation of hook_rdf_delete().
  */
 function rdf_db_rdf_delete($table, $subject, $predicate, $object, array $options = array()) {
-  $schema = drupal_get_schema($table);
+  $schema = rdf_db_get_schema($table);
   $record = _rdf_db_make_record($subject, $predicate, $object, $options);
 
   $conditions = $values = array();
@@ -154,10 +154,10 @@ function rdf_db_load_repository($name) {
 }
 
 function rdf_db_create_repository($name, $metadata = array()) {
-  $schema = drupal_get_schema(RDF_DB_TABLE_DEFAULT);
+  $schema = rdf_db_get_schema(RDF_DB_TABLE_DEFAULT);
   db_create_table($results, db_escape_table(RDF_DB_TABLE_PREFIX . $name), $schema);
   rdf_db_update_repository_metadata($name, $metadata);
-  drupal_get_schema(db_escape_table(RDF_DB_TABLE_PREFIX . $name), TRUE); // clear the schema cache
+  rdf_db_get_schema(db_escape_table(RDF_DB_TABLE_PREFIX . $name), TRUE); // clear the schema cache
   return $results[0]['success'];
 }
 
@@ -185,6 +185,15 @@ function rdf_db_delete_repository_metadata($name) {
 function rdf_db_count_repository_triples($name = NULL) {
   $table = db_escape_table(!$name ? RDF_DB_TABLE_DEFAULT : RDF_DB_TABLE_PREFIX . $name);
   return db_result(db_query('SELECT COUNT(did) FROM {'. $table .'}'));
+}
+
+function rdf_db_get_schema($table = RDF_DB_TABLE_DEFAULT, $rebuild = FALSE) {
+  if (!($schema = drupal_get_schema($table, $rebuild))) {
+    module_load_include('install', 'rdf');
+    $rdf_schema = rdf_schema();
+    $schema = $rdf_schema[$table];
+  }
+  return $schema;
 }
 
 //////////////////////////////////////////////////////////////////////////////
