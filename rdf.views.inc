@@ -38,3 +38,106 @@ function rdf_views_plugins() {
     ),
   );
 }
+
+/**
+ * Implementation of hook_views_data()
+ */
+function rdf_views_data() {
+  $data = array(
+    'rdf_resources' => array(
+      // Table info.
+      'table' => array(
+        'group' => t('RDF'),
+        'base' => array(
+          'field' => 'rid',
+          'title' => t('RDF'),
+          'help' => t('RDF meta-data.'),
+          'weight' => 0,
+        ),
+      ),
+      // Fields.
+      'uri' => array(
+        'title' => t('URI'),
+        'help' => t('The URI of the RDF resource'),
+        'field' => array('handler' => 'views_handler_field'),
+        'filter' => array('handler' => 'views_handler_filter_boolean_operator'), 
+      ),
+    ),
+  );
+  
+  foreach (rdf_db_get_repository_names() as $name => $table) {
+    $info = rdf_db_load_repository($name);
+    $data[$table] = array(
+      // Table info.
+      'table' => array(
+        'group' => t('@table', array('@table' => $info->title)),
+        'join' => array(
+          'rdf_resources' => array(
+            'left_field' => 'rid',
+            'field' => 'sid',
+          ),
+        ),
+      ),
+      // Fields.
+      /* TODO: 'oid', 'tid', 'lang' */
+      'sid' => array(
+        'title' => t('Subject'),
+        'help' => t("Subject of the RDF statement."),
+        'field' => array('handler' => 'views_handler_field'),
+      ),
+      'uid' => array(
+        'title' => t('User'),
+        'help' => t("User who created statement."),
+        'field' => array('handler' => 'views_handler_field'),
+      ),
+      'created' => array(
+        'title' => t('Created'),
+        'help' => t("Timestamp of the statement."),
+        'field' => array('handler' => 'views_handler_field_date'),
+        'filter' => array('handler' => 'views_handler_filter_date'),
+      ),
+      'pid' => array(
+        'title' => t('Predicate'),
+        'help' => t("The RDF statement's predicate."),
+        'field' => array('handler' => 'views_handler_field'),
+        'filter' => array('handler' => 'views_handler_filter_rdf_predicate'),
+      ),
+      'gid' => array(
+        'title' => t('Context'),
+        'help' => t('Named graph that the RDF statement belongs to.'),
+        'field' => array('handler' => 'views_handler_field'),
+        'filter' => array('handler' => 'views_handler_filter_rdf_context'),
+      ),
+      'data' => array(
+        'title' => t('Object'),
+        'help' => t('RDF Object literal'),
+        'field' => array('handler' => 'views_handler_field_rdf_literal'),
+        'relationship' => array(
+          'handler' => 'views_handler_relationship',
+          'base' => 'rdf_resources',
+          'base field' => 'uri',
+          'field' => 'data',
+          'label' => t('@table Resources', array('@table' => $info->title)),
+        ),
+      ),
+    );
+  }
+  return $data;
+}
+
+function rdf_views_handlers() {
+  return array(
+    'info' => array('path' => drupal_get_path('module', 'rdf') .'/contrib/rdf_views'),
+    'handlers' => array(
+      'views_handler_filter_rdf_predicate' => array(
+        'parent' => 'views_handler_filter_in_operator',
+      ),
+      'views_handler_filter_rdf_context' => array(
+        'parent' => 'views_handler_filter_in_operator',
+      ),
+      'views_handler_field_rdf_literal' => array(
+        'parent' => 'views_handler_field',
+      ),
+    ),
+  );
+}
