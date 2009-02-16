@@ -26,10 +26,10 @@ class RepositoryTestCase extends DrupalWebTestCase {
   }
 
   function test_rename_repository() {
-    rdf_db_rename_repository($this->repository, $this->repository .'_renamed');
-    $this->assertTrue(db_table_exists($this->table .'_renamed'), t('Table was renamed'));
+    rdf_db_rename_repository($this->repository, $this->repository . '_renamed');
+    $this->assertTrue(db_table_exists($this->table . '_renamed'), t('Table was renamed'));
 
-    rdf_db_rename_repository($this->repository .'_renamed', $this->repository);
+    rdf_db_rename_repository($this->repository . '_renamed', $this->repository);
     $this->assertTrue(db_table_exists($this->table), t('Table was renamed back'));
   }
 

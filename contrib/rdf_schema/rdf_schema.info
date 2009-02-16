@@ -1,6 +1,6 @@
 ; $Id$
 name = RDF Schema
-description = Provides an RDF Schema (RDFS) vocabulary for Drupal data.
+description = <strong>UNINSTALL THIS MODULE</strong>. All functionality has now been folded into the base RDF module, and this placeholder will be removed in the next release.
 package = RDF
 dependencies[] = rdf
 core = 6.x

@@ -1,5 +1,5 @@
 ; $Id$
-name = RDF API
+name = RDF
 description = Enables the use of Resource Description Framework (RDF) metadata.
 package = RDF
 core = 6.x

@@ -15,7 +15,7 @@ function rdf_views_plugins() {
         'title' => t('RDF Feed'),
         'help' => t('Generates an RSS 1.0-compatible RDF feed from a view.'),
         'handler' => 'views_plugin_style_rdf',
-        'path' => drupal_get_path('module', 'rdf') .'/contrib/rdf_views',
+        'path' => drupal_get_path('module', 'rdf') . '/contrib/rdf_views',
         'uses row plugin' => TRUE,
         'uses options' => TRUE,
         'type' => 'feed',
@@ -29,7 +29,7 @@ function rdf_views_plugins() {
         'title' => t('Node (RDF)'),
         'help' => t('Outputs the node as an RDF 1.0-compatible RDF resource.'),
         'handler' => 'views_plugin_row_node_rdf',
-        'path' => drupal_get_path('module', 'rdf') .'/contrib/rdf_views',
+        'path' => drupal_get_path('module', 'rdf') . '/contrib/rdf_views',
         'base' => array('node'), // only works with 'node' as base.
         'uses options' => TRUE,
         'type' => 'feed',
@@ -127,7 +127,7 @@ function rdf_views_data() {
 
 function rdf_views_handlers() {
   return array(
-    'info' => array('path' => drupal_get_path('module', 'rdf') .'/contrib/rdf_views'),
+    'info' => array('path' => drupal_get_path('module', 'rdf') . '/contrib/rdf_views'),
     'handlers' => array(
       'views_handler_filter_rdf_predicate' => array(
         'parent' => 'views_handler_filter_in_operator',

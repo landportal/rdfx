@@ -53,7 +53,7 @@ function rdf_db_rdf_repositories() {
 function rdf_db_rdf_contexts() {
   $contexts = array();
   foreach (rdf_db_get_repository_names() as $name => $table) {
-    $result = db_query('SELECT DISTINCT g.uri g FROM {'. db_escape_table($table) .'} d INNER JOIN {rdf_resources} g ON d.gid = g.rid');
+    $result = db_query('SELECT DISTINCT g.uri g FROM {' . db_escape_table($table) . '} d INNER JOIN {rdf_resources} g ON d.gid = g.rid');
     while ($row = db_fetch_object($result)) {
       $contexts[$row->g] = TRUE;
     }
@@ -66,6 +66,13 @@ function rdf_db_rdf_contexts() {
  */
 function rdf_db_rdf_insert($table, $subject, $predicate, $object, array $options = array()) {
   $record = _rdf_db_make_record($subject, $predicate, $object, $options);
+
+  // Prevent duplicate record creation, at the administrator's discretion:
+  if (variable_get('rdf_db_prevent_duplicates', FALSE)) {
+    if (($id = db_result(_rdf_db_select_statements($table, $record, 1)))) {
+      return (int)$id; // previously existing duplicate record found
+    }
+  }
 
   return drupal_write_record($table, $record) ? (int)$record->did : FALSE;
 }
@@ -80,12 +87,12 @@ function rdf_db_rdf_delete($table, $subject, $predicate, $object, array $options
   $conditions = $values = array();
   foreach (get_object_vars($record) as $key => $value) {
     if (!is_null($value)) {
-      $conditions[] = $key .' = '. db_type_placeholder($schema['fields'][$key]['type']);
+      $conditions[] = $key . ' = ' . db_type_placeholder($schema['fields'][$key]['type']);
       $values[] = $value;
     }
   }
 
-  return !!db_query('DELETE FROM {'. $table .'}'. (empty($conditions) ? '' : (' WHERE '. implode(' AND ', $conditions))), $values);
+  return !!db_query('DELETE FROM {' . $table . '}' . (empty($conditions) ? '' : (' WHERE ' . implode(' AND ', $conditions))), $values);
 }
 
 /**
@@ -119,37 +126,42 @@ function rdf_db_get_repository_names() {
   return $names;
 }
 
-function rdf_db_get_repository_tables() {
-  $tables = array(RDF_DB_TABLE_DEFAULT);
+function rdf_db_get_repository_tables($refresh = FALSE) {
+  static $cache;
+  if (!is_array($cache) || $refresh) {
+    $tables = array(RDF_DB_TABLE_DEFAULT);
 
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $result = db_query("SHOW TABLES LIKE '{" . RDF_DB_TABLE_PREFIX . "}%'");
-      break;
-    case 'pgsql':
-      // TODO: this has NOT actually been tested:
-      $result = db_query(
-        "SELECT tablename FROM pg_tables WHERE tablename LIKE '{" . RDF_DB_TABLE_PREFIX . "}%' UNION " .
-        "SELECT viewname FROM pg_views WHERE viewname LIKE '{" . RDF_DB_TABLE_PREFIX . "}%'");
-      break;
-    default:
-      // Not implemented
-      break;
-  }
-
-  if (!empty($result)) {
-    $prefix_length = strlen(db_prefix_tables('{'. RDF_DB_TABLE_PREFIX .'}')) - strlen(RDF_DB_TABLE_PREFIX);
-    while ($row = db_fetch_array($result)) {
-      $table = reset($row); // first column
-      $tables[] = substr($table, $prefix_length);
+    switch ($GLOBALS['db_type']) {
+      case 'mysql':
+      case 'mysqli':
+        $result = db_query("SHOW TABLES LIKE '{" . RDF_DB_TABLE_PREFIX . "}%'");
+        break;
+      case 'pgsql':
+        // TODO: this has NOT actually been tested:
+        $result = db_query(
+          "SELECT tablename FROM pg_tables WHERE tablename LIKE '{" . RDF_DB_TABLE_PREFIX . "}%' UNION " .
+          "SELECT viewname FROM pg_views WHERE viewname LIKE '{" . RDF_DB_TABLE_PREFIX . "}%'");
+        break;
+      default:
+        // Not implemented
+        break;
     }
+
+    if (!empty($result)) {
+      $prefix_length = strlen(db_prefix_tables('{' . RDF_DB_TABLE_PREFIX . '}')) - strlen(RDF_DB_TABLE_PREFIX);
+      while ($row = db_fetch_array($result)) {
+        $table = reset($row); // first column
+        $tables[] = substr($table, $prefix_length);
+      }
+    }
+
+    $cache = $tables;
   }
-  return $tables;
+  return $cache;
 }
 
 function rdf_db_load_repository($name) {
-  $metadata = variable_get('rdf_db_repository['. $name .']', array());
+  $metadata = variable_get('rdf_db_repository[' . $name . ']', array());
   return (object)array('name' => $name, 'title' => @$metadata['dc:title'], 'description' => @$metadata['dc:description']);
 }
 
@@ -175,16 +187,20 @@ function rdf_db_rename_repository($old_name, $new_name) {
 }
 
 function rdf_db_update_repository_metadata($name, $metadata = array()) {
-  variable_set('rdf_db_repository['. $name .']', $metadata);
+  variable_set('rdf_db_repository[' . $name . ']', $metadata);
 }
 
 function rdf_db_delete_repository_metadata($name) {
-  variable_del('rdf_db_repository['. $name .']');
+  variable_del('rdf_db_repository[' . $name . ']');
 }
 
-function rdf_db_count_repository_triples($name = NULL) {
-  $table = db_escape_table(!$name ? RDF_DB_TABLE_DEFAULT : RDF_DB_TABLE_PREFIX . $name);
-  return db_result(db_query('SELECT COUNT(did) FROM {'. $table .'}'));
+function rdf_db_count_repository_triples($name = NULL, $refresh = FALSE) {
+  static $cache = array();
+  if (!isset($cache[$name]) || $refresh) {
+    $table = db_escape_table(!$name ? RDF_DB_TABLE_DEFAULT : RDF_DB_TABLE_PREFIX . $name);
+    $cache[$name] = db_result(db_query('SELECT COUNT(did) FROM {' . $table . '}'));
+  }
+  return $cache[$name];
 }
 
 function rdf_db_get_schema($table = RDF_DB_TABLE_DEFAULT, $rebuild = FALSE) {
@@ -194,6 +210,27 @@ function rdf_db_get_schema($table = RDF_DB_TABLE_DEFAULT, $rebuild = FALSE) {
     $schema = $rdf_schema[$table];
   }
   return $schema;
+}
+
+function rdf_db_merge_duplicate_statements($table = RDF_DB_TABLE_DEFAULT) {
+  static $fields = array('gid', 'sid', 'pid', 'oid', 'tid', 'lang', 'data');
+  $columns = implode(', ', $fields);
+
+  $count = 0;
+  $duplicates = db_query("SELECT COUNT(*) AS dups, $columns FROM {" . db_escape_table($table) . "} GROUP BY $columns HAVING dups > 1");
+  while ($duplicate = db_fetch_array($duplicates)) {
+    unset($duplicate['dups']);
+
+    $records = _rdf_db_select_statements($table, $duplicate, 100, 1);
+    while ($record = db_fetch_object($records)) {
+      db_query("DELETE FROM {" . db_escape_table($table) . "} WHERE did = %d", $record->did);
+      $count++;
+    }
+  }
+
+  if ($count > 0) {
+    watchdog('rdf', 'Deleted @count duplicated RDF statement(s) in table %table.', array('@count' => $count, '%table' => $table), WATCHDOG_NOTICE, l(t('settings'), 'admin/settings/rdf'));
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -257,7 +294,36 @@ function _rdf_db_sql_select($table, $subject, $predicate, $object, $options = ar
     $where[] = sprintf(is_object($object) ? "o.uri = '%s'" : "d.data = '%s'", db_escape_string((string)$object));
   }
 
-  $query[] = empty($where) ? '' : 'WHERE ('. implode(') AND (', $where) .')';
+  $query[] = empty($where) ? '' : 'WHERE (' . implode(') AND (', $where) . ')';
   $query[] = 'ORDER BY d.did ASC';
   return implode("\n", $query);
+}
+
+function _rdf_db_delete_statements($table, $match, $limit = NULL, $offset = NULL) {
+  return _rdf_db_query_statements('DELETE', $table, $match, $limit, $offset);
+}
+
+function _rdf_db_select_statements($table, $match, $limit = NULL, $offset = NULL) {
+  return _rdf_db_query_statements('SELECT did', $table, $match, $limit, $offset);
+}
+
+function _rdf_db_query_statements($query, $table, $match, $limit = NULL, $offset = NULL) {
+  $query .= ' FROM {' . db_escape_table($table) . '} WHERE ';
+  $values = (array)$match;
+  $fields = array();
+  foreach ($values as $field => &$value) {
+    if ($value === NULL) {
+      // special handling for NULL values:
+      unset($values[$field]);
+      $fields[] = "($field IS NULL)";
+    }
+    else {
+      // 'lang' and 'data' are text fields, the rest are foreign keys
+      $fields[] = ($field == 'lang' || $field == 'data') ? "($field = '%s')" : "($field = %d)";
+    }
+  }
+  $query .= implode(' AND ', $fields) . ' ORDER BY did ASC';
+  $query .= $limit  ? (' LIMIT '  . (int)$limit)  : '';
+  $query .= $offset ? (' OFFSET ' . (int)$offset) : '';
+  return db_query($query, $values);
 }

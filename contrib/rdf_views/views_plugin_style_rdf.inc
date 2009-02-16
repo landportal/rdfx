@@ -102,7 +102,7 @@ class views_plugin_style_rdf extends views_plugin_style {
 
     // Compose the feed title:
     $title = $this->view->display_handler->get_option('sitename_title') ?
-      (variable_get('site_name', 'Drupal') . ($slogan = variable_get('site_slogan', '')) ? ' - '. $slogan : '') :
+      (variable_get('site_name', 'Drupal') . ($slogan = variable_get('site_slogan', '')) ? ' - ' . $slogan : '') :
       $this->view->get_title();
 
     // Compose the feed description:
@@ -163,14 +163,14 @@ class views_plugin_style_rdf extends views_plugin_style {
     // Invoke hook_rdf_views_feed_channel() to allow third-party modules to
     // manipulate the channel metadata:
     foreach (module_implements('rdf_views_feed_channel') as $module) {
-      $function = $module .'_rdf_views_feed_channel';
+      $function = $module . '_rdf_views_feed_channel';
       $function($this, $channel);
     }
 
     // Compile the channel index and render the items into triples:
     $items = array();
     foreach ($this->view->result as $row) {
-      $index[] = url('node/'. $row->nid, array('absolute' => TRUE, 'alias' => TRUE));
+      $index[] = url('node/' . $row->nid, array('absolute' => TRUE, 'alias' => TRUE));
       $items = array_merge($items, $this->row_plugin->render($row));
     }
 
@@ -186,7 +186,7 @@ class views_plugin_style_rdf extends views_plugin_style {
     // Implementers of this hook have final say in the feed output.
     $data = rdf_normalize(array_merge($channel, $index->to_triples(), $items));
     foreach (module_implements('rdf_views_feed') as $module) {
-      $function = $module .'_rdf_views_feed';
+      $function = $module . '_rdf_views_feed';
       $function($this, $data);
     }
 

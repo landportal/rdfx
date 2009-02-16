@@ -108,7 +108,7 @@ function theme_rdf_admin_data($form) {
   $object    = $form['query']['object']['#value'];
   $data      = rdf_normalize(rdf_query($subject, $predicate, $object));
 
-  $output = drupal_render($form['query']);
+  $output  = drupal_render($form['query']);
   $output .= drupal_render($form['advanced']);
   $output .= theme('rdf_triple_table', $data, array('link' => 'theme_rdf_admin_link'));
   $output .= drupal_render($form);
@@ -153,10 +153,10 @@ function rdf_admin_namespaces() {
   foreach (rdf_get_namespaces() as $prefix => $uri) {
     $mutable = isset($mutables[$prefix]);
     $rows[] = array(
-      $prefix, //l($prefix, 'admin/settings/rdf/predicates/'. $prefix),
+      $prefix, //l($prefix, 'admin/settings/rdf/predicates/' . $prefix),
       check_plain($uri),
-      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/namespaces/edit/'. $prefix),
-      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/namespaces/delete/'. $prefix),
+      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/namespaces/edit/' . $prefix),
+      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/namespaces/delete/' . $prefix),
     );
   }
 
@@ -173,13 +173,13 @@ function rdf_admin_repositories() {
   foreach (rdf_get_repositories() as $name => $info) {
     $mutable = !empty($info['mutable']) && $name != 'default'; // FIXME
     $rows[] = array(
-      l($info['title'], 'admin/settings/rdf/repositories/'. $info['module'] .'/edit/'. $name,
+      l($info['title'], 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name,
         array('attributes' => array('title' => @$info['dc:description']))),
       $name == 'system' ? t('n/a') : (empty($info['statements']) ? '-' : number_format($info['statements'])),
       !empty($info['mutable']) ? t('Yes') : t('No'),
       $info['module'],
-      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/'. $info['module'] .'/edit/'. $name),
-      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/repositories/'. $info['module'] .'/delete/'. $name),
+      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name),
+      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/repositories/' . $info['module'] . '/delete/' . $name),
     );
   }
 
@@ -411,9 +411,9 @@ function rdf_admin_mappings() {
     $rows[] = array(array('data' => t('Content types'), 'colspan' => 5, 'class' => 'category'));
     $mapping = NULL;
     foreach (node_get_types('names') as $node_type => $node_type_title) {
-      $mapping = variable_get('rdf_schema_class_'. $node_type, '');
+      $mapping = variable_get('rdf_schema_class_' . $node_type, '');
       $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
-      $rows[] = array($node_type_title, $node_type, $mapping, l(t('edit'), 'admin/content/node-type/'. $node_type), '');
+      $rows[] = array($node_type_title, $node_type, $mapping, l(t('edit'), 'admin/content/node-type/' . $node_type), '');
     }
     if (is_null($mapping)) {
       $rows[] = array(array('data' => t('No content types defined.'), 'colspan' => 5));
@@ -425,7 +425,7 @@ function rdf_admin_mappings() {
     $rows[] = array(array('data' => t('Content fields'), 'colspan' => 5, 'class' => 'category'));
     $mapping = NULL;
     foreach (content_fields() as $field_name => $field_info) {
-      $mapping = variable_get('rdf_schema_property_content_'. $field_name, '');
+      $mapping = variable_get('rdf_schema_property_content_' . $field_name, '');
       $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
       $rows[] = array($field_info['widget']['label'], $field_name, $mapping, l(t('edit'), 'admin/content/types/fields'), ''); // FIXME: link
     }
@@ -439,9 +439,9 @@ function rdf_admin_mappings() {
     $rows[] = array(array('data' => t('Taxonomy vocabularies'), 'colspan' => 5, 'class' => 'category'));
     $mapping = NULL;
     foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
-      $mapping = variable_get('rdf_schema_property_vocabulary_'. $vid, '');
+      $mapping = variable_get('rdf_schema_property_vocabulary_' . $vid, '');
       $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
-      $rows[] = array($vocabulary->name, '-', $mapping, l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/'. $vid), '');
+      $rows[] = array($vocabulary->name, '-', $mapping, l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/' . $vid), '');
     }
     if (is_null($mapping)) {
       $rows[] = array(array('data' => t('No vocabularies defined.'), 'colspan' => 5));
@@ -454,9 +454,9 @@ function rdf_admin_mappings() {
     $result = db_query('SELECT fid, title, name FROM {profile_fields} ORDER BY category, weight');
     $mapping = NULL;
     while ($field = db_fetch_object($result)) {
-      $mapping = variable_get('rdf_schema_property_profile_'. $field->fid, '');
+      $mapping = variable_get('rdf_schema_property_profile_' . $field->fid, '');
       $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
-      $rows[] = array($field->title, $field->name, $mapping, l(t('edit'), 'admin/user/profile/edit/'. $field->fid), '');
+      $rows[] = array($field->title, $field->name, $mapping, l(t('edit'), 'admin/user/profile/edit/' . $field->fid), '');
     }
     if (is_null($mapping)) {
       $rows[] = array(array('data' => t('No profile fields defined.'), 'colspan' => 5));

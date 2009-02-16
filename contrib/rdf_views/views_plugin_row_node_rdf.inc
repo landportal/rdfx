@@ -36,8 +36,8 @@ class views_plugin_row_node_rdf extends views_plugin_row {
     // Load the specified node:
     $item = node_load($row->nid);
     $item->build_mode = NODE_BUILD_RSS;
-    $item->url  = url('node/'. $row->nid, array('absolute' => TRUE, 'alias' => TRUE));
-    $item->link = url('node/'. $row->nid, array('absolute' => TRUE));
+    $item->url  = url('node/' . $row->nid, array('absolute' => TRUE, 'alias' => TRUE));
+    $item->link = url('node/' . $row->nid, array('absolute' => TRUE));
 
     // Apply input filters and prepare the node teaser, also allowing other
     // $modules to change node->teaser before viewing:
@@ -69,7 +69,7 @@ class views_plugin_row_node_rdf extends views_plugin_row {
         case 'teaser':
           $item_text = trim($item->teaser);
           if (!empty($item->readmore)) {
-            $item_text .= '<p>'. l(t('read more'), 'node/'. $item->nid, array('absolute' => TRUE, 'attributes' => array('target' => '_blank'))) .'</p>';
+            $item_text .= '<p>' . l(t('read more'), 'node/' . $item->nid, array('absolute' => TRUE, 'attributes' => array('target' => '_blank'))) . '</p>';
           }
           break;
       }
@@ -106,33 +106,23 @@ class views_plugin_row_node_rdf extends views_plugin_row {
     // This should eventually be properly handled by the RDF Schema module.
     if (isset($item->content) && is_array($item->content)) {
       foreach ($item->content as $field_name => $field_info) {
-        if (($field_uri = variable_get('rdf_schema_property_content_'. $field_name, '')) != '' && rdf_is_valid_uri($field_uri)) {
-          if (isset($item->$field_name)) {
-            $field_values = is_array($item->$field_name) ? $item->$field_name : array($item->$field_name);
-            foreach ($field_values as $field_value) {
-              if (($value = $field_value['value']) != '') { // skip empty values
+        $this->render_cck_field($item, $field_name, $field_info, $data);
+      }
 
-                // Cast CCK date field values into the correct RDF datatype:
-                if (isset($field_value['date_type'])) {
-                  $value = rdf_datetime($value); // FIXME: offset by $field_value['timezone'] ?
-                }
-                $data[] = array($item->url, $field_uri, $value);
-              }
-            }
+      if (module_exists('fieldgroup')) {
+        foreach (fieldgroup_groups($item->type) as $group_name => $group) {
+          foreach ($group['fields'] as $field_name => $field_info) {
+            $this->render_cck_field($item, $field_name, $field_info, $data);
           }
         }
       }
     }
 
     // HACK: this snippet provides direct support for the Location module.
+    // It should probably be submitted as a hook_rdf_views_feed_item() patch
+    // for location.module proper.
     if (isset($item->location)) {
-      rdf_register_namespace('geo', 'http://www.w3.org/2003/01/geo/wgs84_pos#');
-      if (isset($item->location['latitude'])) {
-        $data[] = array($item->url, 'geo:lat', $item->location['latitude']);
-      }
-      if (isset($item->location['longitude'])) {
-        $data[] = array($item->url, 'geo:long', $item->location['longitude']);
-      }
+      $this->render_location_rss($item, $data);
     }
 
     // Invoke hook_rdf_views_feed_item() to allow third-party modules to
@@ -141,10 +131,66 @@ class views_plugin_row_node_rdf extends views_plugin_row {
     // RDF Schema hooks, of course, but this hook provides the ultimate
     // flexibility in deciding the composition of the RDF feeds' items.
     foreach (module_implements('rdf_views_feed_item') as $module) {
-      $function = $module .'_rdf_views_feed_item';
+      $function = $module . '_rdf_views_feed_item';
       $function($this, $item, $data);
     }
 
     return $data;
+  }
+
+  function render_cck_field($item, $field_name, $field_info, &$data) {
+    if (($field_uri = variable_get('rdf_schema_property_content_' . $field_name, '')) != '' && rdf_is_valid_uri($field_uri)) {
+      if (isset($item->$field_name)) {
+        $field_values = is_array($item->$field_name) ? $item->$field_name : array($item->$field_name);
+        foreach ($field_values as $field_value) {
+          if (($value = $field_value['value']) != '') { // skip empty values
+
+            // Cast CCK date field values into the correct RDF datatype:
+            if (isset($field_value['date_type'])) {
+              $value = rdf_datetime($value); // FIXME: offset by $field_value['timezone'] ?
+            }
+            $data[] = array($item->url, $field_uri, $value);
+          }
+        }
+      }
+    }
+  }
+
+  function render_location_rss($item, &$data) {
+    switch (variable_get('location_rss_' . $item->type, 'simple')) {
+      // W3C Geo (deprecated)
+      case 'w3c':
+        rdf_register_namespace('geo', 'http://www.w3.org/2003/01/geo/wgs84_pos#');
+        if (isset($item->location['latitude'])) {
+          $data[] = array($item->url, 'geo:lat', $item->location['latitude']);
+        }
+        if (isset($item->location['longitude'])) {
+          $data[] = array($item->url, 'geo:long', $item->location['longitude']);
+        }
+        break;
+
+      // GeoRSS-Simple
+      case 'simple':
+        rdf_register_namespace('georss', 'http://www.georss.org/georss');
+        if (isset($item->location['latitude'], $item->location['longitude'])) {
+          $data[] = array($item->url, 'georss:point', $item->location['latitude'] . ' ' . $item->location['longitude']);
+        }
+        break;
+
+      // GeoRSS GML
+      case 'gml':
+        rdf_register_namespace('georss', 'http://www.georss.org/georss');
+        rdf_register_namespace('gml', 'http://www.opengis.net/gml');
+        if (isset($item->location['latitude'], $item->location['longitude'])) {
+          // TODO: use a BNode to represent the georss:where/gml:Point container.
+          $data[] = array($item->url, 'gml:pos', $item->location['latitude'] . ' ' . $item->location['longitude']);
+        }
+        break;
+
+      // None (do not put locational data in RSS feeds)
+      case 'none':
+      default:
+        break;
+    }
   }
 }
