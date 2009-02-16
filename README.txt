@@ -28,7 +28,8 @@ Post bug reports and feature requests to the issue tracking system at:
 CREDITS
 -------
 Developed and maintained by Arto Bendiken <http://bendiken.net/>
-Contributions by Miglius Alaburda, Ben Lavender and Jeff Miccolis.
+Co-maintained by Miglius Alaburda, Ben Lavender, and Jeff Miccolis.
+Contributions by Alex Karshakevich.
 Sponsored by MakaluMedia Group <http://www.makalumedia.com/>
 Sponsored by M.C. Dean, Inc. <http://www.mcdean.com/>
 Sponsored by SPAWAR <http://www.spawar.navy.mil/>
