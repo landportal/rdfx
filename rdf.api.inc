@@ -202,7 +202,16 @@ function rdf_bnode($id = NULL) {
 }
 
 function rdf_datetime($timestamp = NULL) {
-  return rdf_literal(gmstrftime('%Y-%m-%dT%H:%M:%SZ', !is_null($timestamp) ? (int)$timestamp : gmmktime()), NULL, 'xsd:dateTime');
+  if (is_numeric($timestamp)) {
+    $timestamp = (int)$timestamp;
+  }
+  else if (is_string($timestamp)) {
+    $timestamp = strtotime($timestamp);
+  }
+  else if (is_null($timestamp)) {
+    $timestamp = gmmktime();
+  }
+  return rdf_literal(gmstrftime('%Y-%m-%dT%H:%M:%SZ', $timestamp), NULL, 'xsd:dateTime');
 }
 
 function rdf_literal($value, $language = NULL, $datatype = NULL) {

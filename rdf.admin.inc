@@ -425,9 +425,25 @@ function rdf_admin_mappings() {
     $rows[] = array(array('data' => t('Content fields'), 'colspan' => 5, 'class' => 'category'));
     $mapping = NULL;
     foreach (content_fields() as $field_name => $field_info) {
-      $mapping = variable_get('rdf_schema_property_content_' . $field_name, '');
-      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
-      $rows[] = array($field_info['widget']['label'], $field_name, $mapping, l(t('edit'), 'admin/content/types/fields'), ''); // FIXME: link
+      $link = l(t('edit'), 'admin/content/types/fields', array('fragment' => $field_name)); // FIXME: link
+      if (($mapping = variable_get('rdf_schema_property_content_' . $field_name, ''))) {
+        $mapping = l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+        $rows[] = array($field_info['widget']['label'], $field_name, $mapping, $link, ''); 
+      }
+      // HACK: support CCK Date fields that have both a start and an end date:
+      else if (variable_get('rdf_schema_property_content_' . $field_name . '[from]', '')) {
+        $mappings = array();
+        if ($mapping = variable_get('rdf_schema_property_content_' . $field_name . '[from]', '')) {
+          $mappings[] = l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+        }
+        if ($mapping = variable_get('rdf_schema_property_content_' . $field_name . '[to]', '')) {
+          $mappings[] = l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+        }
+        $rows[] = array($field_info['widget']['label'], $field_name, implode(', ', $mappings), $link, ''); 
+      }
+      else {
+        $rows[] = array($field_info['widget']['label'], $field_name, '-', $link, ''); 
+      }
     }
     if (is_null($mapping)) {
       $rows[] = array(array('data' => t('No content fields defined.'), 'colspan' => 5));

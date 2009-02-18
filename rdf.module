@@ -491,12 +491,44 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
     // Administer >> Content management >> Content types >> (content type) >> Manage fields >> Configure
     case 'content_field_edit_form':
       // The submitted value is stored using the callback function defined below.
-      $rdf_mapping = variable_get('rdf_schema_property_content_'. $form['field_name']['#value'], '');
+      $rdf_mapping = variable_get('rdf_schema_property_content_' . $form['field_name']['#value'], '');
       $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => FALSE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
+
+      // Ordinary CCK fields
+      if (empty($form['#field']['todate'])) {
+        $form['rdf_mapping']['rdf_property'] = array(
+          '#type'          => 'textfield',
+          '#title'         => t('RDF property'),
+          '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
+          '#maxlength'     => 255,
+          '#description'   => t(''), // TODO
+        );
+      }
+      // HACK: support CCK Date fields that have both a start and an end date:
+      else { // $form['#field']['todate'] == 'optional' | 'required'
+        // From date
+        $rdf_mapping = variable_get('rdf_schema_property_content_' . $form['field_name']['#value'] . '[from]', $rdf_mapping);
+        $form['rdf_mapping']['rdf_property_from'] = array(
+          '#type'          => 'textfield',
+          '#title'         => t('RDF property (from date)'),
+          '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
+          '#maxlength'     => 255,
+          '#description'   => t(''), // TODO
+        );
+        // To date
+        $rdf_mapping = variable_get('rdf_schema_property_content_' . $form['field_name']['#value'] . '[to]', '');
+        $form['rdf_mapping']['rdf_property_to'] = array(
+          '#type'          => 'textfield',
+          '#title'         => t('RDF property (to date)'),
+          '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
+          '#maxlength'     => 255,
+          '#description'   => t(''), // TODO
+        );
+      }
+
       $form['submit']['#weight'] = 90;
       $form['#validate'][] = 'rdf_schema_property_form_validate';
-      $form['#submit'][] = 'rdf_schema_content_field_form_submit';
+      $form['#submit'][]   = 'rdf_schema_content_field_form_submit';
       break;
   }
 }
@@ -524,10 +556,19 @@ function rdf_schema_class_form_validate($form, &$form_state) {
  */
 function rdf_schema_property_form_validate($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
-  $rdf_property = trim($rdf_property);
 
-  if ($rdf_property != '' && !rdf_is_valid_uri($rdf_property) && !rdf_is_valid_curie($rdf_property)) {
-    form_set_error('rdf_property', t('RDF property is not a valid URI or CURIE.'));
+  if (isset($rdf_property)) {
+    if (($rdf_property = trim($rdf_property)) != '' && !rdf_is_valid_uri($rdf_property) && !rdf_is_valid_curie($rdf_property)) {
+      form_set_error('rdf_property', t('RDF property is not a valid URI or CURIE.'));
+    }
+  }
+  // HACK: support CCK Date fields that have both a start and an end date:
+  else if (isset($rdf_property_from, $rdf_property_to)) {
+    foreach (array('rdf_property_from', 'rdf_property_to') as $rdf_property) {
+      if (($$rdf_property = trim($$rdf_property)) != '' && !rdf_is_valid_uri($$rdf_property) && !rdf_is_valid_curie($$rdf_property)) {
+        form_set_error($rdf_property, t('RDF property is not a valid URI or CURIE.'));
+      }
+    }
   }
 }
 
@@ -538,10 +579,10 @@ function rdf_schema_profile_field_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
   if (!empty($rdf_property)) {
-    variable_set('rdf_schema_property_profile_'. $fid, rdf_qname_to_uri($rdf_property));
+    variable_set('rdf_schema_property_profile_' . $fid, rdf_qname_to_uri($rdf_property));
   }
   else {
-    variable_del('rdf_schema_property_profile_'. $fid);
+    variable_del('rdf_schema_property_profile_' . $fid);
   }
 }
 
@@ -551,11 +592,18 @@ function rdf_schema_profile_field_form_submit($form, &$form_state) {
 function rdf_schema_content_field_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
-  if (!empty($rdf_property)) {
-    variable_set('rdf_schema_property_content_'. $field_name, rdf_qname_to_uri($rdf_property));
-  }
-  else {
-    variable_del('rdf_schema_property_content_'. $field_name);
+  // HACK: support CCK Date fields that have both a start and an end date:
+  $rdf_properties = isset($rdf_property) ?
+    array('rdf_property' => '') :
+    array('rdf_property_from' => '[from]', 'rdf_property_to' => '[to]');
+
+  foreach ($rdf_properties as $rdf_property => $field_suffix) {
+    if (!empty($$rdf_property)) {
+      variable_set('rdf_schema_property_content_' . $field_name . $field_suffix, rdf_qname_to_uri($$rdf_property));
+    }
+    else {
+      variable_del('rdf_schema_property_content_' . $field_name . $field_suffix);
+    }
   }
 }
 

@@ -139,17 +139,19 @@ class views_plugin_row_node_rdf extends views_plugin_row {
   }
 
   function render_cck_field($item, $field_name, $field_info, &$data) {
-    if (($field_uri = variable_get('rdf_schema_property_content_' . $field_name, '')) != '' && rdf_is_valid_uri($field_uri)) {
-      if (isset($item->$field_name)) {
-        $field_values = is_array($item->$field_name) ? $item->$field_name : array($item->$field_name);
-        foreach ($field_values as $field_value) {
-          if (($value = $field_value['value']) != '') { // skip empty values
+    foreach (array('' => 'value', '[from]' => 'value', '[to]' => 'value2') as $field_suffix => $field_value_index) {
+      if (($field_uri = variable_get('rdf_schema_property_content_' . $field_name . $field_suffix, '')) != '' && rdf_is_valid_uri($field_uri)) {
+        if (isset($item->$field_name)) {
+          $field_values = is_array($item->$field_name) ? $item->$field_name : array($item->$field_name);
+          foreach ($field_values as $field_value) {
+            if (($value = $field_value[$field_value_index]) != '') { // skip empty values
 
-            // Cast CCK date field values into the correct RDF datatype:
-            if (isset($field_value['date_type'])) {
-              $value = rdf_datetime($value); // FIXME: offset by $field_value['timezone'] ?
+              // Cast CCK Date field values into the correct RDF datatype:
+              if (isset($field_value['date_type'])) {
+                $value = rdf_datetime($value); // FIXME: need to offset by $field_value['timezone'] ?
+              }
+              $data[] = array($item->url, $field_uri, $value);
             }
-            $data[] = array($item->url, $field_uri, $value);
           }
         }
       }
