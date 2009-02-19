@@ -89,24 +89,18 @@ function rdf_views_data() {
         'title' => t('User'),
         'help' => t("User who created statement."),
         'field' => array('handler' => 'views_handler_field'),
+        'relationship' => array(
+          'handler' => 'views_handler_relationship',
+          'base' => 'users',
+          'field' => 'uid',
+          'label' => t('user'),
+        ),
       ),
       'created' => array(
         'title' => t('Created'),
         'help' => t("Timestamp of the statement."),
         'field' => array('handler' => 'views_handler_field_date'),
         'filter' => array('handler' => 'views_handler_filter_date'),
-      ),
-      'pid' => array(
-        'title' => t('Predicate'),
-        'help' => t("The RDF statement's predicate."),
-        'field' => array('handler' => 'views_handler_field'),
-        'filter' => array('handler' => 'views_handler_filter_rdf_predicate'),
-      ),
-      'gid' => array(
-        'title' => t('Context'),
-        'help' => t('Named graph that the RDF statement belongs to.'),
-        'field' => array('handler' => 'views_handler_field'),
-        'filter' => array('handler' => 'views_handler_filter_rdf_context'),
       ),
       'data' => array(
         'title' => t('Object'),
@@ -120,6 +114,42 @@ function rdf_views_data() {
           'label' => t('@table Resources', array('@table' => $info->title)),
         ),
       ),
+    );
+    // Add predicate and named graph fields differently as we need to refer back
+    // to rdf_resources to pull usable values.
+    $data[$table .'_predicate']['table'] = array(
+      'group' => t('@table', array('@table' => $info->title)),
+      'join' => array(
+        'rdf_resources' => array(
+          'left_table' => $table,
+          'left_field' => 'pid',
+          'table' => 'rdf_resources',
+          'field' => 'rid',
+        ),
+      ),
+    );
+     $data[$table .'_predicate']['uri'] = array(
+        'title' => t('Predicate'),
+        'help' => t("The RDF statement's predicate."),
+        'field' => array('handler' => 'views_handler_field'),
+        'filter' => array('handler' => 'views_handler_filter_rdf_predicate'),
+    );
+    $data[$table .'_context']['table'] = array(
+      'group' => t('@table', array('@table' => $info->title)),
+      'join' => array(
+        'rdf_resources' => array(
+          'left_table' => $table,
+          'left_field' => 'gid',
+          'table' => 'rdf_resources',
+          'field' => 'rid',
+        ),
+      ),
+    );
+     $data[$table .'_context']['uri'] = array(
+        'title' => t('Named graph'),
+        'help' => t("The RDF statement's named graph."),
+        'field' => array('handler' => 'views_handler_field'),
+        'filter' => array('handler' => 'views_handler_filter_rdf_context'),
     );
   }
   return $data;
