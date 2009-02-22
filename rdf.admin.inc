@@ -398,11 +398,6 @@ function rdf_db_admin_db_delete_submit($form, &$form_state) {
 function rdf_admin_mappings() {
   // TODO: this should get refactored for extensibility, at some point.
 
-  if (!module_exists('rdf_schema')) {
-    drupal_set_message(t('To define mappings between Drupal data and RDF classes/properties, you must enable the <a href="@admin-modules">RDF Schema</a> module.', array('@admin-modules' => 'admin/build/modules')), 'warning');
-    return '';
-  }
-
   $header = array(t('Title'), t('Class/property'), t('RDF mapping'), array('data' => t('Operations'), 'colspan' => '2'));
   $rows = array();
 

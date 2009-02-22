@@ -18,8 +18,8 @@ function rdf_feedapi_mapper($op, $node, $field_name, $feed_element = array(), $s
         // Feed Element Mapper drop-down boxes for each feed item property.
         // In our case, we expose all mutable RDF repositories as targets,
         // and additionally include a 'System' target that will perform a
-        // reverse mapping through RDF Schema (if the module is enabled):
-        $sub_fields = module_exists('rdf_schema') ? array('system' => t('System')) : array();
+        // reverse mapping through the RDF Schema API:
+        $sub_fields = array('system' => t('System'));
         foreach (rdf_get_repositories() as $repo_name => $repo_info) {
           if (!empty($repo_info['enabled']) && !empty($repo_info['mutable'])) {
             $sub_fields[$repo_name] = $repo_info['title'];
