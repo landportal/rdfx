@@ -190,6 +190,8 @@ function rdf_schema_alter($schema) {
 
 /**
  * Converts RDF DB tables from 6.x-1.0-alpha3 to 6.x-1.0-alpha4.
+ *
+ * @since 6.x-1.0-alpha4
  */
 function rdf_update_6000() {
   $updates = array();
@@ -198,6 +200,38 @@ function rdf_update_6000() {
   foreach (rdf_db_get_repository_tables() as $table) {
     db_add_field($updates, $table, 'uid', array('type' => 'int', 'unsigned' => TRUE));
     db_add_field($updates, $table, 'created', array('type' => 'int', 'unsigned' => TRUE));
+  }
+
+  return $updates;
+}
+
+/**
+ * Converts CCK Date field mapping variables into a new format that provides
+ * support for fields that have both a start and an end date.
+ *
+ * @since 6.x-1.0-alpha6
+ */
+function rdf_update_6001() {
+  $updates = array();
+
+  $variables = db_query("SELECT name, value FROM {variable} WHERE name LIKE 'rdf_schema_property_content_%'");
+  while ($variable = db_fetch_object($variables)) {
+    if (preg_match('/^rdf_schema_property_content_(.*)$/', $variable->name, $matches)) {
+      $field_name = $matches[1];
+      if ($db_columns = db_result(db_query("SELECT db_columns FROM {content_node_field} WHERE field_name = '%s' AND module = 'date'", $field_name))) {
+        // Check if this field has a secondary "to" date component enabled:
+        $db_columns = unserialize($db_columns);
+        if (isset($db_columns['value2'])) {
+          // Delete the old mapping variable:
+          $updates[] = update_sql("DELETE FROM {variable} WHERE name = '" . db_escape_string($variable->name) . "'");
+
+          // Insert the new mapping variable, provided one hasn't already been defined by the administrator:
+          if (variable_get('rdf_schema_property_content_' . $field_name . '[from]', FALSE) === FALSE) {
+            $updates[] = update_sql("INSERT INTO {variable} (name, value) VALUES ('" . db_escape_string($variable->name) . "[from]', '" . db_escape_string($variable->value) . "')");
+          }
+        }
+      }
+    }
   }
 
   return $updates;
