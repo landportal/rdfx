@@ -171,3 +171,52 @@ function rdf_views_handlers() {
     ),
   );
 }
+
+//////////////////////////////////////////////////////////////////////////////
+
+function rdf_views_get_feeds() {
+  $feeds = array();
+
+  $result = db_query("SELECT v.*, vd.* FROM {views_display} vd LEFT JOIN {views_view} v ON vd.vid = v.vid WHERE vd.display_plugin = 'feed'");
+  while ($row = db_fetch_object($result)) {
+    $row->display_options = unserialize($row->display_options);
+    if (isset($row->display_options['style_plugin']) && $row->display_options['style_plugin'] == 'rdf') {
+      $feed_path    = $row->display_options['path'];
+      $feed_options = $row->display_options['style_options'];
+      $item_plugin   = $row->display_options['row_plugin'];
+      $item_options  = $row->display_options['row_options'];  
+
+      if ($defaults = db_result(db_query("SELECT vd.display_options FROM {views_display} vd WHERE vd.display_plugin = 'default' AND vd.vid = %d", $row->vid))) {
+        $row->display_options = array_merge_recursive(unserialize($defaults), $row->display_options);    
+      }
+
+      $feeds['views_' . $row->name] = array(
+        'type'        => 'http://purl.org/rss/1.0/',
+        'path'        => $feed_path,
+        'title'       => $row->display_options['title'],
+        'description' => $row->description,
+        'module'      => 'views',
+        'callback'    => NULL, // N/A
+        'enabled'     => TRUE, // TODO: only if the view itself is enabled
+      );
+    }
+  }
+
+  return $feeds;
+}
+
+function rdf_views_get_feed_settings($feed_id, array $defaults = array()) {
+  $view_name = substr($feed_id, strlen('views_'));
+  $result = db_query("SELECT v.*, vd.* FROM {views_view} v LEFT JOIN {views_display} vd ON v.vid = vd.vid WHERE v.name = '%s' AND vd.display_plugin = 'feed'", $view_name);
+  while ($row = db_fetch_object($result)) {
+    $row->display_options = unserialize($row->display_options);
+    if (isset($row->display_options['style_plugin']) && $row->display_options['style_plugin'] == 'rdf') {
+      return (array)$row->display_options['style_options'];
+    }
+  }
+  return $defaults;
+}
+
+function rdf_views_set_feed_settings($feed_id, array $settings) {
+  // TODO
+}

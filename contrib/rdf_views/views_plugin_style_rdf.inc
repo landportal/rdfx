@@ -48,48 +48,8 @@ class views_plugin_style_rdf extends views_plugin_style {
   }
 
   function options_form(&$form, &$form_state) {
-    $form['description_from_mission'] = array(
-      '#type' => 'checkbox',
-      '#default_value' => !empty($this->options['description_from_mission']),
-      '#title' => t('Use the site mission as the channel description'),
-    );
-    $form['description'] = array(
-      '#type' => 'textfield',
-      '#title' => t('RSS 1.0 channel description'),
-      '#default_value' => $this->options['description'],
-      '#description' => t('This will appear as the channel description in the RDF feed.'),
-      '#process' => array('views_process_dependency'),
-      '#dependency' => array('edit-style-options-override' => array(FALSE)),
-    );
-    $form['update_period'] = array(
-      '#type' => 'select',
-      '#title' => t('Update period'),
-      '#default_value' => $this->options['update_period'],
-      '#options' => array('' => t('<not specified>'), 'hourly' => t('hourly'), 'daily' => t('daily'), 'weekly' => t('weekly'), 'monthly' => t('monthly'), 'yearly' => t('yearly')),
-      '#description' => t('Provides <a href="http://web.resource.org/rss/1.0/modules/syndication/">RSS 1.0 syndication hints</a> to aggregators and others picking up this RSS feed regarding how often it is updated.'),
-    );
-    $form['update_frequency'] = array(
-      '#type' => 'select',
-      '#title' => t('Update frequency'),
-      '#default_value' => $this->options['update_frequency'],
-      '#options' => array_merge(array('' => t('<not specified>')), drupal_map_assoc(range(1, 24))),
-      '#description' => t('Used to describe the frequency of updates in relation to the update period. This is a positive integer that indicates how many times in that period the channel is updated. For example, an update period of <em>daily</em> with an update frequency of <em>2</em> indicates the channel is updated twice daily. If omitted, a value of <em>1</em> is assumed.'),
-    );
-    $form['update_base'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Update base date'),
-      '#default_value' => $this->options['update_base'],
-      '#description' => t('Defines a base date to be used in concert with the update period and update frequency to calculate the publishing schedule. The date format takes the form: <code>yyyy-mm-ddThh:mm</code>.'),
-      '#size' => 16,
-      '#maxlength' => 16,
-    );
-    $form['format'] = array(
-      '#type' => 'select',
-      '#title' => t('Default format'),
-      '#default_value' => $this->options['format'],
-      '#options' => rdf_get_formats('names'),
-      '#description' => t('This determines the default RDF serialization format to output. The client can override this by passing an <code>Accept</code> header specifying another supported format.'),
-    );
+    module_load_include('inc', 'rdf', 'rdf.admin');
+    rdf_admin_feed_form($form, $form_state, $this->options);
   }
 
   function render() {

@@ -84,6 +84,7 @@ function rdf_admin_data() {
   $object    = isset($_GET['o']) ? urldecode($_GET['o']) : '';
   $context   = isset($_GET['g']) ? urldecode($_GET['g']) : '';
 
+  $form = array();
   $form['query'] = array('#type' => 'fieldset', '#title' => t('Query'), '#prefix' => '<div class="container-inline">', '#suffix' => '</div>');
   $form['query']['subject'] = array('#type' => 'textfield', '#title' => '', '#default_value' => $subject, '#maxlength' => 255, '#size' => 20);
   $form['query']['predicate'] = array('#type' => 'textfield', '#title' => '', '#default_value' => $predicate, '#maxlength' => 255, '#size' => 20);
@@ -118,76 +119,6 @@ function theme_rdf_admin_data($form) {
 function theme_rdf_admin_link($title, $uri, array $attributes = array()) {
   return l($title, 'admin/content/rdf', array('query' => drupal_query_string_encode(array('s' => $uri))));
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// RDF context management
-
-function rdf_admin_contexts() {
-  $header = array(t('URI'), t('Statements'));
-
-  // FIXME: need something more loosely-coupled and robust for this:
-  $mutables = rdf_db_rdf_contexts();
-
-  $rows = array();
-  foreach (rdf_get_contexts() as $uri) {
-    $mutable = in_array($uri, $mutables);
-    $rows[] = array(
-      l($uri, 'admin/content/rdf', array('query' => array('g' => $uri))),
-      !$mutable ? t('n/a') : rdf_count(NULL, NULL, NULL, array('context' => $uri)),
-    );
-  }
-
-  return theme('table', $header, $rows);
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// RDF namespace management
-
-function rdf_admin_namespaces() {
-  $header = array(t('Prefix'), t('Base URI'), array('data' => t('Operations'), 'colspan' => '2'));
-
-  // FIXME: need something more loosely-coupled and robust for this:
-  $mutables = rdf_db_rdf_namespaces();
-
-  $rows = array();
-  foreach (rdf_get_namespaces() as $prefix => $uri) {
-    $mutable = isset($mutables[$prefix]);
-    $rows[] = array(
-      $prefix, //l($prefix, 'admin/settings/rdf/predicates/' . $prefix),
-      check_plain($uri),
-      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/namespaces/edit/' . $prefix),
-      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/namespaces/delete/' . $prefix),
-    );
-  }
-
-  return theme('table', $header, $rows);
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// RDF repository management
-
-function rdf_admin_repositories() {
-  $header = array(t('Name'), t('Statements'), t('Mutable'), t('Module'), array('data' => t('Operations'), 'colspan' => '2'));
-
-  $rows = array();
-  foreach (rdf_get_repositories() as $name => $info) {
-    $mutable = !empty($info['mutable']) && $name != 'default'; // FIXME
-    $rows[] = array(
-      l($info['title'], 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name,
-        array('attributes' => array('title' => @$info['dc:description']))),
-      $name == 'system' ? t('n/a') : (empty($info['statements']) ? '-' : number_format($info['statements'])),
-      !empty($info['mutable']) ? t('Yes') : t('No'),
-      $info['module'],
-      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name),
-      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/repositories/' . $info['module'] . '/delete/' . $name),
-    );
-  }
-
-  return theme('table', $header, $rows);
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// RDF DB data management
 
 function rdf_db_admin_data_form(&$form_state, $edit = array('subject' => '', 'predicate' => '', 'object' => '', 'repository' => 'local')) {
   $edit = (object)$edit;
@@ -236,160 +167,6 @@ function rdf_db_admin_data_form_submit($form, &$form_state) {
   }
 
   $form_state['redirect'] = array('admin/content/rdf', drupal_query_string_encode(array('s' => (string)$subject)));
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// RDF DB namespace management
-
-function rdf_db_admin_ns_edit($prefix = '') {
-  if (empty($prefix)) {
-    return drupal_get_form('rdf_db_admin_ns_form');
-  }
-  else {
-    return drupal_get_form('rdf_db_admin_ns_form', rdf_db_load_namespace($prefix));
-  }
-}
-
-function rdf_db_admin_ns_form(&$form_state, $edit = array('prefix' => '', 'uri' => '')) {
-  $edit = (object)$edit;
-  $form = array();
-
-  $form['prefix'] = array('#type' => 'textfield', '#title' => t('Prefix'), '#default_value' => $edit->prefix, '#maxlength' => 64, '#required' => TRUE, '#description' => t('The short abbreviation to use in the place of the base URI. Keep it short, and use only lowercase, alphanumeric letters.'));
-  $form['uri'] = array('#type' => 'textfield', '#title' => t('Base URI'), '#default_value' => $edit->uri, '#maxlength' => 255, '#required' => TRUE, '#description' => t('The absolute base URI of the RDF vocabulary. Make sure that the URI terminates with a hash or slash character.'));
-
-  $form['key'] = array('#type' => 'hidden', '#value' => $edit->prefix);
-  $form['submit'] = array('#type' => 'submit', '#value' => empty($edit->prefix) ? t('Create new namespace') : t('Update namespace'));
-
-  return $form;
-}
-
-function rdf_db_admin_ns_form_validate($form, &$form_state) {
-  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
-
-  if (!preg_match('/^[a-z_]+[a-z\d\._]*$/', $prefix)) {
-    form_set_error('prefix', t('Prefix %prefix contains illegal characters.', array('%prefix' => $prefix)));
-  }
-
-  if (!rdf_is_valid_uri($uri)) {
-    form_set_error('uri', t('Base URI %uri contains illegal characters.', array('%uri' => $uri)));
-  }
-
-  if (!preg_match('@[#/:]$@', $uri)) {
-    form_set_error('uri', t('Base URI %uri must terminate with "#", "/" or ":".', array('%uri' => $uri)));
-  }
-}
-
-function rdf_db_admin_ns_form_submit($form, &$form_state) {
-  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
-
-  if (empty($key)) {
-    db_query("INSERT INTO {rdf_namespaces} (prefix, uri) VALUES ('%s', '%s')", $prefix, $uri);
-    drupal_set_message(t('The namespace has been created.'));
-  }
-  else {
-    db_query("UPDATE {rdf_namespaces} SET prefix = '%s', uri = '%s' WHERE prefix = '%s'", $prefix, $uri, $key);
-    drupal_set_message(t('The namespace has been updated.'));
-  }
-
-  $form_state['redirect'] = 'admin/settings/rdf/namespaces';
-}
-
-function rdf_db_admin_ns_delete($form_state, $prefix) {
-  if (user_access('administer RDF namespaces') && rdf_db_load_namespace($prefix)) {
-    $form['prefix'] = array('#type' => 'value', '#value' => $prefix);
-    $output = confirm_form($form,
-      t('Are you sure you want to delete the RDF namespace %title?', array('%title' => $prefix)),
-      isset($_GET['destination']) ? $_GET['destination'] : 'admin/settings/rdf/namespaces');
-  }
-  return $output;
-}
-
-function rdf_db_admin_ns_delete_submit($form, &$form_state) {
-  if ($form_state['values']['confirm']) {
-    db_query("DELETE FROM {rdf_namespaces} WHERE prefix = '%s'", $form_state['values']['prefix']);
-    drupal_set_message(t('The namespace has been deleted.'));
-
-    $form_state['redirect'] = 'admin/settings/rdf/namespaces';
-  }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// RDF DB repository management
-
-function rdf_db_admin_db_edit($name = '') {
-  if (empty($name)) {
-    return drupal_get_form('rdf_db_admin_db_form');
-  }
-  else {
-    return drupal_get_form('rdf_db_admin_db_form', rdf_db_load_repository($name));
-  }
-}
-
-function rdf_db_admin_db_form(&$form_state, $edit = array('name' => '', 'title' => '', 'description' => '')) {
-  $edit = (object)$edit;
-  $form = array();
-
-  $form['identity'] = array('#type' => 'fieldset', '#title' => t('Identification'));
-
-  $form['identity']['title'] = array('#type' => 'textfield', '#title' => t('Name'), '#default_value' => $edit->title, '#maxlength' => 64, '#required' => TRUE, '#description' => t('The human-readable name of this repository. It is recommended that this name begins with a capital letter and consists only of letters, numbers, and spaces.'));
-  $form['identity']['name'] = array('#type' => 'textfield', '#title' => t('ID'), '#default_value' => $edit->name, '#maxlength' => 32, '#required' => TRUE, '#description' => t('The machine-readable name of this repository. This text will be used for constructing the unique URI identifying this repository. This name may consist of only of lowercase letters, numbers, and underscores. Hyphens are not allowed. Underscores will be converted into hyphens when constructing the URI for the repository. This name must be unique to this repository.'));
-  $form['identity']['description'] = array('#title' => t('Description'), '#type' => 'textarea', '#default_value' => $edit->description, '#rows' => 2, '#description' => t('A brief description of this repository.'));
-
-  $form['key'] = array('#type' => 'hidden', '#value' => $edit->name);
-  $form['submit'] = array('#type' => 'submit', '#value' => empty($edit->name) ? t('Create new repository') : t('Update repository'));
-
-  return $form;
-}
-
-function rdf_db_admin_db_form_validate($form, &$form_state) {
-  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
-
-  if (!preg_match('/^[a-z]+[a-z\d_]*$/', $name)) {
-    form_set_error('name', t('The machine-readable name can only consist of lowercase letters, underscores, and numbers.', array('%name' => $name)));
-  }
-
-  if (array_search($name, rdf_db_get_repository_names()) !== FALSE) { // FIXME
-    form_set_error('name', t('The machine-readable name %name is already used by another repository.', array('%name' => $name)));
-  }
-}
-
-function rdf_db_admin_db_form_submit($form, &$form_state) {
-  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
-
-  if (empty($key)) {
-    rdf_db_create_repository($name, array('dc:title' => $title, 'dc:description' => $description));
-    drupal_set_message(t('The repository has been created.'));
-  }
-  else {
-    if ($key != $name) {
-      rdf_db_rename_repository($key, $name);
-      rdf_db_delete_repository_metadata($key);
-    }
-    rdf_db_update_repository_metadata($name, array('dc:title' => $title, 'dc:description' => $description));
-    drupal_set_message(t('The repository has been updated.'));
-  }
-
-  $form_state['redirect'] = 'admin/settings/rdf/repositories';
-}
-
-function rdf_db_admin_db_delete($form_state, $name) {
-  if (user_access('administer RDF repositories')) {
-    $form['name'] = array('#type' => 'value', '#value' => $name);
-    $output = confirm_form($form,
-      t('Are you sure you want to delete the RDF repository %title?', array('%title' => $name)),
-      isset($_GET['destination']) ? $_GET['destination'] : 'admin/settings/rdf/repositories',
-      t('This action will destroy all data contained in the repository and cannot be undone.'));
-  }
-  return $output;
-}
-
-function rdf_db_admin_db_delete_submit($form, &$form_state) {
-  if ($form_state['values']['confirm']) {
-    rdf_db_delete_repository($form_state['values']['name']);
-    drupal_set_message(t('The repository has been deleted.'));
-
-    $form_state['redirect'] = 'admin/settings/rdf/repositories';
-  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -475,6 +252,405 @@ function rdf_admin_mappings() {
   }
 
   return theme('table', $header, $rows);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF feeds management
+
+function rdf_admin_feeds() {
+  $header = array('', t('Path'), t('Module'), t('Title'), t('Operations'));
+
+  $rows = array();
+  foreach (rdf_get_feed_info() as $feed_id => $feed) {
+    $module = unserialize(db_result(db_query("SELECT info FROM {system} WHERE type = 'module' AND name = '%s'", $feed->module)));
+
+    $is_wildcard = (strpos($feed->path, '%') !== FALSE);
+    $is_core     = in_array($feed->module, array('node', 'taxonomy', 'blog', 'aggregator'));
+    $is_rdf      = !$is_core || array_search($feed->id, array_keys(variable_get('rdf_feed_override', array()))) !== FALSE;
+
+    $rows[] = array(
+      theme('feed_icon', !$is_wildcard ? url($feed->path) : '#', $feed->path),
+      !$is_wildcard ? l($feed->path, $feed->path) : $feed->path,
+      $module ? $module['name'] : $feed->module,
+      $feed->title,
+      l(t($is_rdf ? 'configure' : 'enable'), 'admin/settings/rdf/feeds/edit/' . $feed_id),
+    );
+  }
+
+  return theme('table', $header, $rows);
+}
+
+function rdf_admin_feed(&$form_state, $feed_id) {
+  $form = array();
+  $feed = rdf_get_feed_info($feed_id);
+  $edit = rdf_get_feed_settings($feed_id);
+
+  $is_core = in_array($feed->module, array('node', 'taxonomy', 'blog', 'aggregator'));
+  $is_rdf  = !$is_core || array_search($feed->id, array_keys(variable_get('rdf_feed_override', array()))) !== FALSE;
+
+  // Feed compatibility
+  $form['compatibility'] = array(
+    '#type'          => 'fieldset',
+    '#title'         => t('Feed compatibility'),
+    '#collapsible'   => FALSE,
+    '#collapsed'     => FALSE,
+    '#description'   => rdf_help('admin/settings/rdf/feeds/edit#compatibility', $is_core),
+  );
+  if ($is_core) { // this is a feed from a core module, and needs an RDF override
+    $form['compatibility']['override'] = array(
+      '#type'          => 'radios',
+      '#title'         => '',
+      '#default_value' => $is_rdf ? 1 : 0,
+      '#options'       => array(0 => t('RSS 2.0 (default, but <strong>not</strong> compatible with RDF)'), 1 => t('RSS 1.0 (<strong>recommended</strong>, compatible with RDF)')),
+      '#description'   => t('The feeds provided by Drupal\'s core modules are <strong>not</strong> RDF-compatible by default. Use this setting to let the RDF module upgrade those feeds to reusable and future-proof RSS 1.0-compatible RDF output.'),
+    );
+  }
+  else {
+    $form['compatibility']['text'] = array('#value' => t('<a href="http://web.resource.org/rss/1.0/">RSS 1.0</a> (compatible with RDF)'));
+  }
+
+  // Channel settings
+  $form['channel'] = array(
+    '#type'          => 'fieldset',
+    '#title'         => t('Channel settings'),
+    '#collapsible'   => FALSE,
+    '#collapsed'     => FALSE,
+    '#description'   => rdf_help('admin/settings/rdf/feeds/edit#channel'),
+  );
+  rdf_admin_feed_form($form['channel'], $form_state, $edit);
+
+  if ($is_core) { // this is a feed from a core module, and hence lacks some options
+    $form['channel']['description_from_mission'] = array('#type' => 'hidden', '#value' => '');
+    $form['channel']['description'] = array('#type' => 'hidden', '#value' => '');
+  }
+
+  if (!$is_rdf) { // disable extended configuration if the feed isn't RSS 1.0
+    $form['channel']['#attributes']['disabled'] = 'disabled';
+    foreach ($form['channel'] as $field => &$field_info) {
+      if ($field[0] != '#') {
+        $field_info['#attributes']['disabled'] = 'disabled';
+      }
+    }
+  }
+
+  // Item settings
+  /*$form['item'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => t('Item settings'),
+    '#collapsible' => FALSE,
+    '#collapsed'   => FALSE,
+    '#description' => rdf_help('admin/settings/rdf/feeds/edit#item'),
+  );*/
+  // TODO: namespace selection
+
+  $form['feed_id'] = array('#type' => 'hidden', '#value' => $feed_id);
+  $form['submit']  = array('#type' => 'submit', '#value' => t('Save configuration'));
+
+  return $form;
+}
+
+function rdf_admin_feed_form(&$form, &$form_state, $defaults = array()) {
+  $form['description_from_mission'] = array(
+    '#type'          => 'checkbox',
+    '#default_value' => !empty($defaults['description_from_mission']),
+    '#title'         => t('Use the site mission as the channel description'),
+  );
+  $form['description'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('RSS 1.0 channel description'),
+    '#default_value' => $defaults['description'],
+    '#description'   => t('This will appear as the channel description in the RDF feed.'),
+    '#process'       => array('views_process_dependency'),
+    '#dependency'    => array('edit-style-options-override' => array(FALSE)),
+  );
+  $form['update_period'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Update period'),
+    '#default_value' => $defaults['update_period'],
+    '#options'       => array('' => t('<not specified>'), 'hourly' => t('hourly'), 'daily' => t('daily'), 'weekly' => t('weekly'), 'monthly' => t('monthly'), 'yearly' => t('yearly')),
+    '#description'   => t('Provides <a href="http://web.resource.org/rss/1.0/modules/syndication/">RSS 1.0 syndication hints</a> to aggregators and others picking up this RSS feed regarding how often it is updated.'),
+  );
+  $form['update_frequency'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Update frequency'),
+    '#default_value' => $defaults['update_frequency'],
+    '#options'       => array_merge(array('' => t('<not specified>')), drupal_map_assoc(range(1, 24))),
+    '#description'   => t('Used to describe the frequency of updates in relation to the update period. This is a positive integer that indicates how many times in that period the channel is updated. For example, an update period of <em>daily</em> with an update frequency of <em>2</em> indicates the channel is updated twice daily. If omitted, a value of <em>1</em> is assumed.'),
+  );
+  $form['update_base'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Update base date'),
+    '#default_value' => $defaults['update_base'],
+    '#description'   => t('Defines a base date to be used in concert with the update period and update frequency to calculate the publishing schedule. The date format takes the form: <code>yyyy-mm-ddThh:mm</code>.'),
+    '#size'          => 16,
+    '#maxlength'     => 16,
+  );
+  $form['format'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Default format'),
+    '#default_value' => $defaults['format'],
+    '#options'       => rdf_get_formats('names'),
+    '#description'   => t('This determines the default RDF serialization format to output. Browsers and RSS feed consumers can override this through <a href="http://en.wikipedia.org/wiki/Content_negotiation">HTTP content negotiation</a>, that is, by passing an <code>Accept</code> header specifying another supported format.'),
+  );
+}
+
+function rdf_admin_feed_validate($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  // TODO
+}
+
+function rdf_admin_feed_submit($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+  $feed = rdf_get_feed_info($feed_id);
+
+  $form_state['redirect'] = 'admin/settings/rdf/feeds';
+
+  // For core modules
+  if (isset($override)) {
+    $overrides = variable_get('rdf_feed_override', array());
+    $was_overridden = !empty($overrides[$feed->id]);
+
+    if (!empty($override) && !$was_overridden) {
+      $overrides[$feed->id] = TRUE;
+
+      variable_set('rdf_feed_override', $overrides);
+      drupal_set_message(t('The feed %path has been upgraded for RDF compatibility.', array('%path' => $feed->path)));
+      menu_rebuild(); // we need to rebuild the menu cache for this to take effect
+
+      $form_state['redirect'] = 'admin/settings/rdf/feeds/edit/' . $feed->id;
+      return; // continue workflow on the same screen to allow for further feed configuration
+    }
+    else if (empty($override) && $was_overridden) {
+      unset($overrides[$feed->id]);
+
+      variable_set('rdf_feed_override', $overrides);
+      drupal_set_message(t('The feed %path has been downgraded to the default format.', array('%path' => $feed->path)));
+      menu_rebuild(); // we need to rebuild the menu cache for this to take effect
+    }
+    else if (empty($override)) {
+      return; // don't save feed settings for non-RDF feeds
+    }
+  }
+
+  // Save feed settings
+  rdf_set_feed_settings($feed, compact('description_from_mission', 'description', 'update_period', 'update_frequency', 'update_base', 'format'));
+  drupal_set_message(t('The feed configuration for %path has been updated.', array('%path' => $feed->path)));
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF namespace management
+
+function rdf_admin_namespaces() {
+  $header = array(t('Prefix'), t('Base URI'), array('data' => t('Operations'), 'colspan' => '2'));
+
+  // FIXME: need something more loosely-coupled and robust for this:
+  $mutables = rdf_db_rdf_namespaces();
+
+  $rows = array();
+  foreach (rdf_get_namespaces() as $prefix => $uri) {
+    $mutable = isset($mutables[$prefix]);
+    $rows[] = array(
+      $prefix, //l($prefix, 'admin/settings/rdf/predicates/' . $prefix),
+      check_plain($uri),
+      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/namespaces/edit/' . $prefix),
+      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/namespaces/delete/' . $prefix),
+    );
+  }
+
+  return theme('table', $header, $rows);
+}
+
+function rdf_db_admin_ns_edit($prefix = '') {
+  if (empty($prefix)) {
+    return drupal_get_form('rdf_db_admin_ns_form');
+  }
+  else {
+    return drupal_get_form('rdf_db_admin_ns_form', rdf_db_load_namespace($prefix));
+  }
+}
+
+function rdf_db_admin_ns_form(&$form_state, $edit = array('prefix' => '', 'uri' => '')) {
+  $edit = (object)$edit;
+  $form = array();
+
+  $form['prefix'] = array('#type' => 'textfield', '#title' => t('Prefix'), '#default_value' => $edit->prefix, '#maxlength' => 64, '#required' => TRUE, '#description' => t('The short abbreviation to use in the place of the base URI. Keep it short, and use only lowercase, alphanumeric letters.'));
+  $form['uri'] = array('#type' => 'textfield', '#title' => t('Base URI'), '#default_value' => $edit->uri, '#maxlength' => 255, '#required' => TRUE, '#description' => t('The absolute base URI of the RDF vocabulary. Make sure that the URI terminates with a hash or slash character.'));
+
+  $form['key'] = array('#type' => 'hidden', '#value' => $edit->prefix);
+  $form['submit'] = array('#type' => 'submit', '#value' => empty($edit->prefix) ? t('Create new namespace') : t('Update namespace'));
+
+  return $form;
+}
+
+function rdf_db_admin_ns_form_validate($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  if (!preg_match('/^[a-z_]+[a-z\d\._]*$/', $prefix)) {
+    form_set_error('prefix', t('Prefix %prefix contains illegal characters.', array('%prefix' => $prefix)));
+  }
+
+  if (!rdf_is_valid_uri($uri)) {
+    form_set_error('uri', t('Base URI %uri contains illegal characters.', array('%uri' => $uri)));
+  }
+
+  if (!preg_match('@[#/:]$@', $uri)) {
+    form_set_error('uri', t('Base URI %uri must terminate with "#", "/" or ":".', array('%uri' => $uri)));
+  }
+}
+
+function rdf_db_admin_ns_form_submit($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  if (empty($key)) {
+    db_query("INSERT INTO {rdf_namespaces} (prefix, uri) VALUES ('%s', '%s')", $prefix, $uri);
+    drupal_set_message(t('The namespace has been created.'));
+  }
+  else {
+    db_query("UPDATE {rdf_namespaces} SET prefix = '%s', uri = '%s' WHERE prefix = '%s'", $prefix, $uri, $key);
+    drupal_set_message(t('The namespace has been updated.'));
+  }
+
+  $form_state['redirect'] = 'admin/settings/rdf/namespaces';
+}
+
+function rdf_db_admin_ns_delete($form_state, $prefix) {
+  if (user_access('administer RDF namespaces') && rdf_db_load_namespace($prefix)) {
+    $form['prefix'] = array('#type' => 'value', '#value' => $prefix);
+    $output = confirm_form($form,
+      t('Are you sure you want to delete the RDF namespace %title?', array('%title' => $prefix)),
+      isset($_GET['destination']) ? $_GET['destination'] : 'admin/settings/rdf/namespaces');
+  }
+  return $output;
+}
+
+function rdf_db_admin_ns_delete_submit($form, &$form_state) {
+  if ($form_state['values']['confirm']) {
+    db_query("DELETE FROM {rdf_namespaces} WHERE prefix = '%s'", $form_state['values']['prefix']);
+    drupal_set_message(t('The namespace has been deleted.'));
+
+    $form_state['redirect'] = 'admin/settings/rdf/namespaces';
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF context management
+
+function rdf_admin_contexts() {
+  $header = array(t('URI'), t('Statements'));
+
+  // FIXME: need something more loosely-coupled and robust for this:
+  $mutables = rdf_db_rdf_contexts();
+
+  $rows = array();
+  foreach (rdf_get_contexts() as $uri) {
+    $mutable = in_array($uri, $mutables);
+    $rows[] = array(
+      l($uri, 'admin/content/rdf', array('query' => array('g' => $uri))),
+      !$mutable ? t('n/a') : rdf_count(NULL, NULL, NULL, array('context' => $uri)),
+    );
+  }
+
+  return theme('table', $header, $rows);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF repository management
+
+function rdf_admin_repositories() {
+  $header = array(t('Name'), t('Statements'), t('Mutable'), t('Module'), array('data' => t('Operations'), 'colspan' => '2'));
+
+  $rows = array();
+  foreach (rdf_get_repositories() as $name => $info) {
+    $mutable = !empty($info['mutable']) && $name != 'default'; // FIXME
+    $rows[] = array(
+      l($info['title'], 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name,
+        array('attributes' => array('title' => @$info['dc:description']))),
+      $name == 'system' ? t('n/a') : (empty($info['statements']) ? '-' : number_format($info['statements'])),
+      !empty($info['mutable']) ? t('Yes') : t('No'),
+      $info['module'],
+      !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name),
+      !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/repositories/' . $info['module'] . '/delete/' . $name),
+    );
+  }
+
+  return theme('table', $header, $rows);
+}
+
+function rdf_db_admin_db_edit($name = '') {
+  if (empty($name)) {
+    return drupal_get_form('rdf_db_admin_db_form');
+  }
+  else {
+    return drupal_get_form('rdf_db_admin_db_form', rdf_db_load_repository($name));
+  }
+}
+
+function rdf_db_admin_db_form(&$form_state, $edit = array('name' => '', 'title' => '', 'description' => '')) {
+  $edit = (object)$edit;
+  $form = array();
+
+  $form['identity'] = array('#type' => 'fieldset', '#title' => t('Identification'));
+
+  $form['identity']['title'] = array('#type' => 'textfield', '#title' => t('Name'), '#default_value' => $edit->title, '#maxlength' => 64, '#required' => TRUE, '#description' => t('The human-readable name of this repository. It is recommended that this name begins with a capital letter and consists only of letters, numbers, and spaces.'));
+  $form['identity']['name'] = array('#type' => 'textfield', '#title' => t('ID'), '#default_value' => $edit->name, '#maxlength' => 32, '#required' => TRUE, '#description' => t('The machine-readable name of this repository. This text will be used for constructing the unique URI identifying this repository. This name may consist of only of lowercase letters, numbers, and underscores. Hyphens are not allowed. Underscores will be converted into hyphens when constructing the URI for the repository. This name must be unique to this repository.'));
+  $form['identity']['description'] = array('#title' => t('Description'), '#type' => 'textarea', '#default_value' => $edit->description, '#rows' => 2, '#description' => t('A brief description of this repository.'));
+
+  $form['key'] = array('#type' => 'hidden', '#value' => $edit->name);
+  $form['submit'] = array('#type' => 'submit', '#value' => empty($edit->name) ? t('Create new repository') : t('Update repository'));
+
+  return $form;
+}
+
+function rdf_db_admin_db_form_validate($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  if (!preg_match('/^[a-z]+[a-z\d_]*$/', $name)) {
+    form_set_error('name', t('The machine-readable name can only consist of lowercase letters, underscores, and numbers.', array('%name' => $name)));
+  }
+
+  if (array_search($name, rdf_db_get_repository_names()) !== FALSE) { // FIXME
+    form_set_error('name', t('The machine-readable name %name is already used by another repository.', array('%name' => $name)));
+  }
+}
+
+function rdf_db_admin_db_form_submit($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  if (empty($key)) {
+    rdf_db_create_repository($name, array('dc:title' => $title, 'dc:description' => $description));
+    drupal_set_message(t('The repository has been created.'));
+  }
+  else {
+    if ($key != $name) {
+      rdf_db_rename_repository($key, $name);
+      rdf_db_delete_repository_metadata($key);
+    }
+    rdf_db_update_repository_metadata($name, array('dc:title' => $title, 'dc:description' => $description));
+    drupal_set_message(t('The repository has been updated.'));
+  }
+
+  $form_state['redirect'] = 'admin/settings/rdf/repositories';
+}
+
+function rdf_db_admin_db_delete($form_state, $name) {
+  if (user_access('administer RDF repositories')) {
+    $form['name'] = array('#type' => 'value', '#value' => $name);
+    $output = confirm_form($form,
+      t('Are you sure you want to delete the RDF repository %title?', array('%title' => $name)),
+      isset($_GET['destination']) ? $_GET['destination'] : 'admin/settings/rdf/repositories',
+      t('This action will destroy all data contained in the repository and cannot be undone.'));
+  }
+  return $output;
+}
+
+function rdf_db_admin_db_delete_submit($form, &$form_state) {
+  if ($form_state['values']['confirm']) {
+    rdf_db_delete_repository($form_state['values']['name']);
+    drupal_set_message(t('The repository has been deleted.'));
+
+    $form_state['redirect'] = 'admin/settings/rdf/repositories';
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -936,6 +936,43 @@ function rdf_load_site() {
   );
 }
 
+function rdf_get_feed_info($feed_id = NULL, $enabled_only = FALSE) {
+  $feeds = module_invoke_all('rdf_feeds');
+  if ($feed_id) {
+    return isset($feeds[$feed_id]) ? (object)array_merge(array('id' => $feed_id), $feeds[$feed_id]) : NULL;
+  }
+  else {
+    foreach ($feeds as $feed_id => &$feed) {
+      $feeds[$feed_id] = $feed = (object)array_merge(array('id' => $feed_id), $feed);
+      if ($enabled_only && !module_exists($feed->module)) {
+        unset($feeds[$feed_id]);
+      }
+    }
+    return $feeds;
+  }
+}
+
+function rdf_get_feed_settings($feed) {
+  $defaults = array('description_from_mission' => '', 'description' => '', 'update_period' => '', 'update_frequency' => '', 'update_base' => '', 'format' => RDF_FORMAT);
+  if (($feed = is_object($feed) ? $feed : rdf_get_feed_info($feed))) {
+    return ($feed->module == 'views') ? // special case for Views feeds
+      rdf_views_get_feed_settings($feed->id, $defaults) :
+      variable_get('rdf_feed[' . $feed->id . ']', $defaults);
+  }
+  return $defaults;
+}
+
+function rdf_set_feed_settings($feed, $settings) {
+  if (($feed = is_object($feed) ? $feed : rdf_get_feed_info($feed))) {
+    if ($settings) {
+      variable_set('rdf_feed[' . $feed->id . ']', (array)$settings);
+    }
+    else {
+      variable_del('rdf_feed[' . $feed->id . ']');
+    }
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Miscellaneous
 

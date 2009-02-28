@@ -52,6 +52,12 @@ function rdf_help($path, $arg = NULL) {
       return '<p>' . t('<a href="http://drupal.org/handbook/modules/rdf" title="Resource Description Framework">RDF</a> is a <a href="http://www.w3.org/RDF/">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption.') . '</p>';
     case 'admin/settings/rdf#formats':
       return '<p>' . t('RDF data can be serialized into a number of textual formats (also known as representations). The two built-in, always available formats are <a href="http://drupal.org/node/219870">RDF/PHP</a> and <a href="http://drupal.org/node/219874">RDF/JSON</a>. For interoperability with more RDF formats, you can <a href="@status">install the ARC2 library</a> which adds parsing/serialization support for several widespread formats.', array('@status' => url('admin/reports/status'))) . '</p>';
+    case 'admin/settings/rdf/mappings':
+      return '<p>' . t('This is a summary of the currently defined mappings between Drupal data and RDF classes/properties.') . '</p>';
+    case 'admin/settings/rdf/feeds':
+      return '<p>' . t('This is a list of the <a href="http://web.resource.org/rss/1.0/">RSS 1.0</a>-compatible RDF feeds available on this Drupal site.') . '</p>';
+    case 'admin/settings/rdf/feeds/edit/%':
+      return '<p>' . t('') . '</p>'; // TODO
     case 'admin/settings/rdf/namespaces':
       return '<p>' . t('<a href="http://drupal.org/node/219858#namespaces">Namespaces</a> define URI abbreviations for use in <a href="http://drupal.org/node/219856#curie" title="Compact URIs">CURIEs</a> and for purposes of human-friendly display of RDF data.') . '</p>';
     case 'admin/settings/rdf/contexts':
@@ -60,8 +66,6 @@ function rdf_help($path, $arg = NULL) {
       return '<p>' . t('<a href="http://drupal.org/node/219858#repositories">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service.') . '</p>';
     case 'admin/settings/rdf/repositories/rdf/add':
       return '<p>' . t('To create a new local RDF repository, enter the human-readable name, the machine-readable name, and all other relevant fields that are on this page.') . '</p>';
-    case 'admin/settings/rdf/mappings':
-      return '<p>' . t('This is a summary of the currently defined mappings between Drupal data and RDF classes/properties.') . '</p>';
   }
 }
 
@@ -73,7 +77,6 @@ function rdf_perm() {
     'access RDF data',
     'administer RDF data',
     'administer RDF repositories',
-    'administer RDF namespaces',
     'import RDF data',
     'export RDF data',
     /* From rdf_schema.module: */
@@ -195,13 +198,47 @@ function rdf_menu() {
       'file' => 'rdf.admin.inc',
     ),
 
+    // Administer >> Site configuration >> RDF settings >> Mappings
+    'admin/settings/rdf/mappings' => array(
+      'title' => 'Mappings',
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'rdf_admin_mappings',
+      'file' => 'rdf.admin.inc',
+      'weight' => 10,
+    ),
+    'admin/settings/rdf/mappings/list' => array(
+      'title' => 'List',
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+
+    // Administer >> Site configuration >> RDF settings >> Feeds
+    'admin/settings/rdf/feeds' => array(
+      'title' => 'Feeds',
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'rdf_admin_feeds',
+      'file' => 'rdf.admin.inc',
+      'weight' => 20,
+    ),
+    'admin/settings/rdf/feeds/list' => array(
+      'title' => 'List',
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+    'admin/settings/rdf/feeds/edit/%' => array(
+      'title' => 'Configure RDF feed',
+      'type' => MENU_CALLBACK,
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('rdf_admin_feed', 5),
+      'file' => 'rdf.admin.inc',
+    ),
+
     // Administer >> Site configuration >> RDF settings >> Namespaces
     'admin/settings/rdf/namespaces' => array(
       'title' => 'Namespaces',
-      'access arguments' => array('administer RDF namespaces'),
+      'access arguments' => array('administer site configuration'),
       'page callback' => 'rdf_admin_namespaces',
       'file' => 'rdf.admin.inc',
-      'weight' => 10,
+      'weight' => 30,
     ),
     'admin/settings/rdf/namespaces/list' => array(
       'title' => 'List',
@@ -211,21 +248,21 @@ function rdf_menu() {
       'title' => 'Add namespace',
       'type' => MENU_LOCAL_TASK,
       'weight' => 1,
-      'access arguments' => array('administer RDF namespaces'),
+      'access arguments' => array('administer site configuration'),
       'page callback' => 'rdf_db_admin_ns_edit',
       'file' => 'rdf.admin.inc',
     ),
     'admin/settings/rdf/namespaces/edit' => array(
       'title' => 'Edit namespace',
       'type' => MENU_CALLBACK,
-      'access arguments' => array('administer RDF namespaces'),
+      'access arguments' => array('administer site configuration'),
       'page callback' => 'rdf_db_admin_ns_edit',
       'file' => 'rdf.admin.inc',
     ),
     'admin/settings/rdf/namespaces/delete' => array(
       'title' => 'Delete namespace',
       'type' => MENU_CALLBACK,
-      'access arguments' => array('administer RDF namespaces'),
+      'access arguments' => array('administer site configuration'),
       'page callback' => 'drupal_get_form',
       'page arguments' => array('rdf_db_admin_ns_delete'),
       'file' => 'rdf.admin.inc',
@@ -234,10 +271,10 @@ function rdf_menu() {
     // Administer >> Site configuration >> RDF settings >> Contexts
     'admin/settings/rdf/contexts' => array(
       'title' => 'Contexts',
-      'access arguments' => array('administer RDF data'),
+      'access arguments' => array('administer site configuration'),
       'page callback' => 'rdf_admin_contexts',
       'file' => 'rdf.admin.inc',
-      'weight' => 20,
+      'weight' => 40,
     ),
     'admin/settings/rdf/contexts/list' => array(
       'title' => 'List',
@@ -250,7 +287,7 @@ function rdf_menu() {
       'access arguments' => array('administer RDF repositories'),
       'page callback' => 'rdf_admin_repositories',
       'file' => 'rdf.admin.inc',
-      'weight' => 30,
+      'weight' => 50,
     ),
     'admin/settings/rdf/repositories/list' => array(
       'title' => 'List',
@@ -279,20 +316,27 @@ function rdf_menu() {
       'page arguments' => array('rdf_db_admin_db_delete'),
       'file' => 'rdf.admin.inc',
     ),
-
-    // Administer >> Site configuration >> RDF settings >> Mappings
-    'admin/settings/rdf/mappings' => array(
-      'title' => 'Mappings',
-      'access arguments' => array('administer site configuration'),
-      'page callback' => 'rdf_admin_mappings',
-      'file' => 'rdf.admin.inc',
-      'weight' => 40,
-    ),
-    'admin/settings/rdf/mappings/list' => array(
-      'title' => 'List',
-      'type' => MENU_DEFAULT_LOCAL_TASK,
-    ),
   );
+}
+
+/**
+ * Implementation of hook_menu_alter().
+ */
+function rdf_menu_alter(&$items) {
+  // Override the RSS feeds output by Drupal's core modules:
+  foreach (rdf_rdf_feeds() as $feed_id => $feed) {
+    if (($feed = (object)$feed) && !empty($feed->enabled) && module_exists($feed->module)) {
+      $path = isset($feed->menu) ? $feed->menu : $feed->path;
+
+      if (isset($items[$path])) {
+        $arguments = empty($items[$path]['page arguments']) ? array($feed_id) : array_merge(array($feed_id), $items[$path]['page arguments']);
+        $items[$path]['page callback']  = 'rdf_feed_callback';
+        $items[$path]['page arguments'] = $arguments;
+        $items[$path]['module']         = 'rdf';
+        $items[$path]['file']           = 'rdf.pages.inc';
+      }
+    }
+  }
 }
 
 /**
@@ -622,6 +666,75 @@ function rdf_views_api() {
 
 //////////////////////////////////////////////////////////////////////////////
 // RDF API hooks
+
+/**
+ * Implementation of hook_rdf_feeds().
+ */
+function rdf_rdf_feeds() {
+  $enabled = variable_get('rdf_feed_override', array());
+
+  // Declare all RSS feeds provided by Drupal's core modules:
+  $feeds = array(
+    // node.module (front page feed)
+    'node_feed' => array(
+      'type'        => 'http://purl.org/rss/1.0/',
+      'path'        => 'rss.xml',
+      'title'       => t('Front page feed'),
+      'description' => t(''),
+      'module'      => 'node',
+      'callback'    => 'rdf_feed_node_frontpage',
+      'enabled'     => !empty($enabled['node_feed']),
+    ),
+    // taxonomy.module
+    'taxonomy_term_feed' => array(
+      'type'        => 'http://purl.org/rss/1.0/',
+      'path'        => 'taxonomy/term/%/0/feed',
+      'menu'        => 'taxonomy/term/%',
+      'title'       => t('Taxonomy term feed'),
+      'description' => t(''),
+      'module'      => 'taxonomy',
+      'callback'    => 'rdf_feed_taxonomy_term',
+      'enabled'     => !empty($enabled['taxonomy_term_feed']),
+    ),
+    // blog.module
+    'blog_feed_user' => array(
+      'type'        => 'http://purl.org/rss/1.0/',
+      'path'        => 'blog/%user/feed',
+      'title'       => 'Users\' recent blog entries feed',
+      'description' => t(''),
+      'module'      => 'blog',
+      'callback'    => 'rdf_feed_blog_user',
+      'enabled'     => !empty($enabled['blog_feed_user']),
+    ),
+    'blog_feed_last' => array(
+      'type'        => 'http://purl.org/rss/1.0/',
+      'path'        => 'blog/feed',
+      'title'       => 'All recent blog entries feed',
+      'description' => t(''),
+      'module'      => 'blog',
+      'callback'    => 'rdf_feed_blog_last',
+      'enabled'     => !empty($enabled['blog_feed_last']),
+    ),
+    // aggregator.module
+    'aggregator_page_rss' => array(
+      'type'        => 'http://purl.org/rss/1.0/',
+      'path'        => 'aggregator/rss',
+      'title'       => t('Aggregator feed'),
+      'description' => t(''),
+      'module'      => 'aggregator',
+      'callback'    => 'rdf_feed_aggregator_rss',
+      'enabled'     => !empty($enabled['aggregator_page_rss']),
+    ),
+  );
+
+  // Declare all Views module feeds, if the module is installed:
+  if (module_exists('views')) {
+    module_load_include('inc', 'rdf', 'rdf.views');
+    $feeds = array_merge($feeds, rdf_views_get_feeds());
+  }
+
+  return $feeds;
+}
 
 /**
  * Implementation of hook_rdf_formats().

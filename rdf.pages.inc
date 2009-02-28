@@ -84,6 +84,63 @@ function rdf_output($filename, $format, $data, array $options = array()) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// Menu callbacks for RDF feeds
+
+function rdf_feed_callback($feed_id) {
+  $feed = rdf_get_feed_info($feed_id);
+  $feed->arguments = array_slice(func_get_args(), 1);
+
+  // TODO
+  return call_user_func_array($feed->callback, $feed->arguments);
+}
+
+/**
+ * Overrides node.module's RSS output.
+ */
+function rdf_feed_node_frontpage() {
+  // TODO
+  return node_feed();
+}
+
+/**
+ * Overrides taxonomy.module's RSS output.
+ */
+function rdf_feed_taxonomy_term($str_tids = '', $depth = 0, $op = 'page') {
+  // TODO
+  if ($op != 'feed' || TRUE) {
+    module_load_include('inc', 'taxonomy', 'taxonomy.pages'); // taxonomy.pages.inc
+    return taxonomy_term_page($str_tids, $depth, $op);
+  }
+}
+
+/**
+ * Overrides blog.module's RSS output.
+ */
+function rdf_feed_blog_user($account) {
+  // TODO
+  module_load_include('inc', 'blog', 'blog.pages'); // blog.pages.inc
+  return blog_feed_user($account);
+}
+
+/**
+ * Overrides blog.module's RSS output.
+ */
+function rdf_feed_blog_last() {
+  // TODO
+  module_load_include('inc', 'blog', 'blog.pages'); // blog.pages.inc
+  return blog_feed_last();
+}
+
+/**
+ * Overrides aggregator.module's RSS output.
+ */
+function rdf_feed_aggregator_rss() {
+  // TODO
+  module_load_include('inc', 'aggregator', 'aggregator.pages'); // aggregator.pages.inc
+  return aggregator_page_rss();
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // Menu callbacks
 
 function rdf_schema_export_settings($prefix = NULL) {
