@@ -365,6 +365,7 @@ function _rdf_deconstruct_arc2_triple($triple) {
 
 function _rdf_deconstruct_arc2_value($triple, $name) {
   switch ($name == 'p' ? 'iri' : $triple[$name . '_type']) {
+    case 'uri':
     case 'iri':
       return rdf_uri($triple[$name]);
     case 'bnode':
