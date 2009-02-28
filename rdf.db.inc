@@ -241,6 +241,7 @@ function _rdf_db_make_record($subject, $predicate, $object, array $options = arr
   $is_literal = is_object($object) && ($object instanceof RDF_Literal);
 
   $record = (object)array();
+  $record->created = isset($options['created']) ? $options['created'] : NULL;
   $record->gid  = isset($options['graph']) ? _rdf_db_uri_to_id($options['graph']) : NULL;
   $record->sid  = $subject ? _rdf_db_uri_to_id($subject) : NULL;
   $record->pid  = $predicate ? _rdf_db_uri_to_id($predicate) : NULL;
