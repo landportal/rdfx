@@ -126,7 +126,7 @@ function rdf_admin_contexts() {
   $header = array(t('URI'), t('Statements'));
 
   // FIXME: need something more loosely-coupled and robust for this:
-  $mutables = module_exists('rdf_db') ? rdf_db_rdf_contexts() : array();
+  $mutables = rdf_db_rdf_contexts();
 
   $rows = array();
   foreach (rdf_get_contexts() as $uri) {
@@ -147,7 +147,7 @@ function rdf_admin_namespaces() {
   $header = array(t('Prefix'), t('Base URI'), array('data' => t('Operations'), 'colspan' => '2'));
 
   // FIXME: need something more loosely-coupled and robust for this:
-  $mutables = module_exists('rdf_db') ? rdf_db_rdf_namespaces() : array();
+  $mutables = rdf_db_rdf_namespaces();
 
   $rows = array();
   foreach (rdf_get_namespaces() as $prefix => $uri) {
