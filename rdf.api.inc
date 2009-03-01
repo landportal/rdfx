@@ -795,10 +795,15 @@ function rdf_get_prefixes(array $data, $namespaces = NULL) {
 
   foreach ($data as $subject => $predicates) {
     foreach ($predicates as $predicate => $objects) {
-      $qname = rdf_uri_to_qname($predicate);
-      list($prefix, ) = explode(':', $qname);
-      if (!isset($result[$prefix])) {
-        $result[$prefix] = $namespaces[$prefix];
+      $qnames = array($predicate);
+      foreach($objects as $object) {
+        $qnames[] = $object;
+      }
+      foreach($qnames as $qname) {
+        list($prefix, ) = explode(':', rdf_uri_to_qname($qname));
+        if (!isset($result[$prefix]) && isset($namespaces[$prefix])) {
+          $result[$prefix] = $namespaces[$prefix];
+        }
       }
     }
   }
