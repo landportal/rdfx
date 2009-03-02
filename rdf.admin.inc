@@ -389,7 +389,7 @@ function rdf_admin_feed_channel_form(&$form, &$form_state, $defaults = array()) 
   $form['description'] = array(
     '#type'          => 'textfield',
     '#title'         => t('RSS 1.0 channel description'),
-    '#default_value' => $defaults['description'],
+    '#default_value' => @$defaults['description'],
     '#description'   => t('This will appear as the channel description in the RDF feed.'),
     '#process'       => array('views_process_dependency'),
     '#dependency'    => array('edit-style-options-override' => array(FALSE)),
@@ -397,21 +397,21 @@ function rdf_admin_feed_channel_form(&$form, &$form_state, $defaults = array()) 
   $form['update_period'] = array(
     '#type'          => 'select',
     '#title'         => t('Update period'),
-    '#default_value' => $defaults['update_period'],
+    '#default_value' => @$defaults['update_period'],
     '#options'       => array('' => t('<not specified>'), 'hourly' => t('hourly'), 'daily' => t('daily'), 'weekly' => t('weekly'), 'monthly' => t('monthly'), 'yearly' => t('yearly')),
     '#description'   => t('Provides <a href="http://web.resource.org/rss/1.0/modules/syndication/">RSS 1.0 syndication hints</a> to aggregators and others picking up this RSS feed regarding how often it is updated.'),
   );
   $form['update_frequency'] = array(
     '#type'          => 'select',
     '#title'         => t('Update frequency'),
-    '#default_value' => $defaults['update_frequency'],
+    '#default_value' => @$defaults['update_frequency'],
     '#options'       => array_merge(array('' => t('<not specified>')), drupal_map_assoc(range(1, 24))),
     '#description'   => t('Used to describe the frequency of updates in relation to the update period. This is a positive integer that indicates how many times in that period the channel is updated. For example, an update period of <em>daily</em> with an update frequency of <em>2</em> indicates the channel is updated twice daily. If omitted, a value of <em>1</em> is assumed.'),
   );
   $form['update_base'] = array(
     '#type'          => 'textfield',
     '#title'         => t('Update base date'),
-    '#default_value' => $defaults['update_base'],
+    '#default_value' => @$defaults['update_base'],
     '#description'   => t('Defines a base date to be used in concert with the update period and update frequency to calculate the publishing schedule. The date format takes the form: <code>yyyy-mm-ddThh:mm</code>.'),
     '#size'          => 16,
     '#maxlength'     => 16,
@@ -419,7 +419,7 @@ function rdf_admin_feed_channel_form(&$form, &$form_state, $defaults = array()) 
   $form['format'] = array(
     '#type'          => 'select',
     '#title'         => t('Default format'),
-    '#default_value' => $defaults['format'],
+    '#default_value' => !empty($defaults['format']) ? $defaults['format'] : 'rdf+xml',
     '#options'       => rdf_get_formats('names'),
     '#description'   => t('This determines the default RDF serialization format to output. Browsers and RSS feed consumers can override this through <a href="http://en.wikipedia.org/wiki/Content_negotiation">HTTP content negotiation</a>, that is, by passing an <code>Accept</code> header specifying another supported format.'),
   );
