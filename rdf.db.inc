@@ -243,7 +243,8 @@ function _rdf_db_make_record($subject, $predicate, $object, array $options = arr
   $is_literal = is_object($object) && ($object instanceof RDF_Literal);
 
   $record = (object)array();
-  $record->gid  = isset($options['graph']) ? _rdf_db_uri_to_id($options['graph']) : NULL;
+  $record->gid  = !empty($options['context']) ? _rdf_db_uri_to_id($options['context']) : NULL;
+  $record->gid  = !empty($options['graph']) ? _rdf_db_uri_to_id($options['graph']) : $record->gid;
   $record->sid  = $subject ? _rdf_db_uri_to_id($subject) : NULL;
   $record->pid  = $predicate ? _rdf_db_uri_to_id($predicate) : NULL;
   $record->oid  = $object && $is_uri ? _rdf_db_uri_to_id((string)$object) : NULL;
@@ -280,8 +281,9 @@ function _rdf_db_sql_select($table, $subject, $predicate, $object, $options = ar
             LEFT JOIN  {rdf_resources} t ON d.tid = t.rid';
   $query[] = sprintf($sql, db_escape_table($table));
 
-  if (isset($options['graph'])) {
-    $where[] = sprintf("g.uri = '%s'", db_escape_string((string)$options['graph']));
+  if (isset($options['graph']) || isset($options['context'])) { // TODO: should decide on one.
+    $graph = !empty($options['graph']) ? $options['graph'] : $options['context'];
+    $where[] = sprintf("g.uri = '%s'", db_escape_string((string)$graph));
   }
 
   if ($subject) {

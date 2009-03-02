@@ -111,12 +111,12 @@ function rdf_admin_data() {
   );
   $form['query']['submit'] = array('#type' => 'submit', '#value' => t('Find'), '#submit' => array('rdf_admin_data_submit'));
 
-  $form['advanced'] = array('#type' => 'fieldset', '#title' => t('Advanced options'), '#collapsible' => TRUE, '#collapsed' => TRUE);
+  $form['advanced'] = array('#type' => 'fieldset', '#title' => t('Advanced options'), '#collapsible' => TRUE, '#collapsed' => empty($context));
   $form['advanced']['context'] = array(
     '#type'          => 'select',
     '#title'         => 'Context',
     '#default_value' => $context,
-    '#options'       => array_merge(array('' => t('(all)')), array_combine(rdf_get_contexts(), rdf_get_contexts())),
+    '#options'       => array_merge(array('' => t('(all)')), array_combine($contexts = rdf_get_contexts(), $contexts)),
   );
 
   return $form;
@@ -125,14 +125,16 @@ function rdf_admin_data() {
 function rdf_admin_data_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
-  $form_state['redirect'] = array('admin/content/rdf', drupal_query_string_encode(array('s' => $subject, 'p' => $predicate, 'o' => $object)));
+  $form_state['redirect'] = array('admin/content/rdf', drupal_query_string_encode(array('g' => $context, 's' => $subject, 'p' => $predicate, 'o' => $object)));
 }
 
 function theme_rdf_admin_data($form) {
-  $subject   = $form['query']['subject']['#value'];
-  $predicate = $form['query']['predicate']['#value'];
-  $object    = $form['query']['object']['#value'];
-  $data      = rdf_normalize(rdf_query($subject, $predicate, $object));
+  foreach (array('query' => array('subject', 'predicate', 'object'), 'advanced' => array('context')) as $fieldset => $fields) {
+    foreach ($fields as $field) {
+      $$field = !empty($form[$fieldset][$field]['#value']) ? trim($form[$fieldset][$field]['#value']) : NULL;
+    }
+  }
+  $data = rdf_normalize(rdf_query($subject, $predicate, $object, $context ? array('context' => $context) : array()));
 
   $output  = drupal_render($form['query']);
   $output .= drupal_render($form['advanced']);
@@ -787,9 +789,29 @@ function rdf_import_admin_screen(&$form_state, $edit = array('repository' => 'lo
   }
 
   $form['import'] = array('#type' => 'fieldset', '#title' => t('Import RDF data from a URL'));
-  $form['import']['repository'] = array('#type' => 'select', '#title' => t('Repository'), '#default_value' => $edit->repository, '#options' => rdf_get_repositories('names', array('persistent' => TRUE, 'mutable' => TRUE)), '#description' => t(''), '#disabled' => TRUE);
-  $form['import']['url'] = array('#type' => 'textfield', '#title' => 'URL', '#default_value' => $edit->url, '#maxlength' => 255, '#required' => TRUE, '#description' => t(''));
-  $form['import']['format'] = array('#type' => 'select', '#title' => t('Format'), '#default_value' => $edit->format, '#options' => rdf_get_formats('names') /*FIXME*/, '#description' => t(''));
+  $form['import']['repository'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Repository'),
+    '#default_value' => $edit->repository,
+    '#options'       => rdf_get_repositories('names', array('persistent' => TRUE, 'mutable' => TRUE)),
+    '#description'   => t(''),
+    '#disabled'      => TRUE,
+  );
+  $form['import']['url'] = array(
+    '#type'          => 'textfield',
+    '#title'         => 'URL',
+    '#default_value' => $edit->url,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#description'   => t(''),
+  );
+  $form['import']['format'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Format'),
+    '#default_value' => $edit->format,
+    '#options'       => rdf_get_formats('names'), // FIXME,
+    '#description'   => t(''),
+  );
 
   $form['import']['submit'] = array('#type' => 'submit', '#value' => t('Import'));
   return $form;
@@ -836,7 +858,7 @@ function rdf_import_admin_screen_submit($form, &$form_state) {
     $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(compact('repository', 'url', 'format')));
   }
   else {
-    $form_state['redirect'] = array('admin/content/rdf', drupal_query_string_encode(array('g' => $url)));
+    $form_state['redirect'] = array('admin/content/rdf', drupal_query_string_encode(array('g' => $url, 's' => '', 'p' => '', 'o' => '')));
   }
 }
 
