@@ -363,10 +363,13 @@ function rdf_admin_feed(&$form_state, $feed_id) {
   }
 
   if (!$is_rdf) { // disable extended configuration if the feed isn't RSS 1.0
-    $form['channel']['#attributes']['disabled'] = 'disabled';
-    foreach ($form['channel'] as $field => &$field_info) {
-      if ($field[0] != '#') {
-        $field_info['#attributes']['disabled'] = 'disabled';
+    foreach (array('channel', 'item') as $fieldset) {
+      $form[$fieldset]['#collapsed'] = TRUE;
+      $form[$fieldset]['#attributes']['disabled'] = 'disabled';
+      foreach ($form[$fieldset] as $field => &$field_info) {
+        if ($field[0] != '#') {
+          $field_info['#attributes']['disabled'] = 'disabled';
+        }
       }
     }
   }
