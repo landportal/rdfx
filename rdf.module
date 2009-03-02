@@ -209,15 +209,21 @@ function rdf_menu() {
       'title' => 'List',
       'type' => MENU_DEFAULT_LOCAL_TASK,
     ),
+    'rdf/autocomplete/resource' => array(
+      'type' => MENU_CALLBACK,
+      'access arguments' => array('administer RDF data'),
+      'page callback' => 'rdf_admin_autocomplete_resource',
+      'file' => 'rdf.admin.inc',
+    ),
     'rdf/autocomplete/class' => array(
       'type' => MENU_CALLBACK,
-      'access arguments' => array('administer site configuration'),
+      'access arguments' => array('administer RDF data'),
       'page callback' => 'rdf_admin_autocomplete_class',
       'file' => 'rdf.admin.inc',
     ),
     'rdf/autocomplete/property' => array(
       'type' => MENU_CALLBACK,
-      'access arguments' => array('administer site configuration'),
+      'access arguments' => array('administer RDF data'),
       'page callback' => 'rdf_admin_autocomplete_property',
       'file' => 'rdf.admin.inc',
     ),

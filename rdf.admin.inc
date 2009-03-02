@@ -86,13 +86,38 @@ function rdf_admin_data() {
 
   $form = array();
   $form['query'] = array('#type' => 'fieldset', '#title' => t('Query'), '#prefix' => '<div class="container-inline">', '#suffix' => '</div>');
-  $form['query']['subject'] = array('#type' => 'textfield', '#title' => '', '#default_value' => $subject, '#maxlength' => 255, '#size' => 20);
-  $form['query']['predicate'] = array('#type' => 'textfield', '#title' => '', '#default_value' => $predicate, '#maxlength' => 255, '#size' => 20);
-  $form['query']['object'] = array('#type' => 'textfield', '#title' => '', '#default_value' => $object, '#maxlength' => 255, '#size' => 20);
+  $form['query']['subject'] = array(
+    '#type'          => 'textfield',
+    '#title'         => '',
+    '#default_value' => $subject,
+    '#maxlength'     => 255,
+    '#size'          => 20,
+    '#autocomplete_path' => 'rdf/autocomplete/resource',
+  );
+  $form['query']['predicate'] = array(
+    '#type'          => 'textfield',
+    '#title'         => '',
+    '#default_value' => $predicate,
+    '#maxlength'     => 255,
+    '#size'          => 20,
+    '#autocomplete_path' => 'rdf/autocomplete/property',
+  );
+  $form['query']['object'] = array(
+    '#type'          => 'textfield',
+    '#title'         => '',
+    '#default_value' => $object,
+    '#maxlength'     => 255,
+    '#size'          => 20,
+  );
   $form['query']['submit'] = array('#type' => 'submit', '#value' => t('Find'), '#submit' => array('rdf_admin_data_submit'));
 
   $form['advanced'] = array('#type' => 'fieldset', '#title' => t('Advanced options'), '#collapsible' => TRUE, '#collapsed' => TRUE);
-  $form['advanced']['context'] = array('#type' => 'select', '#title' => 'Context', '#default_value' => $context, '#options' => array_merge(array('' => t('(all)')), array_combine(rdf_get_contexts(), rdf_get_contexts())));
+  $form['advanced']['context'] = array(
+    '#type'          => 'select',
+    '#title'         => 'Context',
+    '#default_value' => $context,
+    '#options'       => array_merge(array('' => t('(all)')), array_combine(rdf_get_contexts(), rdf_get_contexts())),
+  );
 
   return $form;
 }
@@ -124,9 +149,32 @@ function rdf_db_admin_data_form(&$form_state, $edit = array('subject' => '', 'pr
   $edit = (object)$edit;
   $form = array();
 
-  $form['subject'] = array('#type' => 'textfield', '#title' => t('Subject'), '#default_value' => $edit->subject, '#maxlength' => 255, '#required' => TRUE, '#description' => t('The subject of the statement: the entity or resource that the statement is about, i.e. the who or what. This should be given as either a <a href="http://en.wikipedia.org/wiki/URI" title="Uniform Resource Identifier">URI</a> or a <a href="http://en.wikipedia.org/wiki/CURIE" title="Compact URI">CURIE</a>.'));
-  $form['predicate'] = array('#type' => 'textfield', '#title' => t('Predicate'), '#default_value' => $edit->predicate, '#maxlength' => 255, '#required' => TRUE, '#description' => t('The predicate of the statement: the relation between subject and object, i.e. the property name or verb. This should be given as either a <a href="http://en.wikipedia.org/wiki/URI" title="Uniform Resource Identifier">URI</a> or a <a href="http://en.wikipedia.org/wiki/CURIE" title="Compact URI">CURIE</a>.'));
-  $form['object'] = array('#type' => 'textfield', '#title' => t('Object'), '#default_value' => $edit->object, '#maxlength' => 255, '#required' => TRUE, '#description' => t('The object of the statement: the entity or resource that relates to the subject as described by the predicate; i.e. the property value. This should be given as either a <a href="http://en.wikipedia.org/wiki/URI" title="Uniform Resource Identifier">URI</a>, a <a href="http://en.wikipedia.org/wiki/CURIE" title="Compact URI">CURIE</a>, or a literal.'));
+  $form['subject'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Subject'),
+    '#default_value' => $edit->subject,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#description'   => t('The subject of the statement: the entity or resource that the statement is about, i.e. the who or what. This should be given as either a <a href="http://en.wikipedia.org/wiki/URI" title="Uniform Resource Identifier">URI</a> or a <a href="http://en.wikipedia.org/wiki/CURIE" title="Compact URI">CURIE</a>.'),
+    '#autocomplete_path' => 'rdf/autocomplete/resource',
+  );
+  $form['predicate'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Predicate'),
+    '#default_value' => $edit->predicate,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#description'   => t('The predicate of the statement: the relation between subject and object, i.e. the property name or verb. This should be given as either a <a href="http://en.wikipedia.org/wiki/URI" title="Uniform Resource Identifier">URI</a> or a <a href="http://en.wikipedia.org/wiki/CURIE" title="Compact URI">CURIE</a>.'),
+    '#autocomplete_path' => 'rdf/autocomplete/property',
+  );
+  $form['object'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Object'),
+    '#default_value' => $edit->object,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#description'   => t('The object of the statement: the entity or resource that relates to the subject as described by the predicate; i.e. the property value. This should be given as either a <a href="http://en.wikipedia.org/wiki/URI" title="Uniform Resource Identifier">URI</a>, a <a href="http://en.wikipedia.org/wiki/CURIE" title="Compact URI">CURIE</a>, or a literal.'),
+  );
 
   //$form['repository'] = array('#type' => 'select', '#title' => t('Repository'), '#default_value' => $edit->repository, '#options' => array(), '#description' => t('')); // TODO
 
@@ -257,7 +305,18 @@ function rdf_admin_mappings() {
   return theme('table', $header, $rows);
 }
 
-function rdf_admin_autocomplete_class($string = '') {
+function rdf_admin_autocomplete_resource($string = '', $limit = 15) {
+  $matches = array();
+  if (strlen($string = trim($string))) {
+    $result = db_query("SELECT r.uri FROM {rdf_resources} r WHERE r.uri LIKE '%s%%' ORDER BY r.uri ASC LIMIT %d", $string, $limit);
+    while ($resource = db_fetch_object($result)) {
+      $matches[$resource->uri] = $resource->uri;
+    }
+  }
+  drupal_json($matches);
+}
+
+function rdf_admin_autocomplete_class($string = '', $limit = 15) {
   $matches = array();
   if (!empty($string)) {
     // TODO
@@ -265,7 +324,7 @@ function rdf_admin_autocomplete_class($string = '') {
   drupal_json($matches);
 }
 
-function rdf_admin_autocomplete_property($string = '') {
+function rdf_admin_autocomplete_property($string = '', $limit = 15) {
   $matches = array();
   if (!empty($string)) {
     foreach (module_invoke_all('rdf_properties') as $namespace => $properties) {
@@ -273,6 +332,9 @@ function rdf_admin_autocomplete_property($string = '') {
         $match = implode(':', array($namespace, $property));
         if (strpos($match, $string) === 0) {
           $matches[$match] = $match;
+        }
+        if (count($matches) == $limit) {
+          break 2;
         }
       }
     }
