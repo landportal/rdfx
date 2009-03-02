@@ -294,9 +294,10 @@ function rdf_admin_feeds() {
     $is_core     = in_array($feed->module, array('node', 'taxonomy', 'blog', 'aggregator'));
     $is_rdf      = !$is_core || array_search($feed->id, array_keys(variable_get('rdf_feed_override', array()))) !== FALSE;
 
+    $path   = drupal_get_path_alias($feed->path);
     $rows[] = array(
-      theme('feed_icon', !$is_wildcard ? url($feed->path) : '#', $feed->path),
-      !$is_wildcard ? l($feed->path, $feed->path) : $feed->path,
+      theme('feed_icon', !$is_wildcard ? url($feed->path) : '#', $path),
+      !$is_wildcard ? l($path, $feed->path) : $feed->path,
       $module ? $module['name'] : $feed->module,
       $feed->title,
       l(t($is_rdf ? 'configure' : 'enable'), 'admin/settings/rdf/feeds/edit/' . $feed_id),
