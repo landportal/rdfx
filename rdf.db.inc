@@ -237,11 +237,12 @@ function rdf_db_merge_duplicate_statements($table = RDF_DB_TABLE_DEFAULT) {
 // RDF DB helper functions
 
 function _rdf_db_make_record($subject, $predicate, $object, array $options = array()) {
+  global $user;
+
   $is_uri     = is_object($object) && ($object instanceof RDF_URIRef);
   $is_literal = is_object($object) && ($object instanceof RDF_Literal);
 
   $record = (object)array();
-  $record->created = isset($options['created']) ? $options['created'] : NULL;
   $record->gid  = isset($options['graph']) ? _rdf_db_uri_to_id($options['graph']) : NULL;
   $record->sid  = $subject ? _rdf_db_uri_to_id($subject) : NULL;
   $record->pid  = $predicate ? _rdf_db_uri_to_id($predicate) : NULL;
@@ -249,6 +250,9 @@ function _rdf_db_make_record($subject, $predicate, $object, array $options = arr
   $record->tid  = $object && rdf_get_datatype($object) ? _rdf_db_uri_to_id(rdf_qname_to_uri(rdf_get_datatype($object))) : NULL;
   $record->lang = $object && $is_literal ? $object->language : NULL;
   $record->data = $object && !$is_uri ? ($is_literal ? $object->value : (string)$object) : NULL;
+
+  $record->created = isset($options['created']) ? $options['created'] : time();
+  $record->uid = isset($options['uid']) ? $options['uid'] : $user->uid;
   return $record;
 }
 
