@@ -827,17 +827,24 @@ function rdf_import_admin_screen_validate($form, &$form_state) {
 
 function rdf_import_admin_screen_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+  $formats = rdf_get_formats('names');
 
   // Fetch the serialized representation from the given URL:
   if (!($text = file_get_contents($url))) {
-    drupal_set_message(t('Error while fetching RDF data from %url.', array('%url' => $url)), 'error');
+    drupal_set_message(t('Error while fetching RDF data from %url. Double-check that you did not misspell the URL.', array('%url' => $url)), 'error');
     $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(array('url' => $url)));
     return;
   }
 
   // Parse into triples using the specified RDF parser:
-  if (($data = rdf_unserialize($text, array('format' => $format, 'uri' => $url))) === FALSE) {
-    drupal_set_message(t('Error while parsing RDF data from %url.', array('%url' => $url)), 'error');
+  if (($data = @rdf_unserialize($text, array('format' => $format, 'uri' => $url))) === FALSE) {
+    drupal_set_message(t('Unable to parse @format data at %url. Double-check that you specified the correct format.', array('@format' => $formats[$format], '%url' => $url)), 'error');
+    $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(array('url' => $url)));
+    return;
+  }
+
+  if (empty($data)) {
+    drupal_set_message(t('No @format data found at %url. Double-check that you specified the correct format.', array('@format' => $formats[$format], '%url' => $url)), 'error');
     $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(array('url' => $url)));
     return;
   }
