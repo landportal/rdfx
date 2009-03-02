@@ -512,19 +512,6 @@ function rdf_taxonomy($op, $type, $array = NULL) {
  */
 function rdf_form_alter(&$form, $form_state, $form_id) {
   switch ($form_id) {
-    // Administer >> Site configuration >> RDF settings
-    case 'rdf_admin_settings':
-      $form['schema'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 10);
-      $form['schema']['rdf_schema_uri'] = array(
-        '#type'          => 'textfield',
-        '#title'         => t('RDFS base URI'),
-        '#default_value' => RDF_SCHEMA_URI,
-        '#maxlength'     => 255,
-        '#required'      => TRUE,
-        '#description'   => t(''), // TODO
-      );
-      break;
-
     // Administer >> User management >> Profiles >> Edit
     case 'profile_field_form':
       // The submitted value is stored using the callback function defined below.

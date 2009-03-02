@@ -22,6 +22,17 @@ function rdf_admin_settings() {
   }
   $form['formats']['rdf_format'] = array('#type' => 'radios', '#options' => $formats, '#default_value' => RDF_FORMAT);
 
+  // RDF Schema
+  $form['schema'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => TRUE, '#weight' => 10);
+  $form['schema']['rdf_schema_uri'] = array(
+    '#type'          => 'textfield', 
+    '#title'         => t('RDFS base URI'),
+    '#default_value' => RDF_SCHEMA_URI,
+    '#maxlength'     => 255,
+    '#required'      => TRUE,
+    '#description'   => t(''), // TODO
+  );
+
   // Maintenance
   $form['maintenance'] = array(
     '#type'        => 'fieldset',
