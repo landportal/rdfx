@@ -676,7 +676,7 @@ function rdf_admin_contexts() {
   foreach (rdf_get_contexts() as $uri) {
     $mutable = in_array($uri, $mutables);
     $rows[] = array(
-      l($uri, 'admin/content/rdf', array('query' => array('g' => $uri))),
+      l($uri, 'admin/content/rdf', array('query' => array('g' => $uri, 's' => '', 'p' => '', 'o' => ''))),
       !$mutable ? t('n/a') : rdf_count(NULL, NULL, NULL, array('context' => $uri)),
     );
   }
@@ -805,8 +805,7 @@ function rdf_import_admin_screen(&$form_state, $edit = array('repository' => 'lo
     '#title'         => t('Repository'),
     '#default_value' => $edit->repository,
     '#options'       => rdf_get_repositories('names', array('persistent' => TRUE, 'mutable' => TRUE)),
-    '#description'   => t(''),
-    '#disabled'      => TRUE,
+    '#description'   => t('Select which RDF repository to store the imported data in.'),
   );
   $form['import']['url'] = array(
     '#type'          => 'textfield',
@@ -814,14 +813,14 @@ function rdf_import_admin_screen(&$form_state, $edit = array('repository' => 'lo
     '#default_value' => $edit->url,
     '#maxlength'     => 255,
     '#required'      => TRUE,
-    '#description'   => t(''),
+    '#description'   => t('Enter a URL where to fetch the RDF data from.'),
   );
   $form['import']['format'] = array(
     '#type'          => 'select',
     '#title'         => t('Format'),
     '#default_value' => $edit->format,
     '#options'       => rdf_get_formats('names'), // FIXME,
-    '#description'   => t(''),
+    '#description'   => t('Specify the serialization format of the RDF data file.'),
   );
 
   $form['import']['submit'] = array('#type' => 'submit', '#value' => t('Import'));
@@ -840,23 +839,22 @@ function rdf_import_admin_screen_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
   $formats = rdf_get_formats('names');
 
+  $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(compact('repository', 'url', 'format')));
+
   // Fetch the serialized representation from the given URL:
   if (!($text = file_get_contents($url))) {
     drupal_set_message(t('Error while fetching RDF data from %url. Double-check that you did not misspell the URL.', array('%url' => $url)), 'error');
-    $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(array('url' => $url)));
     return;
   }
 
   // Parse into triples using the specified RDF parser:
   if (($data = @rdf_unserialize($text, array('format' => $format, 'uri' => $url))) === FALSE) {
     drupal_set_message(t('Unable to parse @format data at %url. Double-check that you specified the correct format.', array('@format' => $formats[$format], '%url' => $url)), 'error');
-    $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(array('url' => $url)));
     return;
   }
 
   if (empty($data)) {
     drupal_set_message(t('No @format data found at %url. Double-check that you specified the correct format.', array('@format' => $formats[$format], '%url' => $url)), 'error');
-    $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(array('url' => $url)));
     return;
   }
 
@@ -873,10 +871,9 @@ function rdf_import_admin_screen_submit($form, &$form_state) {
 
   if (($errors = (count($data) - $counter))) {
     drupal_set_message(t('!count statements were not imported due to an error when asserting them.', array('!count' => $errors)), 'error');
-    $form_state['redirect'] = array('admin/content/rdf/import', drupal_query_string_encode(compact('repository', 'url', 'format')));
   }
   else {
-    $form_state['redirect'] = array('admin/content/rdf', drupal_query_string_encode(array('g' => $url, 's' => '', 'p' => '', 'o' => '')));
+    $form_state['redirect'] = array('admin/content/rdf', drupal_query_string_encode(array('g' => $url, 's' => '', 'p' => '', 'o' => ''))); // success
   }
 }
 
@@ -888,7 +885,13 @@ function rdf_export_admin_screen(&$form_state) {
   $form['export'] = array('#type' => 'fieldset', '#title' => t('Export RDF data'));
 
   $repos = rdf_get_repositories('names');
-  $form['export']['repos'] = array('#type' => 'checkboxes', '#title' => t('Repositories'), '#default_value' => array_keys($repos), '#options' => $repos);
+  $form['export']['repos'] = array(
+    '#type'          => 'checkboxes',
+    '#title'         => t('Repositories'),
+    '#default_value' => array_keys($repos),
+    '#options'       => $repos,
+    '#description'   => t('Select which repositories to query data from.'),
+  );
 
   /*$namespaces = array_keys(rdf_get_namespaces('names'));
   $namespaces = array_combine($namespaces, $namespaces);
@@ -896,9 +899,19 @@ function rdf_export_admin_screen(&$form_state) {
   $form['export']['vocabs'] = array('#type' => 'checkboxes', '#title' => t('Vocabularies'), '#default_value' => array_keys($namespaces), '#options' => $namespaces);*/
 
   $formats = rdf_get_formats('names', 'w');
-  $form['export']['format'] = array('#type' => 'select', '#title' => t('RDF format'), '#options' => $formats, '#default_value' => RDF_FORMAT, '#description' => t('Select the output format.'));
+  $form['export']['format'] = array(
+    '#type'          => 'select',
+    '#title'         => t('RDF format'),
+    '#options'       => $formats,
+    '#default_value' => RDF_FORMAT,
+    '#description'   => t('Select the output format.'),
+  );
 
-  $form['export']['sort'] = array('#type' => 'checkbox', '#title' => t('Sort by subject'), '#default_value' => '1', );
+  $form['export']['sort'] = array(
+    '#type'          => 'checkbox',
+    '#title'         => t('Sort by subject'),
+    '#default_value' => '1',
+  );
 
   $form['export']['submit'] = array('#type' => 'submit', '#value' => t('Export'));
   return $form;
