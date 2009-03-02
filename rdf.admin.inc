@@ -419,7 +419,7 @@ function rdf_admin_feed_channel_form(&$form, &$form_state, $defaults = array()) 
   $form['format'] = array(
     '#type'          => 'select',
     '#title'         => t('Default format'),
-    '#default_value' => !empty($defaults['format']) ? $defaults['format'] : 'rdf+xml',
+    '#default_value' => !empty($defaults['format']) ? $defaults['format'] : RDF_FORMAT_RSS,
     '#options'       => rdf_get_formats('names'),
     '#description'   => t('This determines the default RDF serialization format to output. Browsers and RSS feed consumers can override this through <a href="http://en.wikipedia.org/wiki/Content_negotiation">HTTP content negotiation</a>, that is, by passing an <code>Accept</code> header specifying another supported format.'),
   );

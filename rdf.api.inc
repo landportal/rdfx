@@ -4,9 +4,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // RDF API settings
 
-define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc');
-define('RDF_FORMAT',    variable_get('rdf_format', 'rdf+json'));
-define('RDF_SITE_URI',  url(NULL, array('absolute' => TRUE)));
+define('RDF_ARC2_PATH',   drupal_get_path('module', 'rdf') . '/vendor/arc');
+define('RDF_FORMAT',      variable_get('rdf_format', 'rdf+json'));
+define('RDF_FORMAT_RSS',  variable_get('rdf_format_rss', 'rdf+xml'));
+define('RDF_SITE_URI',    url(NULL, array('absolute' => TRUE)));
 
 //////////////////////////////////////////////////////////////////////////////
 // RDF API repository selection
@@ -969,7 +970,7 @@ function rdf_get_feed_info($feed_id = NULL, $enabled_only = FALSE) {
 }
 
 function rdf_get_feed_settings($feed) {
-  $defaults = array('description_from_mission' => '', 'description' => '', 'update_period' => '', 'update_frequency' => '', 'update_base' => '', 'format' => 'rdf+xml');
+  $defaults = array('description_from_mission' => '', 'description' => '', 'update_period' => '', 'update_frequency' => '', 'update_base' => '', 'format' => RDF_FORMAT_RSS);
   if (($feed = is_object($feed) ? $feed : rdf_get_feed_info($feed))) {
     return ($feed->module == 'views') ? // special case for Views feeds
       rdf_views_get_feed_settings($feed->id, $defaults) :
