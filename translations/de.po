@@ -3,15 +3,15 @@ msgstr ""
 "Project-Id-Version: Drupal RDF V6\n"
 "POT-Creation-Date: \n"
 "PO-Revision-Date: \n"
-"Last-Translator: rastatt <rastatt@drupal.org>\n"
-"Language-Team: Frank Tartler <EMAIL@ADDRESS>\n"
+"Last-Translator: Frank Tartler <frank.tartler@googlemail.com>\n"
+"Language-Team: Frank Tartler <frank.tartler@googlemail.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n!=1);\n"
 "X-Poedit-Language: German\n"
 "X-Poedit-Country: GERMANY\n"
 "X-Poedit-SourceCharset: utf-8\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
 
 #: rdf.admin.inc:13
 msgid "Formats"
@@ -87,7 +87,7 @@ msgstr "Abfrage"
 
 #: rdf.admin.inc:91
 msgid "Find"
-msgstr ""
+msgstr "Finden"
 
 #: rdf.admin.inc:93
 msgid "Advanced options"
@@ -140,7 +140,7 @@ msgstr "Module"
 #: rdf.admin.inc:196
 #: rdf.theme.inc:36
 msgid "Subject"
-msgstr "Betreff"
+msgstr "Subjekt"
 
 #: rdf.admin.inc:196
 msgid "The subject of the statement: the entity or resource that the statement is about, i.e. the who or what. This should be given as either a <a href=\"http://en.wikipedia.org/wiki/URI\" title=\"Uniform Resource Identifier\">URI</a> or a <a href=\"http://en.wikipedia.org/wiki/CURIE\" title=\"Compact URI\">CURIE</a>."
@@ -161,12 +161,11 @@ msgid "Object"
 msgstr "Objekt"
 
 #: rdf.admin.inc:198
-#, fuzzy
 msgid "The object of the statement: the entity or resource that relates to the subject as described by the predicate; i.e. the property value. This should be given as either a <a href=\"http://en.wikipedia.org/wiki/URI\" title=\"Uniform Resource Identifier\">URI</a>, a <a href=\"http://en.wikipedia.org/wiki/CURIE\" title=\"Compact URI\">CURIE</a>, or a literal."
 msgstr "Das Objekt der Aussage: die Einheit oder Ressource, die sich auf das Subjekt - wie vom Prädikat beschrieben - bezieht, z.B. der Eigenschaftswert. Dies sollte entweder als <a href=\"http://en.wikipedia.org/wiki/URI\" title=\"Uniform Resource Identifier\">URI</a>, als <a href=\"http://en.wikipedia.org/wiki/CURIE\" title=\"Compact URI\">CURIE</a> oder als Literal angegeben werden."
 
 #: rdf.admin.inc:202
-#: rdf.module:126
+#: rdf.module:127
 msgid "Add statement"
 msgstr "Aussage hinzufügen"
 
@@ -239,6 +238,7 @@ msgid "The human-readable name of this repository. It is recommended that this n
 msgstr "Der lesbare Name dieses Repository. Es wird empfohlen, dass dieser Name mit einem Großbuichstaben beginnt und nur auf Buchstaben, Ziffern und Leerzeichen besteht."
 
 #: rdf.admin.inc:335
+#: rdf.schema.inc:188;197;209;218
 #: contrib/rdf_schema/rdf_schema.inc:188;197;209;218
 msgid "ID"
 msgstr "ID"
@@ -304,7 +304,7 @@ msgid "Class/property"
 msgstr "Klasse/Eigenschaft"
 
 #: rdf.admin.inc:406
-#: contrib/rdf_schema/rdf_schema.module:77;88;99;108
+#: contrib/rdf_schema/rdf_schema.module:70;81;92;101
 msgid "RDF mapping"
 msgstr "RDF-Zuordnung"
 
@@ -381,7 +381,7 @@ msgid "Export RDF data"
 msgstr "RDF-Daten exportieren"
 
 #: rdf.admin.inc:547
-#: rdf.module:214
+#: rdf.module:215
 msgid "Repositories"
 msgstr "Repositorys"
 
@@ -395,7 +395,7 @@ msgstr "Ausgabeformat auswählen."
 
 #: rdf.admin.inc:557
 msgid "Sort by subject"
-msgstr "Nach Betreff sortieren"
+msgstr "Nach Subjekt sortieren"
 
 #: rdf.admin.inc:559
 msgid "Export"
@@ -410,18 +410,48 @@ msgid "Maps feed item properties into RDF repositories and into CCK fields as de
 msgstr "Bildet Newsfeed-Element-Eigenschaften in RDF-Repositorys und in CCK-Felder ab, wie von den RDF-Schema-Einstellungen definiert."
 
 #: rdf.feedapi.inc:22
-#: rdf.module:492
+#: rdf.module:493
 msgid "System"
 msgstr "System"
 
-#: rdf.pages.inc:26
+#: rdf.pages.inc:29
 #: rdf.module:0
 msgid "rdf"
 msgstr ""
 
-#: rdf.pages.inc:26
+#: rdf.pages.inc:29
 msgid "Exported RDF data file: %filename."
 msgstr "RDF-Datendatei exportiert: %filename."
+
+#: rdf.schema.inc:94
+#: contrib/rdf_schema/rdf_schema.inc:94
+msgid "RDF schema for @site_name"
+msgstr "RDF-Schema für @site_name"
+
+#: rdf.schema.inc:210
+#: contrib/rdf_schema/rdf_schema.inc:210
+msgid "Version ID"
+msgstr "Versions-ID"
+
+#: rdf.schema.inc:211;221
+#: contrib/rdf_schema/rdf_schema.inc:211;221
+msgid "User ID"
+msgstr "Benutzer-ID"
+
+#: rdf.schema.inc:212
+#: contrib/rdf_schema/rdf_schema.inc:212
+msgid "Translation ID"
+msgstr ""
+
+#: rdf.schema.inc:219
+#: contrib/rdf_schema/rdf_schema.inc:219
+msgid "Parent ID"
+msgstr ""
+
+#: rdf.schema.inc:220
+#: contrib/rdf_schema/rdf_schema.inc:220
+msgid "Node ID"
+msgstr "Beitrags-ID"
 
 #: rdf.services.inc:17;26;35
 msgid "Subject, predicate, and object."
@@ -448,12 +478,10 @@ msgid "RDF Feed"
 msgstr "RDF-Newsfeed"
 
 #: rdf.views.inc:16
-#, fuzzy
 msgid "Generates an RSS 1.0-compatible RDF feed from a view."
 msgstr "Erzeugt aus einer Ansicht einen RSS-1.0-kompatiblen RDF-Newsfeed."
 
 #: rdf.views.inc:29
-#, fuzzy
 msgid "Node (RDF)"
 msgstr "Beitrags-ID"
 
@@ -461,165 +489,161 @@ msgstr "Beitrags-ID"
 msgid "Outputs the node as an RDF 1.0-compatible RDF resource."
 msgstr "Gibt den Beitrag als RDF-1.0-kompatible RDF-Ressource aus."
 
-#: rdf.module:17;333;376;82;92;103
+#: rdf.module:18;334;377;83;93;104
 #: rdf.info:0
 #: contrib/rdf_schema/rdf_schema.info:0
 msgid "RDF"
 msgstr "RDF"
 
-#: rdf.module:43
+#: rdf.module:44
 msgid "Any knowledge about anything can be decomposed into statements of <em>triples</em> (3-tuples) consisting of <em>subject</em>, <em>predicate</em>, and <em>object</em>."
 msgstr "Jedes Wissen über etwas kann in Aussagen von <em>Tripeln</em> bestehend aus <em>Subjekt</em>, <em>Prädikat</em> und <em>Objekt</em> zerlegt werden."
 
-#: rdf.module:45
+#: rdf.module:46
 msgid "<a href=\"http://drupal.org/handbook/modules/rdf\" title=\"Resource Description Framework\">RDF</a> is a <a href=\"http://www.w3.org/RDF/\">W3C standard</a> for modeling and sharing distributed knowledge based on a decentralized open-world assumption."
-msgstr "<a href=\"http://drupal.org/handbook/modules/rdf\" title=\"Resource Description Framework\">RDF</a> ist ein <a href=\"http://www.w3.org/RDF/\">W3C-Standard</a> für das Modellieren und Bereitstellen von verteiltem Wissen, basierend der Annahme einer dezentralen offenen Welt."
+msgstr "<a href=\"http://drupal.org/handbook/modules/rdf\" title=\"Resource Description Framework\">RDF</a> ist ein <a href=\"http://www.w3.org/RDF/\">W3C-Standard</a> für das Modellieren und Bereitstellen von verteiltem Wissen, basierend auf der Annahme einer dezentralen offenen Welt."
 
-#: rdf.module:47
+#: rdf.module:48
 msgid "RDF data can be serialized into a number of textual formats (also known as representations). The two built-in, always available formats are <a href=\"http://drupal.org/node/219870\">RDF/PHP</a> and <a href=\"http://drupal.org/node/219874\">RDF/JSON</a>. For interoperability with more RDF formats, you can <a href=\"@status\">install the ARC2 library</a> which adds parsing/serialization support for several widespread formats."
 msgstr "RDF-Daten können in eine Anzahl Textformate angeordnet werden (auch bekannt als Darstellungen). Die zwei eingebauten, immer verfügbaren Formate sind <a href=\"http://drupal.org/node/219870\">RDF/PHP</a> und <a href=\"http://drupal.org/node/219874\">RDF/JSON</a>. Für die Interoperabilität mit weiteren RDF-Formaten kann <a href=\"@status\">die ARC2-Library installiert werden</a> die die Unterstützung für das Einlesen/Anordnen zahlreicher weitverbreiteter Formate hinzufügt."
 
-#: rdf.module:49
+#: rdf.module:50
 msgid "<a href=\"http://drupal.org/node/219858#namespaces\">Namespaces</a> define URI abbreviations for use in <a href=\"http://drupal.org/node/219856#curie\" title=\"Compact URIs\">CURIEs</a> and for purposes of human-friendly display of RDF data."
 msgstr "<a href=\"http://drupal.org/node/219858#namespaces\">Namensräume</a> definieren URI-Abkürzungen zur Verwendung in <a href=\"http://drupal.org/node/219856#curie\" title=\"Compact URIs\">CURIEs</a> und für Zwecke der benutzerfreundlichen Anzeige von RDF-Daten."
 
-#: rdf.module:51
-#, fuzzy
+#: rdf.module:52
 msgid "<a href=\"http://drupal.org/node/219858#contexts\">Contexts</a>, also known as <a href=\"http://www.w3.org/2004/03/trix/\">named graphs</a>, provide a mechanism for grouping RDF statements (e.g. by their provenance), facilitating mass operations on a set of statements."
 msgstr "<a href=\"http://drupal.org/node/219858#contexts\">Kontexte</a>, auch bekannt als <a href=\"http://www.w3.org/2004/03/trix/\">named graphs</a>, stellen einen Mechanismus zur Gruppierung von RDF-Aussagen (e.g. by their provenance) bereit und erleichtern Massenvorgänge auf eine Anzahl Aussagen."
 
-#: rdf.module:53
-#, fuzzy
+#: rdf.module:54
 msgid "<a href=\"http://drupal.org/node/219858#repositories\">Repositories</a> are storage containers for RDF data, and can be implemented, for instance, in terms of an in-memory triple store, a serialized file on disk, an RDBMS database, or an RPC connection to a remote service."
 msgstr "<a href=\"http://drupal.org/node/219858#repositories\">Repositorys</a> sind Speicherbehälter für RDF-Daten und können z.B. im Sinne von einem Tripel-Speicher im Hauptspeicher, einer angeordeten Datei auf der Festplatte, einer RDBMS-Datenbank oder einer RPC-Verbindung zu einem entfernten Dienst implementiert werden."
 
-#: rdf.module:55
+#: rdf.module:56
 msgid "To create a new local RDF repository, enter the human-readable name, the machine-readable name, and all other relevant fields that are on this page."
 msgstr "Um ein neues lokales RDF-Repository zu erstellen muss der lesbare Name, der maschinenlesbare Name und alle anderen relvanten Felder auf dieser Seite eingegeben werden."
 
-#: rdf.module:57
+#: rdf.module:58
 msgid "This is a summary of the currently defined mappings between Drupal data and RDF classes/properties."
 msgstr "Dies ist eine Zusammenfassung der momentan definierten Zuordnungen zwischen Drupal-Daten und RDF-Klassen/-Eigenschaften."
 
-#: rdf.module:271
+#: rdf.module:272
 msgid "After inserting a new RDF statement"
 msgstr "Nach dem Einfügen einer neuen RDF-Aussage"
 
-#: rdf.module:274
+#: rdf.module:275
 msgid "After deleting an existing RDF statement"
 msgstr "Nach dem Löschen einer bestehenden RDF-Aussage"
 
-#: rdf.module:404
+#: rdf.module:405
 msgid "RDF/PHP"
 msgstr ""
 
-#: rdf.module:413
+#: rdf.module:414
 msgid "RDF/JSON"
 msgstr ""
 
-#: rdf.module:422
+#: rdf.module:423
 msgid "RDF/XML"
 msgstr ""
 
-#: rdf.module:431
+#: rdf.module:432
 msgid "TriX"
 msgstr ""
 
-#: rdf.module:440
+#: rdf.module:441
 msgid "Turtle"
 msgstr ""
 
-#: rdf.module:449
+#: rdf.module:450
 msgid "N-Triples"
 msgstr "N-Tripel"
 
-#: rdf.module:66
+#: rdf.module:67
 msgid "access RDF data"
 msgstr "auf RDF-Daten zugreifen"
 
-#: rdf.module:67
+#: rdf.module:68
 msgid "administer RDF data"
 msgstr "RDF-Daten verwalten"
 
-#: rdf.module:68
+#: rdf.module:69
 msgid "administer RDF repositories"
 msgstr "RDF-Repositorys verwalten"
 
-#: rdf.module:69
+#: rdf.module:70
 msgid "administer RDF namespaces"
 msgstr "RDF-Namensräume verwalten"
 
-#: rdf.module:70
+#: rdf.module:71
 msgid "import RDF data"
 msgstr "RDF-Daten importieren"
 
-#: rdf.module:71
+#: rdf.module:72
 msgid "export RDF data"
 msgstr "RDF-Daten exportieren"
 
-#: rdf.module:114
+#: rdf.module:115
 msgid "RDF data"
 msgstr "RDF-Daten"
 
-#: rdf.module:115
+#: rdf.module:116
 msgid "Query, create, and delete RDF statements."
 msgstr "RDF-Aussageb abfragen, erstellen und löschen"
 
-#: rdf.module:122;172;208;221;257
-#, fuzzy
+#: rdf.module:123;173;209;222;258
 msgid "List"
 msgstr "Alle anzeigen"
 
-#: rdf.module:135
+#: rdf.module:136
 msgid "Import data"
 msgstr "Daten importieren"
 
-#: rdf.module:144
+#: rdf.module:145
 msgid "Export data"
 msgstr "Daten exportieren"
 
-#: rdf.module:155
+#: rdf.module:156
 msgid "RDF settings"
 msgstr "RDF-Einstellungen"
 
-#: rdf.module:156
+#: rdf.module:157
 msgid "Settings for the RDF API."
 msgstr "Einstellungen für das RDF-API"
 
-#: rdf.module:165
+#: rdf.module:166
 msgid "Namespaces"
 msgstr "Namensräume"
 
-#: rdf.module:176
+#: rdf.module:177
 msgid "Add namespace"
 msgstr "Namensraum hinzufügen"
 
-#: rdf.module:184
+#: rdf.module:185
 msgid "Edit namespace"
 msgstr "Namensraum bearbeiten"
 
-#: rdf.module:191
+#: rdf.module:192
 msgid "Delete namespace"
 msgstr "Namensraum löschen"
 
-#: rdf.module:201
-#, fuzzy
+#: rdf.module:202
 msgid "Contexts"
 msgstr "Kontexte"
 
-#: rdf.module:225
+#: rdf.module:226
 msgid "Add local repository"
 msgstr "Lokales Repository hinzufügen"
 
-#: rdf.module:233
+#: rdf.module:234
 msgid "Edit local repository"
 msgstr "Lokales Repository bearbeiten"
 
-#: rdf.module:240
+#: rdf.module:241
 msgid "Delete local repository"
 msgstr "Lokales Repository löschen."
 
-#: rdf.module:250
+#: rdf.module:251
 msgid "Mappings"
 msgstr "Zuordnungen"
 
@@ -689,7 +713,7 @@ msgstr ""
 
 #: (duplicate) rdf.install:42
 msgid "RDF library"
-msgstr ""
+msgstr "RDF-Library"
 
 #: (duplicate) rdf.install:43
 msgid "ARC2 @version"
@@ -701,110 +725,86 @@ msgstr "Nicht installiert"
 
 #: (duplicate) rdf.install:44
 msgid "<a href=\"@arc2\">ARC2</a> is not available. It is recommended that you install this library in order to enable support for more RDF formats and for SPARQL queries. To install, <a href=\"@download\">download</a> the latest version of the library and unzip it to %path under the Drupal directory. For more information please refer to the <a href=\"@handbook\">handbook</a>."
-msgstr ""
+msgstr "<a href=\"@arc2\">ARC2</a> ist nicht verfügbar. Es wird empfohlen, diese Library zu installieren um Unterstützung für mehr RDF-Formate und für SPARQL-Abfragen zu aktivieren. Zum Installieren sollte die neueste Version der Library <a href=\"@download\">heruntergeladen</a> werden. Sie muss in %path unter dem Drupal-Verzeichnis entpackt werden. Weitere Informationen sind im <a href=\"@handbook\">Handbuch</a> zu finden."
 
 #: rdf.info:0
 msgid "RDF API"
-msgstr ""
+msgstr "RDF-API"
 
 #: rdf.info:0
 msgid "Enables the use of Resource Description Framework (RDF) metadata."
 msgstr "Aktiviert die Verwendung der Metadaten des Resource Description Framework (RDF)."
 
-#: contrib/rdf_schema/rdf_schema.inc:94
-msgid "RDF schema for @site_name"
-msgstr "RDF-Schema für @site_name"
-
-#: contrib/rdf_schema/rdf_schema.inc:210
-msgid "Version ID"
-msgstr "Versions-ID"
-
-#: contrib/rdf_schema/rdf_schema.inc:211;221
-msgid "User ID"
-msgstr "Benutzer-ID"
-
-#: contrib/rdf_schema/rdf_schema.inc:212
-msgid "Translation ID"
-msgstr ""
-
-#: contrib/rdf_schema/rdf_schema.inc:219
-msgid "Parent ID"
-msgstr ""
-
-#: contrib/rdf_schema/rdf_schema.inc:220
-msgid "Node ID"
-msgstr "Beitrags-ID"
-
-#: contrib/rdf_schema/rdf_schema.module:69
+#: contrib/rdf_schema/rdf_schema.module:62
 #: contrib/rdf_schema/rdf_schema.info:0
 msgid "RDF Schema"
 msgstr "RDF-Schema"
 
-#: contrib/rdf_schema/rdf_schema.module:70
+#: contrib/rdf_schema/rdf_schema.module:63
 msgid "RDFS base URI"
 msgstr "RDFS-Basis-URI"
 
-#: contrib/rdf_schema/rdf_schema.module:78;89;109
+#: contrib/rdf_schema/rdf_schema.module:71;82;102
 msgid "RDF property"
 msgstr "RDF-Eigenschaft"
 
-#: contrib/rdf_schema/rdf_schema.module:100
+#: contrib/rdf_schema/rdf_schema.module:93
 msgid "RDF class"
 msgstr "RDF-Klasse"
 
-#: contrib/rdf_schema/rdf_schema.module:150
+#: contrib/rdf_schema/rdf_schema.module:143
 msgid "RDF class is not a valid URI or CURIE."
 msgstr "Die RDF-Klasse ist keine gültige URI oder CURIE."
 
-#: contrib/rdf_schema/rdf_schema.module:165
+#: contrib/rdf_schema/rdf_schema.module:158
 msgid "RDF property is not a valid URI or CURIE."
 msgstr "RDF-Eigenschaft ist keine gültige URI oder CURIE."
 
-#: contrib/rdf_schema/rdf_schema.module:224
+#: contrib/rdf_schema/rdf_schema.module:217
 msgid "User"
 msgstr "Benutzer"
 
-#: contrib/rdf_schema/rdf_schema.module:232
+#: contrib/rdf_schema/rdf_schema.module:225
 msgid "Taxonomy vocabulary"
 msgstr "Taxonomie-Vokabular"
 
-#: contrib/rdf_schema/rdf_schema.module:241
+#: contrib/rdf_schema/rdf_schema.module:234
 msgid "Taxonomy term"
 msgstr "Taxonomie-Begriff"
 
-#: contrib/rdf_schema/rdf_schema.module:249
+#: contrib/rdf_schema/rdf_schema.module:242
 msgid "Node"
 msgstr "Beitrag"
 
-#: contrib/rdf_schema/rdf_schema.module:258
+#: contrib/rdf_schema/rdf_schema.module:251
 msgid "Comment"
 msgstr "Kommentar"
 
-#: contrib/rdf_schema/rdf_schema.module:266
+#: contrib/rdf_schema/rdf_schema.module:259
 msgid "URL alias"
 msgstr "URL-Alias"
 
-#: contrib/rdf_schema/rdf_schema.module:274
+#: contrib/rdf_schema/rdf_schema.module:267
 msgid "Setting"
 msgstr ""
 
-#: contrib/rdf_schema/rdf_schema.module:25
+#: contrib/rdf_schema/rdf_schema.module:18
 msgid "export site settings"
-msgstr ""
+msgstr "Website-Einstellungen exortieren"
 
-#: contrib/rdf_schema/rdf_schema.module:26
+#: contrib/rdf_schema/rdf_schema.module:19
 msgid "import site settings"
-msgstr ""
+msgstr "Website-Einstellungen importieren"
 
-#: contrib/rdf_schema/rdf_schema.module:27
+#: contrib/rdf_schema/rdf_schema.module:20
 msgid "export enabled modules"
 msgstr ""
 
-#: contrib/rdf_schema/rdf_schema.module:28
+#: contrib/rdf_schema/rdf_schema.module:21
 msgid "import enabled modules"
 msgstr ""
 
-#: contrib/rdf_schema/rdf_schema.module:38
+#: contrib/rdf_schema/rdf_schema.module:31
 msgid "RDF schema"
 msgstr "RDF-Schema"
 
@@ -844,23 +844,74 @@ msgstr "weiterlesen"
 msgid "RSS 1.0"
 msgstr ""
 
-#: contrib/rdf_views/views_plugin_style_rdf.inc:51
+#: contrib/rdf_views/views_plugin_style_rdf.inc:54
 msgid "Use the site mission as the channel description"
-msgstr ""
+msgstr "den Website-Slogan als Channel-Beschreibung verwenden"
 
-#: contrib/rdf_views/views_plugin_style_rdf.inc:55
+#: contrib/rdf_views/views_plugin_style_rdf.inc:58
+#, fuzzy
 msgid "RSS 1.0 channel description"
-msgstr ""
+msgstr "RSS-1.0-Channel-Beschreibung"
 
-#: contrib/rdf_views/views_plugin_style_rdf.inc:57
+#: contrib/rdf_views/views_plugin_style_rdf.inc:60
+#, fuzzy
 msgid "This will appear as the channel description in the RDF feed."
+msgstr "Dies erscheint als Channel-Beschreibung im RDF-Feed."
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:66
+msgid "Update period"
+msgstr "Aktualisierungs-Periode"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:68;75
+msgid "<not specified>"
+msgstr "<nicht angegeben>"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:68
+msgid "hourly"
+msgstr "stündlich"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:68
+msgid "daily"
+msgstr "täglich"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:68
+msgid "weekly"
+msgstr "wöchentlich"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:68
+msgid "monthly"
+msgstr "monatlich"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:68
+msgid "yearly"
+msgstr "jährlich"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:69
+msgid "Provides <a href=\"http://web.resource.org/rss/1.0/modules/syndication/\">RSS 1.0 syndication hints</a> to aggregators and others picking up this RSS feed regarding how often it is updated."
 msgstr ""
 
-#: contrib/rdf_views/views_plugin_style_rdf.inc:63
+#: contrib/rdf_views/views_plugin_style_rdf.inc:73
+msgid "Update frequency"
+msgstr "Aktualisierungs-Häufigkeit"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:76
+#, fuzzy
+msgid "Used to describe the frequency of updates in relation to the update period. This is a positive integer that indicates how many times in that period the channel is updated. For example, an update period of <em>daily</em> with an update frequency of <em>2</em> indicates the channel is updated twice daily. If omitted, a value of <em>1</em> is assumed."
+msgstr "Wird verwendet um die Häufigkeit von Aktualisierungen in Relation zur Aktualisierungs-Periode zu beschreiben. Dies ist eine positive ganze Zahl die anzeigt, wie der Channel oft in dieser Periode aktualisiert wird. Eine Aktualisierungs-Periode von <em>täglich</em> mit einer Aktualisierungshäufigkeit von <em>2</em> zeigt zum Beispiel an, dass der Channel zweimal täglich aktualisiert wird.  Wenn der Wert weggelassen wird, wird ein Wert von <em>1</em> angenommen."
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:80
+msgid "Update base date"
+msgstr "Aktualisierungs-Basisdatum"
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:82
+msgid "Defines a base date to be used in concert with the update period and update frequency to calculate the publishing schedule. The date format takes the form: <code>yyyy-mm-ddThh:mm</code>."
+msgstr "Definiert ein Basisdatum, das zusammen mit der Aktualisierungs-Periode und der Aktualisierungs-Häufigkeit verwendet wird, den Aktualisierungs-Zeitplan zu berechnen. Das Datum hat die Form: <code>yyyy-mm-ddThh:mm</code>."
+
+#: contrib/rdf_views/views_plugin_style_rdf.inc:88
 msgid "Default format"
 msgstr "Standardformat"
 
-#: contrib/rdf_views/views_plugin_style_rdf.inc:66
+#: contrib/rdf_views/views_plugin_style_rdf.inc:91
 msgid "This determines the default RDF serialization format to output. The client can override this by passing an <code>Accept</code> header specifying another supported format."
 msgstr ""
 
