@@ -162,6 +162,13 @@ function rdf_db_admin_data_form(&$form_state, $edit = array('subject' => '', 'pr
   $edit = (object)$edit;
   $form = array();
 
+  $form['repository'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Repository'),
+    '#default_value' => $edit->repository,
+    '#options'       => rdf_get_repositories('names', array('persistent' => TRUE, 'mutable' => TRUE)),
+    '#description'   => t('Select which RDF repository to store new statement in.'),
+  );
   $form['subject'] = array(
     '#type'          => 'textfield',
     '#title'         => t('Subject'),
@@ -188,8 +195,6 @@ function rdf_db_admin_data_form(&$form_state, $edit = array('subject' => '', 'pr
     '#required'      => TRUE,
     '#description'   => t('The object of the statement: the entity or resource that relates to the subject as described by the predicate; i.e. the property value. This should be given as either a <a href="http://en.wikipedia.org/wiki/URI" title="Uniform Resource Identifier">URI</a>, a <a href="http://en.wikipedia.org/wiki/CURIE" title="Compact URI">CURIE</a>, or a literal.'),
   );
-
-  //$form['repository'] = array('#type' => 'select', '#title' => t('Repository'), '#default_value' => $edit->repository, '#options' => array(), '#description' => t('')); // TODO
 
   $form['submit'] = array('#type' => 'submit', '#value' => t('Add statement'));
   return $form;
@@ -220,7 +225,7 @@ function rdf_db_admin_data_form_submit($form, &$form_state) {
   $predicate = rdf_uri($predicate);
   $object    = rdf_is_valid_uri($object) ? rdf_uri($object) : $object;
 
-  if (rdf_insert($subject, $predicate, $object)) {
+  if (rdf_insert($subject, $predicate, $object, array('repository' => $repository))) {
     drupal_set_message(t('The statement has been added.'));
   }
   else {
