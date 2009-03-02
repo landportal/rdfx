@@ -201,7 +201,7 @@ function rdf_bnode($id = NULL) {
   return $id ? RDF_BNode::id($id) : RDF_BNode::generate();
 }
 
-function rdf_datetime($timestamp = NULL) {
+function rdf_datetime($timestamp = NULL, $timezone = 0) {
   if (is_numeric($timestamp)) {
     $timestamp = (int)$timestamp;
   }
@@ -211,7 +211,10 @@ function rdf_datetime($timestamp = NULL) {
   else if (is_null($timestamp)) {
     $timestamp = gmmktime();
   }
-  return rdf_literal(gmstrftime('%Y-%m-%dT%H:%M:%SZ', $timestamp), NULL, 'xsd:dateTime');
+  $datetime = format_date($timestamp, 'custom', 'Y-m-d\TH:i:sO', $timezone);
+  $datetime = str_replace('+0000', 'Z', $datetime); // clean up format_date() result
+  $datetime = preg_replace('/([+-])(\d{2}):?(\d{2})$/', '\1\2:\3', $datetime);
+  return rdf_literal($datetime, NULL, 'xsd:dateTime');
 }
 
 function rdf_literal($value, $language = NULL, $datatype = NULL) {
@@ -293,6 +296,12 @@ function rdf_is_valid_curie($curie) {
 
 function rdf_is_valid_qname($qname) {
   return preg_match('/^[\w\-]+:[\w\-]+$/', (string)$qname); // FIXME
+}
+
+function rdf_is_valid_prefix($qname) {
+  $namespaces = rdf_get_namespaces();
+  list($prefix,) = explode(':', $qname, 2);
+  return isset($namespaces[$prefix]);
 }
 
 function rdf_is_valid_datetime($string) {
@@ -796,12 +805,14 @@ function rdf_get_prefixes(array $data, $namespaces = NULL) {
   foreach ($data as $subject => $predicates) {
     foreach ($predicates as $predicate => $objects) {
       $qnames = array($predicate);
-      foreach($objects as $object) {
-        $qnames[] = $object;
+      foreach (is_array($objects) ? $objects : array($objects) as $object) {
+        if (rdf_is_valid_uri((string)$object)) {
+          $qnames[] = $object;
+        }
       }
-      foreach($qnames as $qname) {
+      foreach ($qnames as $qname) {
         list($prefix, ) = explode(':', rdf_uri_to_qname($qname));
-        if (!isset($result[$prefix]) && isset($namespaces[$prefix])) {
+        if ($prefix != '_' && !isset($result[$prefix]) && isset($namespaces[$prefix])) {
           $result[$prefix] = $namespaces[$prefix];
         }
       }
@@ -1021,17 +1032,64 @@ function _rdf_get_callbacks($op, $repos = NULL) {
 //////////////////////////////////////////////////////////////////////////////
 // RDF API classes
 
-/**
- * @see http://www.php.net/~helly/php/ext/spl/interfaceIteratorAggregate.html
- */
-class RDF_QueryCallback implements IteratorAggregate {
-  public function __construct($callback, array $args = array()) {
-    $this->callback = $callback;
-    $this->args = $args;
+class RDF_Callback {
+  public function __construct($callback, array $arguments = array()) {
+    $this->callback  = $callback;
+    $this->arguments = $arguments;
   }
 
   public function call() {
-    return call_user_func_array($this->callback, $this->args);
+    $arguments = func_get_args();
+    return call_user_func_array($this->callback, array_merge($this->arguments, $arguments));
+  }
+}
+
+/**
+ * @see http://www.php.net/~helly/php/ext/spl/interfaceIterator.html
+ */
+class RDF_CallbackIterator implements Iterator {
+  public function __construct($callback, array $args_lhs, $args_iter, array $args_rhs = array()) {
+    $this->callback  = $callback;
+    $this->args_lhs  = $args_lhs;
+    $this->args_iter = $args_iter;
+    $this->args_rhs  = $args_rhs;
+    $this->done      = FALSE;
+    $this->key       = NULL;
+    $this->value     = NULL;
+  }
+
+  public function call($arg_iter) {
+    $result = call_user_func_array($this->callback, array_merge($this->args_lhs, array($arg_iter), $this->args_rhs));
+    list($this->key, $this->value) = each($result);
+  }
+
+  public function rewind()  {
+    $this->done = FALSE;
+    reset($this->args_iter);
+    $this->next();
+  }
+
+  public function next()    {
+    if (($kv = each($this->args_iter)) !== FALSE) {
+      list($key, $value) = $kv;
+      $this->call($value);
+    }
+    else {
+      $this->done = TRUE;
+    }
+  }
+
+  public function valid()   { return !$this->done; }
+  public function current() { return $this->value; }
+  public function key()     { return $this->key; }
+}
+
+/**
+ * @see http://www.php.net/~helly/php/ext/spl/interfaceIteratorAggregate.html
+ */
+class RDF_QueryCallback extends RDF_Callback implements IteratorAggregate {
+  public function call() {
+    return call_user_func_array($this->callback, $this->arguments);
   }
 
   public function getIterator() {

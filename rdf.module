@@ -79,7 +79,6 @@ function rdf_perm() {
     'administer RDF repositories',
     'import RDF data',
     'export RDF data',
-    /* From rdf_schema.module: */
     'export site settings',
     'import site settings',
     'export enabled modules',
@@ -209,6 +208,18 @@ function rdf_menu() {
     'admin/settings/rdf/mappings/list' => array(
       'title' => 'List',
       'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+    'rdf/autocomplete/class' => array(
+      'type' => MENU_CALLBACK,
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'rdf_admin_autocomplete_class',
+      'file' => 'rdf.admin.inc',
+    ),
+    'rdf/autocomplete/property' => array(
+      'type' => MENU_CALLBACK,
+      'access arguments' => array('administer site configuration'),
+      'page callback' => 'rdf_admin_autocomplete_property',
+      'file' => 'rdf.admin.inc',
     ),
 
     // Administer >> Site configuration >> RDF settings >> Feeds
@@ -498,7 +509,14 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
     // Administer >> Site configuration >> RDF settings
     case 'rdf_admin_settings':
       $form['schema'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 10);
-      $form['schema']['rdf_schema_uri'] = array('#type' => 'textfield', '#title' => t('RDFS base URI'), '#default_value' => RDF_SCHEMA_URI, '#maxlength' => 255, '#required' => TRUE, '#description' => t('') /* TODO */);
+      $form['schema']['rdf_schema_uri'] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('RDFS base URI'),
+        '#default_value' => RDF_SCHEMA_URI,
+        '#maxlength'     => 255,
+        '#required'      => TRUE,
+        '#description'   => t(''), // TODO
+      );
       break;
 
     // Administer >> User management >> Profiles >> Edit
@@ -506,7 +524,14 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
       // The submitted value is stored using the callback function defined below.
       $rdf_mapping = isset($form['fid']['#value']) ? variable_get('rdf_schema_property_profile_'. $form['fid']['#value'], '') : '';
       $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['rdf_mapping']['rdf_property'] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('RDF property'),
+        '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
+        '#maxlength'     => 255,
+        '#description'   => t(''), // TODO
+        '#autocomplete_path' => 'rdf/autocomplete/property',
+      );
       $form['submit']['#weight'] = 40;
       $form['#validate'][] = 'rdf_schema_property_form_validate';
       $form['#submit'][] = 'rdf_schema_profile_field_form_submit';
@@ -517,7 +542,14 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
       // The submitted value is stored in our implementation of hook_taxonomy()
       $rdf_mapping = isset($form['vid']['#value']) ? variable_get('rdf_schema_property_vocabulary_'. $form['vid']['#value'], '') : '';
       $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => TRUE, '#collapsed' => FALSE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_property'] = array('#type' => 'textfield', '#title' => t('RDF property'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['rdf_mapping']['rdf_property'] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('RDF property'),
+        '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
+        '#maxlength'     => 255,
+        '#description'   => t(''), // TODO
+        '#autocomplete_path' => 'rdf/autocomplete/property',
+      );
       $form['submit']['#weight'] = 40;
       $form['delete']['#weight'] = 45;
       $form['#validate'][] = 'rdf_schema_property_form_validate';
@@ -528,7 +560,14 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
       // The submitted value is auto-saved by node.module as a configuration variable with a name in the form 'rdf_schema_class_TYPE'
       $rdf_mapping = variable_get('rdf_schema_class_'. $form['#node_type']->type, '');
       $form['rdf_mapping'] = array('#type' => 'fieldset', '#title' => t('RDF mapping'), '#collapsible' => TRUE, '#collapsed' => TRUE, '#weight' => 1);
-      $form['rdf_mapping']['rdf_schema_class'] = array('#type' => 'textfield', '#title' => t('RDF class'), '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping), '#maxlength' => 255, '#description' => t('') /* TODO */);
+      $form['rdf_mapping']['rdf_schema_class'] = array(
+        '#type'          => 'textfield',
+        '#title'         => t('RDF class'),
+        '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
+        '#maxlength'     => 255,
+        '#description'   => t(''), // TODO
+        '#autocomplete_path' => 'rdf/autocomplete/class',
+      );
       $form['#validate'][] = 'rdf_schema_class_form_validate';
       break;
 
@@ -546,6 +585,7 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
           '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
           '#maxlength'     => 255,
           '#description'   => t(''), // TODO
+          '#autocomplete_path' => 'rdf/autocomplete/property',
         );
       }
       // HACK: support CCK Date fields that have both a start and an end date:
@@ -558,6 +598,7 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
           '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
           '#maxlength'     => 255,
           '#description'   => t(''), // TODO
+          '#autocomplete_path' => 'rdf/autocomplete/property',
         );
         // To date
         $rdf_mapping = variable_get('rdf_schema_property_content_' . $form['field_name']['#value'] . '[to]', '');
@@ -567,6 +608,7 @@ function rdf_form_alter(&$form, $form_state, $form_id) {
           '#default_value' => rdf_uri_to_qname($rdf_mapping, FALSE, $rdf_mapping),
           '#maxlength'     => 255,
           '#description'   => t(''), // TODO
+          '#autocomplete_path' => 'rdf/autocomplete/property',
         );
       }
 
@@ -602,14 +644,16 @@ function rdf_schema_property_form_validate($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
   if (isset($rdf_property)) {
-    if (($rdf_property = trim($rdf_property)) != '' && !rdf_is_valid_uri($rdf_property) && !rdf_is_valid_curie($rdf_property)) {
+    if (($rdf_property = trim($rdf_property)) != '' && !rdf_is_valid_uri($rdf_property) &&
+        !(rdf_is_valid_curie($rdf_property) && rdf_is_valid_prefix($rdf_property))) {
       form_set_error('rdf_property', t('RDF property is not a valid URI or CURIE.'));
     }
   }
   // HACK: support CCK Date fields that have both a start and an end date:
   else if (isset($rdf_property_from, $rdf_property_to)) {
     foreach (array('rdf_property_from', 'rdf_property_to') as $rdf_property) {
-      if (($$rdf_property = trim($$rdf_property)) != '' && !rdf_is_valid_uri($$rdf_property) && !rdf_is_valid_curie($$rdf_property)) {
+      if (($$rdf_property = trim($$rdf_property)) != '' && !rdf_is_valid_uri($$rdf_property) &&
+          !(rdf_is_valid_curie($$rdf_property) && rdf_is_valid_prefix($$rdf_property))) {
         form_set_error($rdf_property, t('RDF property is not a valid URI or CURIE.'));
       }
     }
@@ -641,9 +685,9 @@ function rdf_schema_content_field_form_submit($form, &$form_state) {
     array('rdf_property' => '') :
     array('rdf_property_from' => '[from]', 'rdf_property_to' => '[to]');
 
-  foreach ($rdf_properties as $rdf_property => $field_suffix) {
-    if (!empty($$rdf_property)) {
-      variable_set('rdf_schema_property_content_' . $field_name . $field_suffix, rdf_qname_to_uri($$rdf_property));
+  foreach ($rdf_properties as $rdf_property_var => $field_suffix) {
+    if (!empty($$rdf_property_var)) {
+      variable_set('rdf_schema_property_content_' . $field_name . $field_suffix, rdf_qname_to_uri($$rdf_property_var));
     }
     else {
       variable_del('rdf_schema_property_content_' . $field_name . $field_suffix);
@@ -680,7 +724,6 @@ function rdf_rdf_feeds() {
       'type'        => 'http://purl.org/rss/1.0/',
       'path'        => 'rss.xml',
       'title'       => t('Front page feed'),
-      'description' => t(''),
       'module'      => 'node',
       'callback'    => 'rdf_feed_node_frontpage',
       'enabled'     => !empty($enabled['node_feed']),
@@ -691,7 +734,6 @@ function rdf_rdf_feeds() {
       'path'        => 'taxonomy/term/%/0/feed',
       'menu'        => 'taxonomy/term/%',
       'title'       => t('Taxonomy term feed'),
-      'description' => t(''),
       'module'      => 'taxonomy',
       'callback'    => 'rdf_feed_taxonomy_term',
       'enabled'     => !empty($enabled['taxonomy_term_feed']),
@@ -701,7 +743,6 @@ function rdf_rdf_feeds() {
       'type'        => 'http://purl.org/rss/1.0/',
       'path'        => 'blog/%user/feed',
       'title'       => 'Users\' recent blog entries feed',
-      'description' => t(''),
       'module'      => 'blog',
       'callback'    => 'rdf_feed_blog_user',
       'enabled'     => !empty($enabled['blog_feed_user']),
@@ -710,7 +751,6 @@ function rdf_rdf_feeds() {
       'type'        => 'http://purl.org/rss/1.0/',
       'path'        => 'blog/feed',
       'title'       => 'All recent blog entries feed',
-      'description' => t(''),
       'module'      => 'blog',
       'callback'    => 'rdf_feed_blog_last',
       'enabled'     => !empty($enabled['blog_feed_last']),
@@ -720,7 +760,6 @@ function rdf_rdf_feeds() {
       'type'        => 'http://purl.org/rss/1.0/',
       'path'        => 'aggregator/rss',
       'title'       => t('Aggregator feed'),
-      'description' => t(''),
       'module'      => 'aggregator',
       'callback'    => 'rdf_feed_aggregator_rss',
       'enabled'     => !empty($enabled['aggregator_page_rss']),

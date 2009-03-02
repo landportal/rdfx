@@ -207,7 +207,7 @@ function rdf_db_get_schema($table = RDF_DB_TABLE_DEFAULT, $rebuild = FALSE) {
   if (!($schema = drupal_get_schema($table, $rebuild))) {
     module_load_include('install', 'rdf');
     $rdf_schema = rdf_schema();
-    $schema = $rdf_schema[$table];
+    $schema = isset($rdf_schema[$table]) ? $rdf_schema[$table] : array();
   }
   return $schema;
 }

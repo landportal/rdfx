@@ -48,8 +48,8 @@ class views_plugin_style_rdf extends views_plugin_style {
   }
 
   function options_form(&$form, &$form_state) {
-    module_load_include('inc', 'rdf', 'rdf.admin');
-    rdf_admin_feed_form($form, $form_state, $this->options);
+    module_load_include('inc', 'rdf', 'rdf.admin'); // rdf.admin.inc
+    rdf_admin_feed_channel_form($form, $form_state, $this->options, 'views');
   }
 
   function render() {
@@ -60,16 +60,6 @@ class views_plugin_style_rdf extends views_plugin_style {
       return;
     }
 
-    // Compose the feed title:
-    $title = $this->view->display_handler->get_option('sitename_title') ?
-      (variable_get('site_name', 'Drupal') . ($slogan = variable_get('site_slogan', '')) ? ' - ' . $slogan : '') :
-      $this->view->get_title();
-
-    // Compose the feed description:
-    $description = (!empty($this->options['description_from_mission'])) ?
-      variable_get('site_mission', '') :
-      $this->options['description'];
-
     // Figure out which display has a path we're using for this feed.
     // If there isn't one, use the global $base_url.
     $link_display_id = $this->view->display_handler->get_link_display(); // FIXME: can return incorrect feed...
@@ -77,6 +67,11 @@ class views_plugin_style_rdf extends views_plugin_style {
       vpr('views_plugin_style_rdf: Missing display ID');
       return;
     }
+
+    // Compose the feed title:
+    $title = $this->view->display_handler->get_option('sitename_title') ?
+      (variable_get('site_name', 'Drupal') . ($slogan = variable_get('site_slogan', '')) ? ' - ' . $slogan : '') :
+      $this->view->get_title();
 
     // Construct the feed URL:
     $path = $this->view->display[$link_display_id]->handler->get_path();
@@ -91,67 +86,17 @@ class views_plugin_style_rdf extends views_plugin_style {
     // Compare the link to the site's default home page; if it is, in fact,
     // the default home page, just use $base_url directly:
     $path = ($path == variable_get('site_frontpage', 'node')) ? '' : $path;
-    $link = check_url(url($path, $url_options));
+    $link = check_url(url($path, $url_options)); // FIXME: RSS link should go to view URL, not feed URL
 
-    rdf_register_namespace('rss', 'http://purl.org/rss/1.0/');
+    // Build the data graph for the RSS feed, in memory:
+    module_load_include('inc', 'rdf', 'rdf.feed'); // rdf.feed.inc
+    $data = rdf_build_rss_feed('views_' . $this->view->name, $link,
+      new RDF_CallbackIterator(array($this->row_plugin, 'render'), array(), $this->view->result),
+      array_merge(compact('title', 'link'), $this->options));
 
-    // Construct the channel's metadata:
-    $index   = rdf_seq();
-    $channel = rdf_denormalize(array(
-      $link => array(
-        'rdf:type'        => rdf_qname_to_uriref('rss:channel'),
-        'rss:title'       => rdf_literal($title, TRUE),
-        'rss:link'        => $link, // FIXME: should go to view URL, not feed URL
-        'rss:description' => rdf_literal($description, TRUE),
-        'rss:items'       => $index->uriref(),
-      ),
-    ));
-
-    // Support for RSS 1.0 Syndication hints
-    // @see http://web.resource.org/rss/1.0/modules/syndication/
-    rdf_register_namespace('sy', 'http://purl.org/rss/1.0/modules/syndication/');
-    if (!empty($this->options['update_period'])) {
-      $channel[] = array($link, 'sy:updatePeriod', check_plain($this->options['update_period']));
-    }
-    if (!empty($this->options['update_frequency'])) {
-      $channel[] = array($link, 'sy:updateFrequency', check_plain($this->options['update_frequency']));
-    }
-    if (!empty($this->options['update_base'])) {
-      $channel[] = array($link, 'sy:updateBase', check_plain($this->options['update_base']));
-    }
-
-    // Invoke hook_rdf_views_feed_channel() to allow third-party modules to
-    // manipulate the channel metadata:
-    foreach (module_implements('rdf_views_feed_channel') as $module) {
-      $function = $module . '_rdf_views_feed_channel';
-      $function($this, $channel);
-    }
-
-    // Compile the channel index and render the items into triples:
-    $items = array();
-    foreach ($this->view->result as $row) {
-      $index[] = url('node/' . $row->nid, array('absolute' => TRUE, 'alias' => TRUE));
-      $items = array_merge($items, $this->row_plugin->render($row));
-    }
-
-    // Invoke hook_rdf_views_feed() to allow third-party modules to
-    // manipulate the full contents of the feed, including the metadata and
-    // all constituent feed items. Note that unlike the other two hooks,
-    // hook_rdf_views_feed_channel() and hook_rdf_views_feed_item(), the
-    // $data argument to this hook is given in normalized form. This makes
-    // manipulation easier and may be a good reason to implement this hook
-    // instead of the other two which, getting passed the triples in
-    // denormalized form, are more suited to easily adding more triples to
-    // the channel and the feed items than for manipulating existing data. 
-    // Implementers of this hook have final say in the feed output.
-    $data = rdf_normalize(array_merge($channel, $index->to_triples(), $items));
-    foreach (module_implements('rdf_views_feed') as $module) {
-      $function = $module . '_rdf_views_feed';
-      $function($this, $data);
-    }
-
-    module_load_include('inc', 'rdf', 'rdf.pages');
-    rdf_output('feed', $this->options['format'], $data);
+    // Output the RSS feed using the configured RDF serialization:
+    module_load_include('inc', 'rdf', 'rdf.pages'); // rdf.pages.inc
+    rdf_output_rss($this->view->name, $this->options['format'], $data);
     exit;
   }
 }

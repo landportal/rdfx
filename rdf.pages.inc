@@ -2,7 +2,7 @@
 // $Id$
 
 //////////////////////////////////////////////////////////////////////////////
-// Menu callbacks
+// Menu callbacks for RDF export
 
 function rdf_export_site() {
   $data = rdf_query(url(NULL, array('absolute' => TRUE)));
@@ -15,7 +15,7 @@ function rdf_export_entity($type, $id) {
 }
 
 /**
- * @deprecated replace with rdf_output().
+ * @deprecated Replace with rdf_output().
  */
 function rdf_export($data, $filename = 'export', $format = RDF_FORMAT, $options = array()) {
   //module_load_include('inc', 'rdf_export', 'rdf_export');
@@ -37,6 +37,13 @@ function rdf_export($data, $filename = 'export', $format = RDF_FORMAT, $options 
   die($output);
 }
 
+function rdf_output_rss($filename, $format, $data, array $options = array()) {
+  if ($format == 'rdf+xml' && !isset($options['content_type'])) {
+    $options['content_type'] = 'application/rss+xml';
+  }
+  return rdf_output($filename, $format, $data, $options);
+}
+
 function rdf_output($filename, $format, $data, array $options = array()) {
   global $base_url, $language;
 
@@ -50,10 +57,15 @@ function rdf_output($filename, $format, $data, array $options = array()) {
   // Merge in the default options 
   $defaults = array(
     'content_disposition'  => 'inline',
-    'content_type'         => defined('TRACE_TEXT_OUTPUT') ? 'text/plain' : $format->mime_type,
+    'content_type'         => $format->mime_type,
     'content_type_charset' => $format->encoding,
   );
   $options = array_merge($defaults, $options);
+
+  // Developers: define this constant in your settings.php to make life easier:
+  if (defined('TRACE_TEXT_OUTPUT')) {
+    $options['content_type'] = 'text/plain';
+  }
 
   // Serialize the RDF data                              
   $content = rdf_serialize($data, array(
@@ -89,55 +101,146 @@ function rdf_output($filename, $format, $data, array $options = array()) {
 function rdf_feed_callback($feed_id) {
   $feed = rdf_get_feed_info($feed_id);
   $feed->arguments = array_slice(func_get_args(), 1);
+  $feed->settings  = rdf_get_feed_settings($feed_id);
 
-  // TODO
-  return call_user_func_array($feed->callback, $feed->arguments);
-}
+  $path = ($feed->path == variable_get('site_frontpage', 'node')) ? '' : $feed->path;
+  $path = $_GET['q']; // FIXME
+  $link = url($path, array('absolute' => TRUE));
 
-/**
- * Overrides node.module's RSS output.
- */
-function rdf_feed_node_frontpage() {
-  // TODO
-  return node_feed();
-}
+  module_load_include('inc', 'rdf', 'rdf.feed'); // rdf.feed.inc
+  $items = call_user_func_array($feed->callback, array_merge(array(&$feed), $feed->arguments));
 
-/**
- * Overrides taxonomy.module's RSS output.
- */
-function rdf_feed_taxonomy_term($str_tids = '', $depth = 0, $op = 'page') {
-  // TODO
-  if ($op != 'feed' || TRUE) {
-    module_load_include('inc', 'taxonomy', 'taxonomy.pages'); // taxonomy.pages.inc
-    return taxonomy_term_page($str_tids, $depth, $op);
+  if (is_null($items) || is_string($items) || is_int($items)) {
+    // Return to the Drupal menu handler
+    return $items; 
+  }
+  else {
+    // Output RSS feed
+    $data = rdf_build_rss_feed($feed, $link, $items, $feed->settings);
+    rdf_output_rss('feed', $feed->settings['format'], $data);
+    exit;
   }
 }
 
 /**
- * Overrides blog.module's RSS output.
+ * Overrides node.module's RSS output.
+ *
+ * @see node_feed()
  */
-function rdf_feed_blog_user($account) {
-  // TODO
-  module_load_include('inc', 'blog', 'blog.pages'); // blog.pages.inc
-  return blog_feed_user($account);
+function rdf_feed_node_frontpage(&$feed) {
+  $feed->settings['link'] = url('', array('absolute' => TRUE));
+
+  $result = db_query_range(db_rewrite_sql('SELECT n.nid FROM {node} n WHERE n.promote = 1 AND n.status = 1 ORDER BY n.created DESC'), 0, variable_get('feed_default_items', 10));
+  $items  = array();
+  while ($item = db_fetch_object($result)) {
+    $items[] = $item->nid;
+  }
+  return new RDF_CallbackIterator('rdf_build_rss_feed_node', array(), $items, array($feed->settings));
 }
 
 /**
- * Overrides blog.module's RSS output.
+ * Overrides taxonomy.module's RSS output.
+ *
+ * @see taxonomy_term_page()
  */
-function rdf_feed_blog_last() {
-  // TODO
-  module_load_include('inc', 'blog', 'blog.pages'); // blog.pages.inc
-  return blog_feed_last();
+function rdf_feed_taxonomy_term(&$feed, $str_tids = '', $depth = 0, $op = 'page') {
+  // For anything but the RSS feed, we must delegate back to taxonomy.module:
+  if ($op != 'feed') {
+    module_load_include('inc', 'taxonomy', 'taxonomy.pages'); // taxonomy.pages.inc
+    return taxonomy_term_page($str_tids, $depth, $op);
+  }
+
+  $terms = taxonomy_terms_parse_string($str_tids);
+  if (($terms['operator'] == 'and' || $terms['operator'] == 'or') && !empty($terms['tids'])) {
+    // Rebuild the terms array to make sure it only contains terms the user has access to
+    $result = db_query(db_rewrite_sql('SELECT t.tid, t.name FROM {term_data} t WHERE t.tid IN (' . db_placeholders($terms['tids']) . ')', 't', 'tid'), $terms['tids']);
+    $terms['tids'] = $terms['names'] = array();
+    while ($term = db_fetch_object($result)) {
+      $terms['tids'][]  = $term->tid;
+      $terms['names'][] = $term->name;
+    }
+
+    if (!empty($terms['tids'])) {
+      $feed->settings['link']  = url('taxonomy/term/' . $str_tids . '/' . $depth, array('absolute' => TRUE));
+      $feed->settings['title'] = variable_get('site_name', 'Drupal') . ' - ' . check_plain(implode(', ', $terms['names']));
+      // Only display the description if we have a single term:
+      $feed->settings['description'] = (count($tids) == 1 && ($term = taxonomy_get_term($tids[0]))) ? $term->description : NULL;
+
+      $result = taxonomy_select_nodes($terms['tids'], $terms['operator'], $depth, FALSE);
+      $items  = array();
+      while ($item = db_fetch_object($result)) {
+        $items[] = $item->nid;
+      }
+      return new RDF_CallbackIterator('rdf_build_rss_feed_node', array(), $items, array($feed->settings));
+    }
+  }
+
+  return drupal_not_found();
 }
 
 /**
- * Overrides aggregator.module's RSS output.
+ * Overrides blog.module's RSS output. Displays an RSS feed containing
+ * recent blog entries of a given user.
+ *
+ * @see blog_feed_user()
  */
-function rdf_feed_aggregator_rss() {
-  // TODO
-  module_load_include('inc', 'aggregator', 'aggregator.pages'); // aggregator.pages.inc
-  return aggregator_page_rss();
+function rdf_feed_blog_user(&$feed, $account) {
+  $feed->settings['title'] = t('!name\'s blog', array('!name' => $account->name));
+  $feed->settings['link']  = url('blog/' . $account->uid, array('absolute' => TRUE));
+
+  $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.created FROM {node} n WHERE n.type = 'blog' AND n.uid = %d AND n.status = 1 ORDER BY n.created DESC"), $account->uid, 0, variable_get('feed_default_items', 10));
+  $items  = array();
+  while ($item = db_fetch_object($result)) {
+    $items[] = $item->nid;
+  }
+  return new RDF_CallbackIterator('rdf_build_rss_feed_node', array(), $items, array($feed->settings));
+}
+
+/**
+ * Overrides blog.module's RSS output. Displays an RSS feed containing
+ * recent blog entries of all users.
+ *
+ * @see blog_feed_last()
+ */
+function rdf_feed_blog_last(&$feed) {
+  $feed->settings['title'] = t('@site_name blogs', array('@site_name' => variable_get('site_name', 'Drupal')));
+  $feed->settings['link']  = url('blog', array('absolute' => TRUE));
+
+  $result = db_query_range(db_rewrite_sql("SELECT n.nid, n.created FROM {node} n WHERE n.type = 'blog' AND n.status = 1 ORDER BY n.created DESC"), 0, variable_get('feed_default_items', 10));
+  $items  = array();
+  while ($item = db_fetch_object($result)) {
+    $items[] = $item->nid;
+  }
+  return new RDF_CallbackIterator('rdf_build_rss_feed_node', array(), $items, array($feed->settings));
+}
+
+/**
+ * Overrides aggregator.module's RSS output. Generates an RSS 1.0 feed of
+ * aggregator items or categories.
+ *
+ * @see aggregator_page_rss()
+ */
+function rdf_feed_aggregator_rss(&$feed, $cid = NULL) {
+  if ($cid) {
+    $category = db_fetch_object(db_query('SELECT cid, title FROM {aggregator_category} WHERE cid = %d', $cid));
+    $result = db_query_range('SELECT i.*, f.title AS ftitle, f.link AS flink FROM {aggregator_category_item} c LEFT JOIN {aggregator_item} i ON c.iid = i.iid LEFT JOIN {aggregator_feed} f ON i.fid = f.fid WHERE cid = %d ORDER BY timestamp DESC, i.iid DESC', $category->cid, 0, variable_get('feed_default_items', 10));
+  }
+  else {
+    $category = NULL;
+    $result = db_query_range('SELECT i.*, f.title AS ftitle, f.link AS flink FROM {aggregator_item} i INNER JOIN {aggregator_feed} f ON i.fid = f.fid ORDER BY i.timestamp DESC, i.iid DESC', 0, variable_get('feed_default_items', 10));
+  }
+
+  $feed->settings['title'] = t('@site_name aggregator', array('@site_name' => ($site_name = variable_get('site_name', 'Drupal'))));
+  $feed->settings['link']  = url(empty($category) ? 'aggregator' : 'aggregator/categories/' . $category->cid, array('absolute' => TRUE));
+  $feed->settings['description'] = !empty($category) ?
+    t('@site_name - aggregated feeds in category @title', array('@site_name' => $site_name, '@title' => $category->title)) :
+    t('@site_name - aggregated feeds', array('@site_name' => $site_name));
+
+  $items = array();
+  while ($item = db_fetch_object($result)) {
+    $items[] = $item;
+  }
+  return new RDF_CallbackIterator('rdf_build_rss_feed_aggregator_item', array(), $items, array($category));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -156,6 +259,7 @@ function rdf_schema_export_settings($prefix = NULL) {
     $subject = url('rdf/variable/'. $variable->name, array('absolute' => TRUE));
 
     if (strlen($variable->value) > 3000) {
+      // TODO: is this still needed?
       continue; // HACK: the ARC Turtle parser currently chokes on literals longer than ~3000 characters
     }
 

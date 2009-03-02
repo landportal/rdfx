@@ -185,7 +185,8 @@ function rdf_admin_mappings() {
     foreach (node_get_types('names') as $node_type => $node_type_title) {
       $mapping = variable_get('rdf_schema_class_' . $node_type, '');
       $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
-      $rows[] = array($node_type_title, $node_type, $mapping, l(t('edit'), 'admin/content/node-type/' . $node_type), '');
+      $link    = l(t('edit'), 'admin/content/node-type/' . $node_type, array('query' => 'destination=' . drupal_urlencode($_GET['q'])));
+      $rows[]  = array($node_type_title, $node_type, $mapping, $link, '');
     }
     if (is_null($mapping)) {
       $rows[] = array(array('data' => t('No content types defined.'), 'colspan' => 5));
@@ -229,7 +230,8 @@ function rdf_admin_mappings() {
     foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
       $mapping = variable_get('rdf_schema_property_vocabulary_' . $vid, '');
       $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
-      $rows[] = array($vocabulary->name, '-', $mapping, l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/' . $vid), '');
+      $link    = l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/' . $vid, array('query' => 'destination=' . drupal_urlencode($_GET['q'])));
+      $rows[]  = array($vocabulary->name, '-', $mapping, $link, '');
     }
     if (is_null($mapping)) {
       $rows[] = array(array('data' => t('No vocabularies defined.'), 'colspan' => 5));
@@ -244,7 +246,8 @@ function rdf_admin_mappings() {
     while ($field = db_fetch_object($result)) {
       $mapping = variable_get('rdf_schema_property_profile_' . $field->fid, '');
       $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
-      $rows[] = array($field->title, $field->name, $mapping, l(t('edit'), 'admin/user/profile/edit/' . $field->fid), '');
+      $link    = l(t('edit'), 'admin/user/profile/edit/' . $field->fid, array('query' => 'destination=' . drupal_urlencode($_GET['q'])));
+      $rows[]  = array($field->title, $field->name, $mapping, $link, '');
     }
     if (is_null($mapping)) {
       $rows[] = array(array('data' => t('No profile fields defined.'), 'colspan' => 5));
@@ -254,6 +257,29 @@ function rdf_admin_mappings() {
   return theme('table', $header, $rows);
 }
 
+function rdf_admin_autocomplete_class($string = '') {
+  $matches = array();
+  if (!empty($string)) {
+    // TODO
+  }
+  drupal_json($matches);
+}
+
+function rdf_admin_autocomplete_property($string = '') {
+  $matches = array();
+  if (!empty($string)) {
+    foreach (module_invoke_all('rdf_properties') as $namespace => $properties) {
+      foreach ($properties as $property) {
+        $match = implode(':', array($namespace, $property));
+        if (strpos($match, $string) === 0) {
+          $matches[$match] = $match;
+        }
+      }
+    }
+  }
+  drupal_json($matches);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // RDF feeds management
 
@@ -261,7 +287,7 @@ function rdf_admin_feeds() {
   $header = array('', t('Path'), t('Module'), t('Title'), t('Operations'));
 
   $rows = array();
-  foreach (rdf_get_feed_info() as $feed_id => $feed) {
+  foreach (rdf_get_feed_info(NULL, TRUE) as $feed_id => $feed) {
     $module = unserialize(db_result(db_query("SELECT info FROM {system} WHERE type = 'module' AND name = '%s'", $feed->module)));
 
     $is_wildcard = (strpos($feed->path, '%') !== FALSE);
@@ -302,7 +328,7 @@ function rdf_admin_feed(&$form_state, $feed_id) {
       '#title'         => '',
       '#default_value' => $is_rdf ? 1 : 0,
       '#options'       => array(0 => t('RSS 2.0 (default, but <strong>not</strong> compatible with RDF)'), 1 => t('RSS 1.0 (<strong>recommended</strong>, compatible with RDF)')),
-      '#description'   => t('The feeds provided by Drupal\'s core modules are <strong>not</strong> RDF-compatible by default. Use this setting to let the RDF module upgrade those feeds to reusable and future-proof RSS 1.0-compatible RDF output.'),
+      '#description'   => t('The feeds provided by Drupal\'s core modules are <strong>not</strong> RDF-compatible by default. Use this setting to let the RDF module upgrade those feeds to reusable, extensible and future-proof RSS 1.0-compatible RDF output.'),
     );
   }
   else {
@@ -313,11 +339,23 @@ function rdf_admin_feed(&$form_state, $feed_id) {
   $form['channel'] = array(
     '#type'          => 'fieldset',
     '#title'         => t('Channel settings'),
-    '#collapsible'   => FALSE,
+    '#collapsible'   => TRUE,
     '#collapsed'     => FALSE,
     '#description'   => rdf_help('admin/settings/rdf/feeds/edit#channel'),
   );
-  rdf_admin_feed_form($form['channel'], $form_state, $edit);
+  rdf_admin_feed_channel_form($form['channel'], $form_state, $edit);
+
+  // Item settings
+  $form['item'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => t('Item settings'),
+    '#collapsible' => TRUE,
+    '#collapsed'   => FALSE,
+    '#description' => rdf_help('admin/settings/rdf/feeds/edit#item'),
+  );
+  rdf_admin_feed_item_form($form['item'], $form_state, $edit);
+
+  // TODO: namespace selection
 
   if ($is_core) { // this is a feed from a core module, and hence lacks some options
     $form['channel']['description_from_mission'] = array('#type' => 'hidden', '#value' => '');
@@ -333,23 +371,13 @@ function rdf_admin_feed(&$form_state, $feed_id) {
     }
   }
 
-  // Item settings
-  /*$form['item'] = array(
-    '#type'        => 'fieldset',
-    '#title'       => t('Item settings'),
-    '#collapsible' => FALSE,
-    '#collapsed'   => FALSE,
-    '#description' => rdf_help('admin/settings/rdf/feeds/edit#item'),
-  );*/
-  // TODO: namespace selection
-
   $form['feed_id'] = array('#type' => 'hidden', '#value' => $feed_id);
   $form['submit']  = array('#type' => 'submit', '#value' => t('Save configuration'));
 
   return $form;
 }
 
-function rdf_admin_feed_form(&$form, &$form_state, $defaults = array()) {
+function rdf_admin_feed_channel_form(&$form, &$form_state, $defaults = array()) {
   $form['description_from_mission'] = array(
     '#type'          => 'checkbox',
     '#default_value' => !empty($defaults['description_from_mission']),
@@ -394,6 +422,28 @@ function rdf_admin_feed_form(&$form, &$form_state, $defaults = array()) {
   );
 }
 
+function rdf_admin_feed_item_form(&$form, &$form_state, $defaults = array(), $module = NULL) {
+  $form['item_length'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Content display type'),
+    '#default_value' => !empty($defaults['item_length']) ? $defaults['item_length'] : '',
+    '#options'       => array(
+      ''         => t('Use default RSS settings'),
+      'fulltext' => t('Full text'),
+      'teaser'   => t('Title plus teaser'),
+      'title'    => t('Title only'),
+    ),
+    '#description'   => t('How to display content items in the feed.'),
+  );
+  $form['date_timezone'] = array(
+    '#type'          => 'select',
+    '#title'         => t('Time zone output'),
+    '#default_value' => !empty($defaults['date_timezone']) ? $defaults['date_timezone'] : '',
+    '#options'       => array('' => t('UTC'), 'local' => t('Local')),
+    '#description'   => t('It is <strong>strongly</strong> recommended you output dates in UTC to prevent a multitude of problems due to buggy client software.'),
+  );
+}
+
 function rdf_admin_feed_validate($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
@@ -406,7 +456,7 @@ function rdf_admin_feed_submit($form, &$form_state) {
 
   $form_state['redirect'] = 'admin/settings/rdf/feeds';
 
-  // For core modules
+  // For core module feeds
   if (isset($override)) {
     $overrides = variable_get('rdf_feed_override', array());
     $was_overridden = !empty($overrides[$feed->id]);
@@ -434,7 +484,8 @@ function rdf_admin_feed_submit($form, &$form_state) {
   }
 
   // Save feed settings
-  rdf_set_feed_settings($feed, compact('description_from_mission', 'description', 'update_period', 'update_frequency', 'update_base', 'format'));
+  $function = ($feed->module == 'views') ? 'rdf_views_set_feed_settings' : 'rdf_set_feed_settings';
+  $function($feed, compact('description_from_mission', 'description', 'update_period', 'update_frequency', 'update_base', 'format', 'item_length', 'date_timezone'));
   drupal_set_message(t('The feed configuration for %path has been updated.', array('%path' => $feed->path)));
 }
 
