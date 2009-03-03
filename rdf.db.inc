@@ -65,7 +65,9 @@ function rdf_db_rdf_contexts() {
  * Implementation of hook_rdf_insert().
  */
 function rdf_db_rdf_insert($table, $subject, $predicate, $object, array $options = array()) {
-  $record = _rdf_db_make_record($subject, $predicate, $object, $options);
+  global $user;
+  $options = array_merge(array('uid' => $user->uid, 'created' => time()), $options);
+  $record  = _rdf_db_make_record($subject, $predicate, $object, $options);
 
   // Prevent duplicate record creation, at the administrator's discretion:
   if (variable_get('rdf_db_prevent_duplicates', FALSE)) {
@@ -243,17 +245,17 @@ function _rdf_db_make_record($subject, $predicate, $object, array $options = arr
   $is_literal = is_object($object) && ($object instanceof RDF_Literal);
 
   $record = (object)array();
-  $record->gid  = !empty($options['context']) ? _rdf_db_uri_to_id($options['context']) : NULL;
-  $record->gid  = !empty($options['graph']) ? _rdf_db_uri_to_id($options['graph']) : $record->gid;
-  $record->sid  = $subject ? _rdf_db_uri_to_id($subject) : NULL;
-  $record->pid  = $predicate ? _rdf_db_uri_to_id($predicate) : NULL;
-  $record->oid  = $object && $is_uri ? _rdf_db_uri_to_id((string)$object) : NULL;
-  $record->tid  = $object && rdf_get_datatype($object) ? _rdf_db_uri_to_id(rdf_qname_to_uri(rdf_get_datatype($object))) : NULL;
-  $record->lang = $object && $is_literal ? $object->language : NULL;
-  $record->data = $object && !$is_uri ? ($is_literal ? $object->value : (string)$object) : NULL;
+  $record->uid     = isset($options['uid']) ? $options['uid'] : NULL;
+  $record->created = isset($options['created']) ? $options['created'] : NULL;
+  $record->gid     = !empty($options['context']) ? _rdf_db_uri_to_id($options['context']) : NULL;
+  $record->gid     = !empty($options['graph']) ? _rdf_db_uri_to_id($options['graph']) : $record->gid;
+  $record->sid     = $subject ? _rdf_db_uri_to_id($subject) : NULL;
+  $record->pid     = $predicate ? _rdf_db_uri_to_id($predicate) : NULL;
+  $record->oid     = $object && $is_uri ? _rdf_db_uri_to_id((string)$object) : NULL;
+  $record->tid     = $object && rdf_get_datatype($object) ? _rdf_db_uri_to_id(rdf_qname_to_uri(rdf_get_datatype($object))) : NULL;
+  $record->lang    = $object && $is_literal ? $object->language : NULL;
+  $record->data    = $object && !$is_uri ? ($is_literal ? $object->value : (string)$object) : NULL;
 
-  $record->created = isset($options['created']) ? $options['created'] : time();
-  $record->uid = isset($options['uid']) ? $options['uid'] : $user->uid;
   return $record;
 }
 
