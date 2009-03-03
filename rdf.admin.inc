@@ -238,6 +238,10 @@ function rdf_db_admin_data_form_submit($form, &$form_state) {
 //////////////////////////////////////////////////////////////////////////////
 // RDF mappings management
 
+function theme_rdf_mapping($mapping) {
+  return empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+}
+
 function rdf_admin_mappings() {
   // TODO: this should get refactored for extensibility, at some point.
 
@@ -249,8 +253,7 @@ function rdf_admin_mappings() {
     $rows[] = array(array('data' => t('Content types'), 'colspan' => 5, 'class' => 'category'));
     $mapping = NULL;
     foreach (node_get_types('names') as $node_type => $node_type_title) {
-      $mapping = variable_get('rdf_schema_class_' . $node_type, '');
-      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+      $mapping = theme_rdf_mapping(variable_get('rdf_schema_class_' . $node_type, ''));
       $link    = l(t('edit'), 'admin/content/node-type/' . $node_type, array('query' => 'destination=' . drupal_urlencode($_GET['q'])));
       $rows[]  = array($node_type_title, $node_type, $mapping, $link, '');
     }
@@ -260,23 +263,31 @@ function rdf_admin_mappings() {
   }
 
   // Content fields
+  $rows[] = array(array('data' => t('Content fields'), 'colspan' => 5, 'class' => 'category'));
+  if (module_exists('node')) {
+    // Show the core field mappings that are currently hardcoded in the RSS output:
+    $rows[] = array(t('Title'),       'title',    theme_rdf_mapping('dc:title'), '-');
+    $rows[] = array(t('Body'),        'body',     theme_rdf_mapping('dc:description'), '-');
+    $rows[] = array(t('Language'),    'language', theme_rdf_mapping('dc:language'), '-');
+    $rows[] = array(t('Authored by'), 'name',     theme_rdf_mapping('dc:creator'), '-');
+    $rows[] = array(t('Authored on'), 'created',  theme_rdf_mapping('dc:date'), '-');
+  }
   if (module_exists('content')) {
-    $rows[] = array(array('data' => t('Content fields'), 'colspan' => 5, 'class' => 'category'));
     $mapping = NULL;
     foreach (content_fields() as $field_name => $field_info) {
       $link = l(t('edit'), 'admin/content/types/fields', array('fragment' => $field_name)); // FIXME: link
       if (($mapping = variable_get('rdf_schema_property_content_' . $field_name, ''))) {
-        $mapping = l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+        $mapping = theme_rdf_mapping($mapping);
         $rows[] = array($field_info['widget']['label'], $field_name, $mapping, $link, ''); 
       }
       // HACK: support CCK Date fields that have both a start and an end date:
       else if (variable_get('rdf_schema_property_content_' . $field_name . '[from]', '')) {
         $mappings = array();
-        if ($mapping = variable_get('rdf_schema_property_content_' . $field_name . '[from]', '')) {
-          $mappings[] = l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+        if (($mapping = variable_get('rdf_schema_property_content_' . $field_name . '[from]', ''))) {
+          $mappings[] = theme_rdf_mapping($mapping);
         }
-        if ($mapping = variable_get('rdf_schema_property_content_' . $field_name . '[to]', '')) {
-          $mappings[] = l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+        if (($mapping = variable_get('rdf_schema_property_content_' . $field_name . '[to]', ''))) {
+          $mappings[] = theme_rdf_mapping($mapping);
         }
         $rows[] = array($field_info['widget']['label'], $field_name, implode(', ', $mappings), $link, ''); 
       }
@@ -294,8 +305,7 @@ function rdf_admin_mappings() {
     $rows[] = array(array('data' => t('Taxonomy vocabularies'), 'colspan' => 5, 'class' => 'category'));
     $mapping = NULL;
     foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
-      $mapping = variable_get('rdf_schema_property_vocabulary_' . $vid, '');
-      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+      $mapping = theme_rdf_mapping(variable_get('rdf_schema_property_vocabulary_' . $vid, ''));
       $link    = l(t('edit'), 'admin/content/taxonomy/edit/vocabulary/' . $vid, array('query' => 'destination=' . drupal_urlencode($_GET['q'])));
       $rows[]  = array($vocabulary->name, '-', $mapping, $link, '');
     }
@@ -310,8 +320,7 @@ function rdf_admin_mappings() {
     $result = db_query('SELECT fid, title, name FROM {profile_fields} ORDER BY category, weight');
     $mapping = NULL;
     while ($field = db_fetch_object($result)) {
-      $mapping = variable_get('rdf_schema_property_profile_' . $field->fid, '');
-      $mapping = empty($mapping) ? '-' : l(rdf_uri_to_qname($mapping, FALSE, $mapping), $mapping, array('attributes' => array('title' => $mapping)));
+      $mapping = theme_rdf_mapping(variable_get('rdf_schema_property_profile_' . $field->fid, ''));
       $link    = l(t('edit'), 'admin/user/profile/edit/' . $field->fid, array('query' => 'destination=' . drupal_urlencode($_GET['q'])));
       $rows[]  = array($field->title, $field->name, $mapping, $link, '');
     }
