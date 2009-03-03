@@ -266,11 +266,11 @@ function rdf_admin_mappings() {
   $rows[] = array(array('data' => t('Content fields'), 'colspan' => 5, 'class' => 'category'));
   if (module_exists('node')) {
     // Show the core field mappings that are currently hardcoded in the RSS output:
-    $rows[] = array(t('Title'),       'title',    theme_rdf_mapping('dc:title'), '-');
-    $rows[] = array(t('Body'),        'body',     theme_rdf_mapping('dc:description'), '-');
-    $rows[] = array(t('Language'),    'language', theme_rdf_mapping('dc:language'), '-');
-    $rows[] = array(t('Authored by'), 'name',     theme_rdf_mapping('dc:creator'), '-');
-    $rows[] = array(t('Authored on'), 'created',  theme_rdf_mapping('dc:date'), '-');
+    $rows[] = array(t('Title'),       'title',    theme_rdf_mapping('dc:title'), '-', '');
+    $rows[] = array(t('Body'),        'body',     theme_rdf_mapping('dc:description'), '-', '');
+    $rows[] = array(t('Language'),    'language', theme_rdf_mapping('dc:language'), '-', '');
+    $rows[] = array(t('Authored by'), 'name',     theme_rdf_mapping('dc:creator'), '-', '');
+    $rows[] = array(t('Authored on'), 'created',  theme_rdf_mapping('dc:date'), '-', '');
   }
   if (module_exists('content')) {
     $mapping = NULL;
