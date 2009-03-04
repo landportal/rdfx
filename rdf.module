@@ -39,6 +39,13 @@ function rdf_init() {
   if (module_exists('feedapi')) {
     module_load_include('inc', 'rdf', 'rdf.feedapi');
   }
+
+  // Replace the theme's DOCTYPE with the RDFa DOCTYPE, if enabled:
+  if (variable_get('rdf_rdfa_doctype', FALSE)) {
+    // Implement hook_exit() to mark us as incompatible with aggressive caching:
+    function rdf_exit($destination = NULL) {}
+    ob_start('_rdf_ob_handler');
+  }
 }
 
 /**
@@ -1007,4 +1014,52 @@ function rdf_rdf_query($subject, $predicate, $object, $options = array()) {
 
 function rdf_menu_access_http($perm_get, $perm_post) {
   return user_access($_SERVER['REQUEST_METHOD'] == 'POST' ? $perm_post : $perm_get);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Output buffering callback
+
+function _rdf_ob_handler($buffer) {
+  static $mimetypes = array('text/html');
+  static $doctype   = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML+RDFa 1.0//EN\"\n  \"http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd\">\n";
+
+  // Only attempt DOCTYPE substitution for HTML responses:
+  if (in_array($mimetype = _rdf_ob_handler_get_content_type(), $mimetypes)) {
+    $html  = FALSE; // flag for determining whether the output actually is HTML markup
+    $lines = $cutoff = 0;
+    $line  = strtok($buffer, "\n");
+
+    // Attempt to find the opening <html> tag in the first 15 lines:
+    while ($line !== FALSE && $lines++ < 15) {
+      if (($pos = strpos($line, '<html')) !== FALSE) {
+        $html = TRUE;
+        $cutoff += $pos;
+        break;
+      }
+      $cutoff += strlen($line) + 1; // line and "\n"
+      $line = strtok("\n");
+    }
+
+    // If we managed to find <html>, substitute the DOCTYPE; otherwise, the
+    // page output will be returned unmodified.
+    if ($html) {
+      $buffer = $doctype . substr($buffer, $cutoff);
+    }
+  }
+
+  return $buffer;
+}
+
+function _rdf_ob_handler_get_content_type($default = NULL) {
+  static $regex = '!^Content-Type:\s*([\w\d\/\-]+)!i';
+  return _rdf_ob_handler_get_http_header($regex, $default);
+}
+
+function _rdf_ob_handler_get_http_header($regex, $default = NULL) {
+  // The last header is the one that counts:
+  $headers = preg_grep($regex, explode("\n", drupal_set_header()));
+  if (!empty($headers) && preg_match($regex, array_pop($headers), $matches)) {
+    return $matches[1]; // found it
+  }
+  return $default; // no such luck
 }

@@ -22,9 +22,19 @@ function rdf_admin_settings() {
   }
   $form['formats']['rdf_format'] = array('#type' => 'radios', '#options' => $formats, '#default_value' => RDF_FORMAT);
 
+  // RDFa
+  $form['rdfa'] = array('#type' => 'fieldset', '#title' => t('RDFa'), '#collapsible' => TRUE, '#collapsed' => TRUE);
+  $form['rdfa']['rdf_rdfa_doctype'] = array(
+    '#type'          => 'radios',
+    '#title'         => t('Replace the theme\'s DOCTYPE with XHTML+RDFa'),
+    '#default_value' => (int)variable_get('rdf_rdfa_doctype', FALSE),
+    '#options'       => array(FALSE => t('Disabled'), TRUE => t('Enabled')),
+    '#description'   => t('Whether to override the current theme\'s output and replace any existing <a href="http://en.wikipedia.org/wiki/Document_Type_Declaration">Document Type Declaration</a> with the <tt>XHTML+RDFa 1.0</tt> DOCTYPE that enables the use of <a href="http://en.wikipedia.org/wiki/RDFa">RDFa</a> metadata in Drupal content. Please note that this feature may be incompatible with <a href="@admin-performance">aggressive caching</a>. <em>This is an experimental feature, please use caution and <a href="http://drupal.org/node/add/project-issue/rdf">report any problems</a></em>.</a>.', array('@admin-performance' => url('admin/settings/performance'))),
+  );
+
   // RDF Schema
-  $form['schema'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => TRUE, '#weight' => 10);
-  $form['schema']['rdf_schema_uri'] = array(
+  $form['rdfs'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => TRUE);
+  $form['rdfs']['rdf_schema_uri'] = array(
     '#type'          => 'textfield', 
     '#title'         => t('RDFS base URI'),
     '#default_value' => RDF_SCHEMA_URI,
