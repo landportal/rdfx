@@ -702,17 +702,19 @@ function rdf_admin_contexts() {
 // RDF repository management
 
 function rdf_admin_repositories() {
-  $header = array(t('Name'), t('Statements'), t('Mutable'), t('Module'), array('data' => t('Operations'), 'colspan' => '2'));
+  $header = array(t('Name'), t('Module'), t('Statements'), t('Mutable'), array('data' => t('Operations'), 'colspan' => '2'));
 
   $rows = array();
   foreach (rdf_get_repositories() as $name => $info) {
-    $mutable = !empty($info['mutable']) && $name != 'default'; // FIXME
+    $module  = unserialize(db_result(db_query("SELECT info FROM {system} WHERE type = 'module' AND name = '%s'", $info['module'])));
+
+    $mutable = !empty($info['mutable']) && !in_array($name, array('system', 'local', 'default')); // FIXME
     $rows[] = array(
-      l($info['title'], 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name,
+      !$mutable ? $info['title'] : l($info['title'], 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name,
         array('attributes' => array('title' => @$info['dc:description']))),
+      $module ? $module['name'] : $info['module'],
       $name == 'system' ? t('n/a') : (empty($info['statements']) ? '-' : number_format($info['statements'])),
       !empty($info['mutable']) ? t('Yes') : t('No'),
-      $info['module'],
       !$mutable ? '' : l(t('edit'), 'admin/settings/rdf/repositories/' . $info['module'] . '/edit/' . $name),
       !$mutable ? '' : l(t('delete'), 'admin/settings/rdf/repositories/' . $info['module'] . '/delete/' . $name),
     );
@@ -753,7 +755,7 @@ function rdf_db_admin_db_form_validate($form, &$form_state) {
     form_set_error('name', t('The machine-readable name can only consist of lowercase letters, underscores, and numbers.', array('%name' => $name)));
   }
 
-  if (array_search($name, rdf_db_get_repository_names()) !== FALSE) { // FIXME
+  if (array_search($name, rdf_db_get_repository_tables()) !== FALSE) { // FIXME
     form_set_error('name', t('The machine-readable name %name is already used by another repository.', array('%name' => $name)));
   }
 }
@@ -762,15 +764,14 @@ function rdf_db_admin_db_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
   if (empty($key)) {
-    rdf_db_create_repository($name, array('dc:title' => $title, 'dc:description' => $description));
+    rdf_db_create_repository($name, array('title' => $title, 'description' => $description));
     drupal_set_message(t('The repository has been created.'));
   }
   else {
     if ($key != $name) {
       rdf_db_rename_repository($key, $name);
-      rdf_db_delete_repository_metadata($key);
     }
-    rdf_db_update_repository_metadata($name, array('dc:title' => $title, 'dc:description' => $description));
+    rdf_db_update_repository($name, array('title' => $title, 'description' => $description));
     drupal_set_message(t('The repository has been updated.'));
   }
 

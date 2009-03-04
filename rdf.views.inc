@@ -65,7 +65,7 @@ function rdf_views_data() {
     ),
   );
   
-  foreach (rdf_db_get_repository_names() as $name => $table) {
+  foreach (rdf_db_get_repository_tables() as $name => $table) {
     $info = rdf_db_load_repository($name);
     $data[$table] = array(
       // Table info.
