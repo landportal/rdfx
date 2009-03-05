@@ -26,11 +26,22 @@ function rdf_admin_settings() {
   $form['rdfa'] = array('#type' => 'fieldset', '#title' => t('RDFa'), '#collapsible' => TRUE, '#collapsed' => TRUE);
   $form['rdfa']['rdf_rdfa_doctype'] = array(
     '#type'          => 'radios',
-    '#title'         => t('Replace the theme\'s DOCTYPE with XHTML+RDFa'),
+    '#title'         => t('Output an XHTML+RDFa DOCTYPE'),
     '#default_value' => (int)variable_get('rdf_rdfa_doctype', FALSE),
     '#options'       => array(FALSE => t('Disabled'), TRUE => t('Enabled')),
-    '#description'   => t('Whether to override the current theme\'s output and replace any existing <a href="http://en.wikipedia.org/wiki/Document_Type_Declaration">Document Type Declaration</a> with the <tt>XHTML+RDFa 1.0</tt> DOCTYPE that enables the use of <a href="http://en.wikipedia.org/wiki/RDFa">RDFa</a> metadata in Drupal content. Please note that this feature may be incompatible with <a href="@admin-performance">aggressive caching</a>. <em>This is an experimental feature, please use caution and <a href="http://drupal.org/node/add/project-issue/rdf">report any problems</a></em>.</a>.', array('@admin-performance' => url('admin/settings/performance'))),
+    '#description'   => t('Whether to override the current theme\'s output and replace any existing <a href="http://en.wikipedia.org/wiki/Document_Type_Declaration">Document Type Declaration</a> with an <tt>XHTML+RDFa 1.0</tt> DOCTYPE that enables the use of <a href="http://en.wikipedia.org/wiki/RDFa">RDFa</a> metadata in Drupal content. Please note that this feature may be incompatible with <a href="@admin-performance">aggressive caching</a>. <em>This is an experimental feature, please use caution and <a href="http://drupal.org/node/add/project-issue/rdf">report any problems</a></em>.</a>.', array('@admin-performance' => url('admin/settings/performance'))),
   );
+  $form['rdfa']['rdf_rdfa_prefixes'] = array(
+    '#type'          => 'checkboxes',
+    '#title'         => t('Enabled RDFa namespace prefixes'),
+    '#default_value' => array_keys(rdf_get_namespaces('rdfa')),
+    '#options'       => array_diff_key(array_combine($ns = array_keys(rdf_get_namespaces()), $ns), array('_' => '')),
+    '#description'   => t('Select which <a href="@admin-rdf-namespaces">namespace prefixes</a> will be available on RDFa-enabled pages.', array('@admin-rdf-namespaces' => url('admin/settings/rdf/namespaces'))),
+  );
+  if (!variable_get('rdf_rdfa_doctype', FALSE)) {
+    $form['rdfa']['rdf_rdfa_prefixes']['#attributes']['disabled'] = 'disabled';
+    $form['rdfa']['rdf_rdfa_disabled'] = array('#type' => 'hidden', '#value' => '1');
+  }
 
   // RDF Schema
   $form['rdfs'] = array('#type' => 'fieldset', '#title' => t('RDF Schema'), '#collapsible' => TRUE, '#collapsed' => TRUE);
@@ -75,6 +86,19 @@ function rdf_admin_settings() {
   );
 
   return array_merge_recursive(system_settings_form($form), array('#theme' => 'rdf_admin_settings', 'buttons' => array('#weight' => 99)));
+}
+
+function rdf_admin_settings_validate($form, &$form_state) {
+  extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
+
+  if (!empty($rdf_rdfa_disabled)) {
+    // Ensure we don't muck up the default value when disabled:
+    unset($form_state['values']['rdf_rdfa_prefixes']);
+    unset($form_state['values']['rdf_rdfa_disabled']);
+  }
+  else {
+    $rdf_rdfa_prefixes = array_filter($rdf_rdfa_prefixes, 'is_string');
+  }
 }
 
 function theme_rdf_admin_settings($form) {

@@ -899,13 +899,21 @@ function rdf_register_namespace($prefix, $uri) {
   $GLOBALS['rdf_namespaces'][$prefix] = $uri;
 }
 
-function rdf_get_namespaces() {
+function rdf_get_namespaces($op = NULL) {
   global $rdf_namespaces;
   if (empty($rdf_namespaces)) {
     $rdf_namespaces = module_invoke_all('rdf_namespaces');
     ksort($rdf_namespaces);
   }
-  return $rdf_namespaces;
+
+  switch ($op) {
+    case 'rdfa': // only RDFa-enabled namespaces
+      $defaults = array('rdf', 'dc', 'foaf');
+      $defaults = array_combine($defaults, $defaults);
+      return array_intersect_key($rdf_namespaces, array_filter(variable_get('rdf_rdfa_prefixes', $defaults), 'is_string'));
+    default:     // all namespaces
+      return $rdf_namespaces;
+  }
 }
 
 function rdf_get_contexts() {

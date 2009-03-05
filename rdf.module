@@ -1023,30 +1023,12 @@ function _rdf_ob_handler($buffer) {
   static $mimetypes = array('text/html');
   static $doctype   = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML+RDFa 1.0//EN\"\n  \"http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd\">\n";
 
-  // Only attempt DOCTYPE substitution for HTML responses:
+  // Only attempt RDFa modifications for HTML output:
   if (in_array($mimetype = _rdf_ob_handler_get_content_type(), $mimetypes)) {
-    $html  = FALSE; // flag for determining whether the output actually is HTML markup
-    $lines = $cutoff = 0;
-    $line  = strtok($buffer, "\n");
-
-    // Attempt to find the opening <html> tag in the first 15 lines:
-    while ($line !== FALSE && $lines++ < 15) {
-      if (($pos = strpos($line, '<html')) !== FALSE) {
-        $html = TRUE;
-        $cutoff += $pos;
-        break;
-      }
-      $cutoff += strlen($line) + 1; // line and "\n"
-      $line = strtok("\n");
-    }
-
-    // If we managed to find <html>, substitute the DOCTYPE; otherwise, the
-    // page output will be returned unmodified.
-    if ($html) {
-      $buffer = $doctype . substr($buffer, $cutoff);
-    }
+    $buffer = _rdf_ob_handler_remove_doctype($buffer);
+    $buffer = _rdf_ob_handler_insert_namespaces($buffer);
+    $buffer = $doctype . $buffer;
   }
-
   return $buffer;
 }
 
@@ -1062,4 +1044,41 @@ function _rdf_ob_handler_get_http_header($regex, $default = NULL) {
     return $matches[1]; // found it
   }
   return $default; // no such luck
+}
+
+function _rdf_ob_handler_remove_doctype($buffer) {
+  $lines = $cutoff = 0;
+  $line  = strtok($buffer, "\n");
+
+  // Attempt to find the opening <html> tag in the first 15 lines:
+  while ($line !== FALSE && $lines++ < 15) {
+    if (($pos = strpos($line, '<html')) !== FALSE) {
+      // If we managed to find <html>, substitute the DOCTYPE; otherwise, the
+      // page output will be returned unmodified.
+      return substr($buffer, $cutoff += $pos);
+    }
+
+    $cutoff += strlen($line) + 1; // line length and "\n"
+    $line = strtok("\n");
+  }
+
+  return $buffer;
+}
+
+function _rdf_ob_handler_insert_namespaces($buffer) {
+  $namespaces = rdf_get_namespaces('rdfa');
+
+  // Attempt to find the last character of the opening <html> tag:
+  if (!empty($namespaces) && ($html = strtok($buffer, '>'))) {
+    $buffer = substr($buffer, strlen($html) + 1);
+
+    // Insert the xmlns:prefix="uri" definitions at the end of the opening <html> tag:
+    $xmlns  = array();
+    foreach ($namespaces as $prefix => $uri) {
+      $xmlns[] = '      xmlns:' . $prefix . '="' . $uri . '"';
+    }
+    $html  .= "\n" . implode("\n", $xmlns) . '>';
+    return $html . $buffer;
+  }
+  return $buffer;
 }
