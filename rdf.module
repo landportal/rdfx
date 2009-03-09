@@ -4,7 +4,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // Module settings
 
-define('RDF_SCHEMA_URI', variable_get('rdf_schema_uri', url('rdf/schema', array('absolute' => TRUE)) .'/'));
+define('RDF_SCHEMA_URI',        rdf_get_schema_uri());
 define('RDF_SCHEMA_MODULE_URI', 'http://drupal.org/project/rdf#schema');
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1011,6 +1011,12 @@ function rdf_rdf_query($subject, $predicate, $object, $options = array()) {
 
 //////////////////////////////////////////////////////////////////////////////
 // Miscellaneous helpers
+
+function rdf_get_schema_uri() {
+  $uri = 'rdf/schema';
+  $uri = (function_exists('url') ? url($uri, array('absolute' => TRUE)) : $uri) . '/';
+  return variable_get('rdf_schema_uri', $uri);
+}
 
 function rdf_menu_access_http($perm_get, $perm_post) {
   return user_access($_SERVER['REQUEST_METHOD'] == 'POST' ? $perm_post : $perm_get);
