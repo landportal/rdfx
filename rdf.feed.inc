@@ -242,10 +242,11 @@ function rdf_build_rss_feed_node_field(&$item, $field_name, $field_info, array $
             // with optional timezone information:
             if (isset($field_value['date_type'])) {
               $tz_db  = timezone_open($field_value['timezone_db']);
-              $dt     = date_create($value, $tz_db);
               $tz_cck = timezone_open($field_value['timezone']);
+              $dt     = date_create(!is_numeric($value) ? $value : 'now', $tz_db);
+              $value  = intval(!is_numeric($value) ? date_format($dt, 'U') : $value);
               $tz_rss = empty($options['date_timezone']) ? 0 : timezone_offset_get($tz_cck, $dt);
-              $value  = rdf_datetime((int)date_format($dt, 'U'), $tz_rss);
+              $value  = rdf_datetime($value, $tz_rss);
             }
             $item->rdf[$field_uri][] = $value;
           }

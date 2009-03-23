@@ -300,6 +300,7 @@ function _rdf_db_delete_statements($table, $match, $limit = NULL, $offset = NULL
 }
 
 function _rdf_db_select_statements($table, $match, $limit = NULL, $offset = NULL) {
+  unset($match->uid, $match->created); // never match on optional meta-meta fields
   return _rdf_db_query_statements('SELECT did', $table, $match, $limit, $offset);
 }
 

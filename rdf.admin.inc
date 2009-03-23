@@ -255,9 +255,9 @@ function rdf_db_admin_data_form_submit($form, &$form_state) {
   extract($form_state['values'], EXTR_SKIP | EXTR_REFS);
 
   // TODO: properly sanitize/expand/convert subject, predicate and object.
-  $subject   = rdf_uri($subject);
-  $predicate = rdf_uri($predicate);
-  $object    = rdf_is_valid_uri($object) ? rdf_uri($object) : $object;
+  $subject   = rdf_is_valid_curie($subject)   ? rdf_qname_to_uriref($subject)   : rdf_uri($subject);
+  $predicate = rdf_is_valid_curie($predicate) ? rdf_qname_to_uriref($predicate) : rdf_uri($predicate);
+  $object    = rdf_is_valid_uri($object)      ? rdf_uri($object) : $object;
 
   if (rdf_insert($subject, $predicate, $object, array('repository' => $repository))) {
     drupal_set_message(t('The statement has been added.'));
