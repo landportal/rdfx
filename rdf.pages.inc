@@ -161,7 +161,8 @@ function rdf_feed_taxonomy_term(&$feed, $str_tids = '', $depth = 0, $op = 'page'
     }
 
     if (!empty($terms['tids'])) {
-      $feed->settings['link']  = url('taxonomy/term/' . $str_tids . '/' . $depth, array('absolute' => TRUE));
+      $path = 'taxonomy/term/' . $str_tids . (empty($depth) ? '' : '/' . $depth);
+      $feed->settings['link']  = url($path, array('absolute' => TRUE));
       $feed->settings['title'] = variable_get('site_name', 'Drupal') . ' - ' . check_plain(implode(', ', $terms['names']));
       // Only display the description if we have a single term:
       $feed->settings['description'] = (count($tids) == 1 && ($term = taxonomy_get_term($tids[0]))) ? $term->description : NULL;
