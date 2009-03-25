@@ -133,11 +133,13 @@ function rdf_db_get_repository_tables($refresh = FALSE) {
 }
 
 function rdf_db_load_repository($name) {
-  if (($row = db_fetch_array(db_query("SELECT * FROM {rdf_repositories} WHERE name = '%s'", $name)))) {
+  static $repos = array();
+  if (!isset($repos[$name]) && ($row = db_fetch_array(db_query("SELECT * FROM {rdf_repositories} WHERE name = '%s'", $name)))) {
     $row = (object)array_merge($row, unserialize($row['options']), $row); // $row intentionally doubled, for key ordering & safety
     unset($row->options);
-    return $row;
+    $repos[$name] = $row;
   }
+  return isset($repos[$name]) ? $repos[$name] : NULL;
 }
 
 function rdf_db_create_repository($name, array $options = array()) {
