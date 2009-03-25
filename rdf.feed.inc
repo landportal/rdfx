@@ -241,12 +241,7 @@ function rdf_build_rss_feed_node_field(&$item, $field_name, $field_info, array $
             // Cast CCK Date field values into the correct RDF datatype,
             // with optional timezone information:
             if (isset($field_value['date_type'])) {
-              $tz_db  = timezone_open($field_value['timezone_db']);
-              $tz_cck = timezone_open($field_value['timezone']);
-              $dt     = date_create(!is_numeric($value) ? $value : 'now', $tz_db);
-              $value  = intval(!is_numeric($value) ? date_format($dt, 'U') : $value);
-              $tz_rss = empty($options['date_timezone']) ? 0 : timezone_offset_get($tz_cck, $dt);
-              $value  = rdf_datetime($value, $tz_rss);
+              $value = rdf_get_rss_feed_date_field($field_value, $field_value_index, $options);
             }
             $item->rdf[$field_uri][] = $value;
           }
@@ -254,4 +249,25 @@ function rdf_build_rss_feed_node_field(&$item, $field_name, $field_info, array $
       }
     }
   }
+}
+
+function rdf_get_rss_feed_date_field($field_value, $field_value_index, array $options) {
+  $timezone_db  = timezone_open($field_value['timezone_db']);
+  $timezone_cck = timezone_open($field_value['timezone']);
+  $timezone     = timezone_offset_get($timezone_cck, date_create('now', $timezone_cck));
+
+  switch ($field_value['date_type']) {
+    case 'datestamp': // value, value2, timezone, offset, offset2, timezone_db
+      $offset    = $field_value[str_replace('value', 'offset', $field_value_index)];
+      $timestamp = (int)$field_value[$field_value_index];
+      $timestamp = $timestamp + (int)$offset - $timezone;
+      break;
+    case 'date':
+    case 'datetime':  // value, value2, timezone, timezone_db
+      $datetime  = date_create($field_value[$field_value_index], $timezone_db);
+      $timestamp = (int)date_format($datetime, 'U');
+      break;
+  }
+
+  return rdf_datetime($timestamp, empty($options['date_timezone']) ? 0 : $timezone);
 }
