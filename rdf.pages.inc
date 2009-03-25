@@ -9,6 +9,14 @@ function rdf_export_site() {
   rdf_export($data, 'site');
 }
 
+function rdf_export_node($node) {
+  return rdf_export_entity('node', $node->nid);
+}
+
+function rdf_export_user($account) {
+  return rdf_export_entity('user', $account->uid);
+}
+
 function rdf_export_entity($type, $id) {
   $data = rdf_query(url($type . '/' . $id, array('absolute' => TRUE)));
   rdf_export($data, implode('-', array($type, $id)));

@@ -43,24 +43,24 @@ function rdf_menu_build() {
     ),
 
     // Export user information
-    'user/%/rdf' => array(
+    'user/%user/rdf' => array(
       'title' => 'RDF',
       'type' => MENU_CALLBACK,
       'access callback' => 'rdf_menu_access_user',
       'access arguments' => array(1),
-      'page callback' => 'rdf_export_entity',
-      'page arguments' => array('user', 1),
+      'page callback' => 'rdf_export_user',
+      'page arguments' => array(1),
       'file' => 'rdf.pages.inc',
     ),
 
     // Export node information
-    'node/%/rdf' => array(
+    'node/%node/rdf' => array(
       'title' => 'RDF',
       'type' => MENU_CALLBACK,
       'access callback' => 'rdf_menu_access_node',
       'access arguments' => array('view', 1),
-      'page callback' => 'rdf_export_entity',
-      'page arguments' => array('node', 1),
+      'page callback' => 'rdf_export_node',
+      'page arguments' => array(1),
       'file' => 'rdf.pages.inc',
     ),
 
