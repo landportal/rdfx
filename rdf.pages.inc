@@ -41,6 +41,7 @@ function rdf_output_rss($filename, $format, $data, array $options = array()) {
   if ($format == 'rdf+xml' && !isset($options['content_type'])) {
     $options['content_type'] = 'application/rss+xml';
   }
+  $options['base'] = isset($options['base']) ? $options['base'] : RDF_RSS_URI;
   return rdf_output($filename, $format, $data, $options);
 }
 
@@ -50,11 +51,11 @@ function rdf_output($filename, $format, $data, array $options = array()) {
   // Figure out the serialization format and compose the filename
   $formats  = rdf_get_formats();
   $format   = !empty($format) ? $format : RDF_FORMAT;
-  $format   = isset($formats[$format]) ? $formats[$format] : reset($formats); // TODO: auto-negotiation    
+  $format   = isset($formats[$format]) ? $formats[$format] : reset($formats); // TODO: auto-negotiation
   $filename = !empty($filename) ? $filename : 'drupal';
   $filename = implode('.', array($filename, $format->file_ext));
 
-  // Merge in the default options 
+  // Merge in the default options
   $defaults = array(
     'content_disposition'  => 'inline',
     'content_type'         => $format->mime_type,
@@ -67,10 +68,11 @@ function rdf_output($filename, $format, $data, array $options = array()) {
     $options['content_type'] = 'text/plain';
   }
 
-  // Serialize the RDF data                              
+  // Serialize the RDF data
   $content = rdf_serialize($data, array(
     'format'   => $format->name,
     'language' => isset($options['language']) ? $options['language'] : $language->language,
+    'base'     => isset($options['base'])     ? $options['base']     : NULL,
   ));
 
   // Compose HTTP response headers
@@ -81,7 +83,7 @@ function rdf_output($filename, $format, $data, array $options = array()) {
     'Content-Length'      => strlen($content),
   ));
 
-  // Output HTTP response headers and content 
+  // Output HTTP response headers and content
   if (!headers_sent()) {
     if (isset($options['http_status'])) {
       drupal_set_header('HTTP/1.1 ' . $options['http_status']);
@@ -112,7 +114,7 @@ function rdf_feed_callback($feed_id) {
 
   if (is_null($items) || is_string($items) || is_int($items)) {
     // Return to the Drupal menu handler
-    return $items; 
+    return $items;
   }
   else {
     // Output RSS feed

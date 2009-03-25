@@ -6,6 +6,7 @@
 
 define('RDF_SCHEMA_URI',        rdf_get_schema_uri());
 define('RDF_SCHEMA_MODULE_URI', 'http://drupal.org/project/rdf#schema');
+define('RDF_RSS_URI',           'http://purl.org/rss/1.0/');
 
 //////////////////////////////////////////////////////////////////////////////
 // Core API hooks
@@ -479,7 +480,7 @@ function rdf_rdf_feeds() {
   $feeds = array(
     // node.module (front page feed)
     'node_feed' => array(
-      'type'        => 'http://purl.org/rss/1.0/',
+      'type'        => RDF_RSS_URI,
       'path'        => 'rss.xml',
       'title'       => t('Front page feed'),
       'module'      => 'node',
@@ -488,7 +489,7 @@ function rdf_rdf_feeds() {
     ),
     // taxonomy.module
     'taxonomy_term_feed' => array(
-      'type'        => 'http://purl.org/rss/1.0/',
+      'type'        => RDF_RSS_URI,
       'path'        => 'taxonomy/term/%/0/feed',
       'menu'        => 'taxonomy/term/%',
       'title'       => t('Taxonomy term feed'),
@@ -498,7 +499,7 @@ function rdf_rdf_feeds() {
     ),
     // blog.module
     'blog_feed_user' => array(
-      'type'        => 'http://purl.org/rss/1.0/',
+      'type'        => RDF_RSS_URI,
       'path'        => 'blog/%user/feed',
       'title'       => 'Users\' recent blog entries feed',
       'module'      => 'blog',
@@ -506,7 +507,7 @@ function rdf_rdf_feeds() {
       'enabled'     => !empty($enabled['blog_feed_user']),
     ),
     'blog_feed_last' => array(
-      'type'        => 'http://purl.org/rss/1.0/',
+      'type'        => RDF_RSS_URI,
       'path'        => 'blog/feed',
       'title'       => 'All recent blog entries feed',
       'module'      => 'blog',
@@ -515,7 +516,7 @@ function rdf_rdf_feeds() {
     ),
     // aggregator.module
     'aggregator_page_rss' => array(
-      'type'        => 'http://purl.org/rss/1.0/',
+      'type'        => RDF_RSS_URI,
       'path'        => 'aggregator/rss',
       'title'       => t('Aggregator feed'),
       'module'      => 'aggregator',
@@ -610,7 +611,7 @@ function rdf_rdf_namespaces() {
     'dcterms'  => 'http://purl.org/dc/terms/',
     'dcmitype' => 'http://purl.org/dc/dcmitype/',
     'foaf'     => 'http://xmlns.com/foaf/0.1/',
-    'rss'      => 'http://purl.org/rss/1.0/',
+    'rss'      => RDF_RSS_URI,
     'drupal'   => RDF_SCHEMA_URI,
   );
   foreach (rdf_schema_get_entities() as $entity) {

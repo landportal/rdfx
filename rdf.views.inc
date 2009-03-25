@@ -190,7 +190,7 @@ function rdf_views_get_feeds() {
       }
 
       $feeds['views_' . $row->name] = array(
-        'type'        => 'http://purl.org/rss/1.0/',
+        'type'        => RDF_RSS_URI,
         'path'        => $feed_path,
         'title'       => $row->display_options['title'],
         'module'      => 'views',

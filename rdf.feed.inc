@@ -5,8 +5,8 @@
 // RDF feeds
 
 function rdf_build_rss_feed($feed, $url, $items = array(), array $options = array()) {
-  rdf_register_namespace('rss', 'http://purl.org/rss/1.0/');
-  rdf_register_namespace('sy',  'http://purl.org/rss/1.0/modules/syndication/');
+  rdf_register_namespace('rss', RDF_RSS_URI);
+  rdf_register_namespace('sy',  RDF_RSS_URI . 'modules/syndication/');
 
   // Compose the feed title:
   $title = variable_get('site_name', 'Drupal') . (($slogan = variable_get('site_slogan', '')) ? ' - ' . $slogan : '');
