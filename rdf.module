@@ -565,6 +565,7 @@ function rdf_rdf_formats() {
       'file_ext'    => 'rdf',
       'serialize'   => 'rdf_serialize_xml',
       'unserialize' => class_exists('ARC2') ? 'rdf_unserialize_xml' : NULL,
+      'file'        => 'formats/rdfxml.inc'
     ),
     'trix' => array(
       'title'       => t('TriX'),
@@ -574,6 +575,7 @@ function rdf_rdf_formats() {
       'file_ext'    => 'xml',
       'serialize'   => 'rdf_serialize_trix',
       'unserialize' => NULL,
+      'file'        => 'formats/trix.inc'
     ),
     'turtle' => array(
       'title'       => t('Turtle'),
@@ -583,6 +585,7 @@ function rdf_rdf_formats() {
       'file_ext'    => 'ttl',
       'serialize'   => 'rdf_serialize_turtle',
       'unserialize' => class_exists('ARC2') ? 'rdf_unserialize_turtle' : NULL,
+      'file'        => 'formats/turtle.inc'
     ),
     'ntriples' => array(
       'title'       => t('N-Triples'),
@@ -592,6 +595,7 @@ function rdf_rdf_formats() {
       'file_ext'    => 'nt',
       'serialize'   => 'rdf_serialize_ntriples',
       'unserialize' => class_exists('ARC2') ? 'rdf_unserialize_ntriples' : NULL,
+      'file'        => 'formats/ntriples.inc'
     ),
   );
 }

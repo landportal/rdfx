@@ -463,11 +463,11 @@ function rdf_serialize($data, array $options = array()) {
   $data    = is_array($data) ? $data : rdf_normalize($data); // support RDF_QueryIterator
   $formats = rdf_get_formats('info', 'w');
   $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
-  if (isset($formats[$format]->file)) {
-    require_once drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
-  }
   if (!isset($formats[$format])) {
     return FALSE;
+  }
+  if (isset($formats[$format]->file)) {
+    require_once './' . drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
   }
   ob_start() && call_user_func($formats[$format]->serialize, $data, $options);
   return ob_get_clean();
@@ -477,7 +477,7 @@ function rdf_unserialize($text, array $options = array()) {
   $formats = rdf_get_formats('info', 'r');
   $format  = isset($options['format']) ? $options['format'] : RDF_FORMAT;
   if (isset($formats[$format]->file)) {
-    require_once drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
+    require_once './' . drupal_get_path('module', $formats[$format]->module) . '/' . $formats[$format]->file;
   }
   return isset($formats[$format]) ? call_user_func($formats[$format]->unserialize, $text, $options) : FALSE;
 }
@@ -510,240 +510,12 @@ function rdf_unserialize_json($json, array $options = array()) {
   return rdf_objectify(json_decode((string)$json, TRUE));
 }
 
-function rdf_unserialize_xml($text, array $options = array()) {
-  $parser = ARC2::getRDFXMLParser();
-  $parser->parse(@$options['uri'], $text);
-  return array_map('_rdf_deconstruct_arc2_triple', $parser->getTriples());
-}
-
-function rdf_unserialize_turtle($text, array $options = array()) {
-  $parser = ARC2::getTurtleParser();
-  $parser->parse(@$options['uri'], $text);
-  return array_map('_rdf_deconstruct_arc2_triple', $parser->getTriples());
-}
-
-function rdf_unserialize_ntriples($text, array $options = array()) {
-  return rdf_unserialize_turtle($text, $options);
-}
-
-function rdf_serialize_xml($data, array $options = array()) {
-  $namespaces = array_merge(rdf_get_namespaces(), is_array(@$options['namespaces']) ? @$options['namespaces'] : array());
-  $namespaces = rdf_get_prefixes($data, $namespaces);
-
-  $xml = new XMLWriter(); // requires PHP 5.1.2+
-  $xml->openMemory();
-  $xml->setIndent(TRUE);
-  $xml->setIndentString('  ');
-  $xml->startDocument('1.0', 'utf-8');
-  $xml->startElement('rdf:RDF');
-
-  // Output a default namespace prefix, if one was specified:
-  $base_prefix = NULL;
-  if (!empty($options['base'])) {
-    $base_prefix = array_search($options['base'], $namespaces);
-    $xml->writeAttribute('xmlns', $options['base']);
-  }
-
-  // Output all namespace prefixes:
-  foreach ($namespaces as $prefix => $uri) {
-    if (!$base_prefix || $base_prefix != $prefix) {
-      $xml->writeAttribute('xmlns:' . $prefix, $uri);
-    }
-  }
-
-  $bnode_map = array();
-  $bnode_id = 0;
-  foreach ($data as $subject => $predicates) {
-    $type = 'rdf:Description';
-
-    // Support the typed node element syntax where possible:
-    foreach ($predicates as $predicate => &$objects) {
-      if (($qname = rdf_uri_to_qname($predicate)) == 'rdf:type') {
-        $type = rdf_uri_to_qname(array_shift($objects));
-        if (empty($objects)) {
-          unset($predicates[$predicate]);
-        }
-        break;
-      }
-    }
-    unset($objects);
-
-    $qname = $base_prefix ? preg_replace('/^' . preg_quote($base_prefix, '/') . ':/', '', $type) : $type;
-    $xml->startElement($qname);
-
-    if (RDF_BNode::match($subject)) {
-      $xml->writeAttribute('rdf:nodeID', !isset($bnode_map[$subject]) ? ($bnode_map[$subject] = 'b' . ++$bnode_id) : $bnode_map[$subject]);
-    }
-    else { // RDF_URIRef
-      $xml->writeAttribute('rdf:about', $subject);
-    }
-
-    foreach ($predicates as $predicate => $objects) {
-      $qname = rdf_uri_to_qname($predicate);
-      $qname = $base_prefix ? preg_replace('/^' . preg_quote($base_prefix, '/') . ':/', '', $qname) : $qname;
-
-      foreach (is_array($objects) ? $objects : array($object) as $object) {
-
-        if (!is_object($object)) { // plain literal
-          $xml->writeElement($qname, (string)$object);
-        }
-        else if ($object instanceof RDF_Literal) { // typed literal
-          $xml->startElement($qname);
-          if ($object->language) {
-            $xml->writeAttribute('xml:lang', $object->language);
-          }
-          if ($object->datatype) {
-            $xml->writeAttribute('rdf:datatype', $object->datatype);
-          }
-          $xml->text((string)$object->value);
-          $xml->endElement();
-        }
-        else if ($object instanceof RDF_BNode) { // blank node
-          $xml->startElement($qname);
-          $xml->writeAttribute('rdf:nodeID', !isset($bnode_map[(string)$object]) ? ($bnode_map[(string)$object] = 'b' . ++$bnode_id) : $bnode_map[(string)$object]);
-          $xml->endElement();
-        }
-        else { // RDF_URIRef, or the like
-          $xml->startElement($qname);
-          $xml->writeAttribute('rdf:resource', (string)$object);
-          $xml->endElement();
-        }
-
-      }
-    }
-
-    $xml->endElement(); // rdf:Description, or $type
-  }
-
-  $xml->endElement(); // rdf:RDF
-  $xml->endDocument();
-  print $xml->outputMemory(TRUE);
-}
-
-function rdf_serialize_trix($data, array $options = array()) {
-  $namespaces = @$options['namespaces'];
-
-  $xml = new XMLWriter(); // requires PHP 5.1.2+
-  $xml->openMemory();
-  $xml->setIndent(TRUE);
-  $xml->setIndentString('  ');
-  $xml->startDocument('1.0', 'utf-8');
-  $xml->startElement('TriX');
-  $xml->writeAttribute('xmlns', 'http://www.w3.org/2004/03/trix/trix-1/');
-
-  $xml->startElement('graph'); // FIXME?
-  foreach ($data as $subject => $predicates) {
-    foreach ($predicates as $predicate => $objects) {
-      foreach ($objects as $object) {
-        $xml->startElement('triple');
-        $xml->writeElement('uri', (string)$subject);
-        $xml->writeElement('uri', (string)$predicate);
-
-        if (!is_object($object)) { // plain literal w/o xml:lang
-          $xml->writeElement('plainLiteral', (string)$object);
-        }
-        else if ($object instanceof RDF_Literal) { // typed literal
-          $xml->startElement(!$object->datatype ? 'plainLiteral' : 'typedLiteral');
-          if ($object->language)
-            $xml->writeAttribute('xml:lang', $object->language);
-          if ($object->datatype)
-            $xml->writeAttribute('datatype', $object->datatype);
-          $xml->text((string)$object->value);
-          $xml->endElement();
-        }
-        else { // RDF_URIRef, or the like
-          $xml->writeElement('uri', (string)$object);
-        }
-
-        $xml->endElement(); // triple
-      }
-    }
-  }
-  $xml->endElement(); // graph
-
-  $xml->endElement(); // TriX
-  $xml->endDocument();
-  print $xml->outputMemory(TRUE);
-}
-
-function rdf_serialize_turtle($data, array $options = array()) {
-  $namespaces = @$options['namespaces'];
-  $namespaces = rdf_get_prefixes($data, $namespaces);
-  foreach ($namespaces as $prefix => $uri) {
-    printf("@prefix %s: <%s> .\n", $prefix, $uri);
-  }
-  printf("\n");
-
-  foreach ($data as $subject => $predicates) {
-    printf("<%s>\n", (string)$subject);
-
-    $new_subject = TRUE;
-    foreach ($predicates as $predicate => $objects) {
-      $qname = rdf_uri_to_qname($predicate);
-
-      foreach ($objects as $object) {
-        printf(!$new_subject ? " ;\n\t" : "\t");
-        $new_subject = FALSE;
-
-        if (!is_object($object)) { // plain literal
-          printf('%s "%s"', $qname, (string)$object); // FIXME: string escaping
-        }
-        else if ($object instanceof RDF_Literal) { // typed literal
-          printf('%s "%s"', $qname, (string)$object->value); // FIXME: string escaping
-          if ($object->language)
-            printf('@%s', $object->language);
-          if ($object->datatype)
-            printf('^^%s', $object->datatype);
-        }
-        else { // RDF_URIRef, or the like
-          printf('%s <%s>', $qname, (string)$object);
-        }
-      }
-    }
-
-    printf(" .\n\n");
-  }
-}
+//////////////////////////////////////////////////////////////////////////////
+// RDF API query selectors
 
 function rdf_objects($objects) {
   return is_array($objects) ? $objects : array($objects);
 }
-
-function rdf_serialize_ntriples($data, array $options = array()) {
-  $namespaces = @$options['namespaces'];
-
-  foreach ($data as $subject => $predicates) {
-    foreach ($predicates as $predicate => $objects) {
-      foreach (rdf_objects($objects) as $object) {
-
-        printf('<%s> <%s> ', (string)$subject, (string)$predicate);
-
-        if (!is_object($object)) { // plain literal
-          printf('"%s"', _rdf_serialize_ntriples_escape((string)$object));
-        }
-        else if ($object instanceof RDF_Literal) { // typed literal
-          printf('"%s"', _rdf_serialize_ntriples_escape((string)$object->value));
-          if ($object->language)
-            printf('@%s', $object->language);
-          if ($object->datatype)
-            printf('^^<%s>', $object->datatype);
-        }
-        else { // RDF_URIRef, or the like
-          printf('<%s>', (string)$object);
-        }
-
-        printf(" .\n");
-      }
-    }
-  }
-}
-
-function _rdf_serialize_ntriples_escape($string) {
-  return str_replace(array('\\', '"', "\t", "\n", "\r"), array('\\\\', '\\"', '\\t', '\\n', '\\r'), $string);
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// RDF API query selectors
 
 function rdf_select_resources($input) {
   return array_keys($input);
