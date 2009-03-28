@@ -622,12 +622,10 @@ function rdf_admin_feed_submit($form, &$form_state) {
 function rdf_admin_namespaces() {
   $header = array(t('Prefix'), t('Base URI'), array('data' => t('Operations'), 'colspan' => '2'));
 
-  // FIXME: need something more loosely-coupled and robust for this:
-  $mutables = rdf_db_rdf_namespaces();
-
   $rows = array();
   foreach (rdf_get_namespaces() as $prefix => $uri) {
-    $mutable = isset($mutables[$prefix]);
+    $mutable = (bool)rdf_get_namespace($prefix);
+
     $rows[] = array(
       $prefix, //l($prefix, 'admin/settings/rdf/predicates/' . $prefix),
       check_plain($uri),
@@ -644,7 +642,7 @@ function rdf_db_admin_ns_edit($prefix = '') {
     return drupal_get_form('rdf_db_admin_ns_form');
   }
   else {
-    return drupal_get_form('rdf_db_admin_ns_form', rdf_db_load_namespace($prefix));
+    return drupal_get_form('rdf_db_admin_ns_form', rdf_get_namespace($prefix));
   }
 }
 
@@ -693,7 +691,7 @@ function rdf_db_admin_ns_form_submit($form, &$form_state) {
 }
 
 function rdf_db_admin_ns_delete($form_state, $prefix) {
-  if (user_access('administer RDF namespaces') && rdf_db_load_namespace($prefix)) {
+  if (user_access('administer RDF namespaces') && rdf_get_namespace($prefix)) {
     $form['prefix'] = array('#type' => 'value', '#value' => $prefix);
     $output = confirm_form($form,
       t('Are you sure you want to delete the RDF namespace %title?', array('%title' => $prefix)),
@@ -717,15 +715,15 @@ function rdf_db_admin_ns_delete_submit($form, &$form_state) {
 function rdf_admin_contexts() {
   $header = array(t('URI'), t('Statements'));
 
-  // FIXME: need something more loosely-coupled and robust for this:
-  $mutables = rdf_db_rdf_contexts();
+  $uncountables = array(RDF_SITE_URI, RDF_SCHEMA_URI); // FIXME
 
   $rows = array();
   foreach (rdf_get_contexts() as $uri) {
-    $mutable = in_array($uri, $mutables);
+    $countable = !in_array($uri, $uncountables);
+
     $rows[] = array(
       l($uri, 'admin/content/rdf', array('query' => array('g' => $uri, 's' => '', 'p' => '', 'o' => ''))),
-      !$mutable ? t('n/a') : rdf_count(NULL, NULL, NULL, array('context' => $uri)),
+      !$countable ? t('n/a') : rdf_count(NULL, NULL, NULL, array('context' => $uri)), // FIXME
     );
   }
 
@@ -762,7 +760,7 @@ function rdf_db_admin_db_edit($name = '') {
     return drupal_get_form('rdf_db_admin_db_form');
   }
   else {
-    return drupal_get_form('rdf_db_admin_db_form', rdf_db_load_repository($name));
+    return drupal_get_form('rdf_db_admin_db_form', rdf_get_repository($name));
   }
 }
 
@@ -789,7 +787,7 @@ function rdf_db_admin_db_form_validate($form, &$form_state) {
     form_set_error('name', t('The machine-readable name can only consist of lowercase letters, underscores, and numbers.', array('%name' => $name)));
   }
 
-  if (array_search($name, rdf_db_get_repository_tables()) !== FALSE) { // FIXME
+  if (array_search($name, rdf_get_tables()) !== FALSE) { // FIXME
     form_set_error('name', t('The machine-readable name %name is already used by another repository.', array('%name' => $name)));
   }
 }

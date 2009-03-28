@@ -7,6 +7,8 @@
 define('RDF_SCHEMA_URI',        rdf_get_schema_uri());
 define('RDF_SCHEMA_MODULE_URI', 'http://drupal.org/project/rdf#schema');
 define('RDF_RSS_URI',           'http://purl.org/rss/1.0/');
+define('RDF_DB_TABLE_DEFAULT',  'rdf_data');
+define('RDF_DB_TABLE_PREFIX',   RDF_DB_TABLE_DEFAULT . '_');
 
 //////////////////////////////////////////////////////////////////////////////
 // Core API hooks
@@ -16,7 +18,7 @@ define('RDF_RSS_URI',           'http://purl.org/rss/1.0/');
  */
 function rdf_init() {
   module_load_include('inc', 'rdf', 'rdf.api');
-  module_load_include('inc', 'rdf', 'rdf.db');
+  module_load_include('inc', 'rdf', 'rdf.db'); // TODO: remove in beta2
   module_load_include('inc', 'rdf', 'rdf.schema');
 
   rdf_define_vocabularies(); // TODO: replace with autoload-based solution
@@ -184,8 +186,10 @@ function rdf_cron() {
 
   // Merge duplicate statements in the {rdf_data_*} tables:
   if (variable_get('rdf_db_merge_duplicates', FALSE)) {
-    foreach (rdf_db_get_repository_tables() as $table) {
-      rdf_db_merge_duplicate_statements($table);
+    module_load_include('inc', 'rdf', 'adapters/db');
+    foreach (rdf_get_tables() as $table) {
+      $repo = new RDF_DatabaseRepository(compact('table')); // FIXME
+      $repo->merge_duplicates();
     }
   }
 
@@ -618,24 +622,67 @@ function rdf_rdf_namespaces() {
     'rss'      => RDF_RSS_URI,
     'drupal'   => RDF_SCHEMA_URI,
   );
+
   foreach (rdf_schema_get_entities() as $entity) {
     $namespaces[$entity] = RDF_SCHEMA_URI . $entity .'#';
   }
-  return array_merge($namespaces, rdf_db_rdf_namespaces());
+
+  $result = db_query('SELECT v.prefix, v.uri FROM {rdf_namespaces} v');
+  while ($row = db_fetch_object($result)) {
+    $namespaces[$row->prefix] = $row->uri;
+  }
+
+  return $namespaces;
 }
 
 /**
  * Implementation of hook_rdf_contexts().
  */
 function rdf_rdf_contexts() {
-  return array_merge(array(RDF_SITE_URI, RDF_SCHEMA_URI), rdf_db_rdf_contexts());
+  $contexts = array();
+
+  foreach (rdf_get_tables() as $name => $table) {
+    $result = db_query('SELECT DISTINCT g.uri g FROM {' . db_escape_table($table) . '} d INNER JOIN {rdf_resources} g ON d.gid = g.rid');
+    while ($row = db_fetch_object($result)) {
+      $contexts[$row->g] = TRUE;
+    }
+  }
+
+  return array_merge(array(RDF_SITE_URI, RDF_SCHEMA_URI), array_keys($contexts));
+}
+
+/**
+ * Implementation of hook_rdf_adapters().
+ */
+function rdf_rdf_adapters() {
+  return array(
+    'db' => array(
+      'title'       => t('Database'),
+      'description' => t('Stores RDF data in a Drupal database table.'),
+      'enabled'     => TRUE,
+      'mutable'     => TRUE,
+      'file'        => drupal_get_path('module', 'rdf') . '/adapters/db.inc',
+      'class'       => 'RDF_DatabaseRepository',
+    ),
+    'file' => array(
+      'title'       => t('File'),
+      'description' => t('Reads serialized RDF data from a file or URL.'),
+      'enabled'     => TRUE,
+      'mutable'     => FALSE,
+      'file'        => drupal_get_path('module', 'rdf') . '/adapters/file.inc',
+      'class'       => 'RDF_FileRepository',
+    ),
+    // TODO: ARC2 adapter
+  );
 }
 
 /**
  * Implementation of hook_rdf_repositories().
  */
 function rdf_rdf_repositories() {
-  return array_merge(array(
+  module_load_include('inc', 'rdf', 'adapters/db');
+
+  $repos = array(
     'system' => array(
       'title'      => t('System'),
       'type'       => 'system',
@@ -651,7 +698,29 @@ function rdf_rdf_repositories() {
         'subject'  => RDF_SITE_URI,
       ),
     ),
-  ), rdf_db_rdf_repositories());
+  );
+
+  foreach (rdf_get_tables() as $name => $table) {
+    $repo = new RDF_DatabaseRepository(compact('name', 'table'));
+    $repos[$name] = array(
+      'title'      => rdf_get_repository($name)->title,
+      'type'       => 'local',
+      'persistent' => TRUE,
+      'mutable'    => TRUE,
+      'enabled'    => TRUE,
+      'statements' => $repo->count(),
+      'module'     => 'rdf',
+      'callbacks'  => array(
+        'insert'   => array('function' => array($repo, 'insert'), 'arguments' => array()),
+        'delete'   => array('function' => array($repo, 'delete'), 'arguments' => array()),
+        'query'    => array('function' => array($repo, 'query'),  'arguments' => array()),
+        'count'    => array('function' => array($repo, 'count'),  'arguments' => array()),
+        'flush'    => array('function' => array($repo, 'flush'),  'arguments' => array()),
+      ),
+    );
+  }
+
+  return $repos;
 }
 
 /**
@@ -770,6 +839,123 @@ function rdf_rdf_query($subject, $predicate, $object, $options = array()) {
     }
   }
   return rdf_denormalize($data);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF storage adapter API
+
+/**
+ * Returns information on the available storage adapters (repository backends).
+ */
+function rdf_get_adapters($op = NULL, $enabled_only = FALSE) {
+  static $adapters = array();
+  if (empty($adapters)) {
+    foreach (module_implements('rdf_adapters') as $module) {
+      foreach (module_invoke($module, 'rdf_adapters') as $name => $info) {
+        $info['name']    = $name;
+        $info['module']  = $module;
+        $info['enabled'] = isset($info['enabled']) ? (bool)$info['enabled'] : TRUE;
+        $adapters[$name] = (object)$info;
+      }
+    }
+  }
+
+  $result = array();
+  foreach ($adapters as $name => $info) {
+    if (!$enabled_only || !empty($info->enabled)) {
+      switch ($op) {
+        case 'titles': $result[$name] = $info->title; break;
+        default:       $result[$name] = $info; break;
+      }
+    }
+  }
+  return $result;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF repository API
+
+function rdf_get_schema($table = RDF_DB_TABLE_DEFAULT, $rebuild = FALSE) {
+  if (!($schema = drupal_get_schema($table, $rebuild))) {
+    module_load_include('install', 'rdf');
+    $rdf_schema = rdf_schema();
+    $schema = isset($rdf_schema[$table]) ? $rdf_schema[$table] : array();
+  }
+  return $schema;
+}
+
+function rdf_get_tables($refresh = FALSE) {
+  static $tables;
+  if (!is_array($tables) || $refresh) {
+    $result = db_query("SELECT name FROM {rdf_repositories} WHERE module = 'rdf' AND type = 'local' AND name != 'local' ORDER BY weight ASC");
+    $tables = array('local' => RDF_DB_TABLE_DEFAULT);
+    while ($row = db_fetch_object($result)) {
+      if (db_table_exists($table = RDF_DB_TABLE_PREFIX . $row->name)) {
+        $tables[$row->name] = $table;
+      }
+    }
+  }
+  return $tables;
+}
+
+function rdf_get_repository($name) {
+  static $repos = array();
+  if (!isset($repos[$name]) && ($row = db_fetch_array(db_query("SELECT * FROM {rdf_repositories} WHERE name = '%s'", $name)))) {
+    $row = (object)array_merge($row, unserialize($row['options']), $row); // $row intentionally doubled, for key ordering & safety
+    unset($row->options);
+    $repos[$name] = $row;
+  }
+  return isset($repos[$name]) ? $repos[$name] : NULL;
+}
+
+function rdf_create_repository($name, array $options = array()) {
+  $schema = rdf_get_schema(RDF_DB_TABLE_DEFAULT);
+  db_create_table($results, db_escape_table(RDF_DB_TABLE_PREFIX . $name), $schema);
+
+  $options = !empty($options) ? $options : array('title' => $name, 'description' => '');
+  foreach (array('dc:title' => 'title', 'dc:description' => 'description') as $old_key => $new_key) {
+    if (isset($options[$old_key])) {
+      $options[$new_key] = $options[$old_key];
+      unset($options[$old_key]);
+    }
+  }
+  drupal_write_record('rdf_repositories', $record = (object)array(
+    'name'    => $name,
+    'module'  => 'rdf',
+    'type'    => 'local',
+    'enabled' => TRUE,
+    'mutable' => TRUE,
+    'weight'  => 0,
+    'options' => serialize($options),
+  ));
+
+  rdf_get_schema(db_escape_table(RDF_DB_TABLE_PREFIX . $name), TRUE); // clear the schema cache
+  return $results[0]['success'];
+}
+
+function rdf_update_repository($name, array $options = array()) {
+  db_query("UPDATE {rdf_repositories} SET options = '%s' WHERE name = '%s'", serialize($options), $name);
+}
+
+function rdf_rename_repository($old_name, $new_name) {
+  db_rename_table($results,
+    db_escape_table(RDF_DB_TABLE_PREFIX . $old_name),
+    db_escape_table(RDF_DB_TABLE_PREFIX . $new_name));
+  db_query("UPDATE {rdf_repositories} SET name = '%s' WHERE name = '%s'", $new_name, $old_name);
+  return $results[0]['success'];
+}
+
+function rdf_delete_repository($name) {
+  db_drop_table($results, db_escape_table(RDF_DB_TABLE_PREFIX . $name));
+  db_query("DELETE FROM {rdf_repositories} WHERE name = '%s'", $name);
+  return $results[0]['success'];
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// RDF namespace API
+
+function rdf_get_namespace($prefix) {
+  return db_fetch_object(db_query("SELECT v.* FROM {rdf_namespaces} v WHERE v.prefix = '%s'", $prefix));
 }
 
 //////////////////////////////////////////////////////////////////////////////
