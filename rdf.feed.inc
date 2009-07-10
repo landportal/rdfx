@@ -241,7 +241,6 @@ function rdf_build_rss_feed_node_field(&$item, $field_name, $field_info, array $
             // Cast CCK Date field values into the correct RDF datatype,
             // with optional timezone information:
             if (isset($field_value['date_type'])) {
-$GLOBALS['nid'] = $item->nid;
               $value = rdf_get_rss_feed_date_field($field_value, $field_value_index, $options);
             }
             $item->rdf[$field_uri][] = $value;
