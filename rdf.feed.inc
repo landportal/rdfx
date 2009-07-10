@@ -241,6 +241,7 @@ function rdf_build_rss_feed_node_field(&$item, $field_name, $field_info, array $
             // Cast CCK Date field values into the correct RDF datatype,
             // with optional timezone information:
             if (isset($field_value['date_type'])) {
+$GLOBALS['nid'] = $item->nid;
               $value = rdf_get_rss_feed_date_field($field_value, $field_value_index, $options);
             }
             $item->rdf[$field_uri][] = $value;
@@ -267,6 +268,14 @@ function rdf_get_rss_feed_date_field($field_value, $field_value_index, array $op
       $datetime  = date_create($field_value[$field_value_index], $timezone_db);
       $timestamp = (int)date_format($datetime, 'U');
       break;
+  }
+
+  // Daylight Saving Time (DST) adjustments:
+  if (@$options['date_timezone'] == 'local' && !empty($options['date_timezone_dst'])) {
+    if (($dst_diff = (int)date('I', $timestamp) - (int)date('I', time()))) {
+      $timezone  += ($dst_diff * 3600);
+      $timestamp -= ($dst_diff * 3600);
+    }
   }
 
   return rdf_datetime($timestamp, empty($options['date_timezone']) ? 0 : $timezone);

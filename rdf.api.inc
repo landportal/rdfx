@@ -202,7 +202,7 @@ function rdf_bnode($id = NULL) {
   return $id ? RDF_BNode::id($id) : RDF_BNode::generate();
 }
 
-function rdf_datetime($timestamp = NULL, $timezone = 0) {
+function rdf_datetime($timestamp = NULL, $timezone = NULL) {
   if (is_numeric($timestamp)) {
     $timestamp = (int)$timestamp;
   }
@@ -212,7 +212,7 @@ function rdf_datetime($timestamp = NULL, $timezone = 0) {
   else if (is_null($timestamp)) {
     $timestamp = gmmktime();
   }
-  $datetime = format_date($timestamp, 'custom', 'Y-m-d\TH:i:sO', $timezone);
+  $datetime = format_date($timestamp, 'custom', 'Y-m-d\TH:i:sO', (int)$timezone);
   $datetime = str_replace('+0000', 'Z', $datetime); // clean up format_date() result
   $datetime = preg_replace('/([+-])(\d{2}):?(\d{2})$/', '\1\2:\3', $datetime);
   return rdf_literal($datetime, NULL, 'xsd:dateTime');
