@@ -20,7 +20,7 @@ class views_plugin_row_node_rdf extends views_plugin_row {
 
   function options_form(&$form, &$form_state) {
     module_load_include('inc', 'rdf', 'rdf.admin'); // rdf.admin.inc
-    rdf_admin_feed_item_form($form, $form_state, $this->options['item_length'], 'views');
+    rdf_admin_feed_item_form($form, $form_state, $this->options, 'views');
   }
 
   function render($row) {
