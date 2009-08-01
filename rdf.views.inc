@@ -222,7 +222,7 @@ function rdf_views_set_feed_settings($feed_id, array $settings) {
   while ($row = db_fetch_object($result)) {
     $row->display_options = unserialize($row->display_options);
     if (isset($row->display_options['style_plugin']) && $row->display_options['style_plugin'] == 'rdf') {
-      $item_options = array_intersect_key($settings, array('item_length' => '', 'date_timezone' => ''));
+      $item_options = array_intersect_key($settings, array('item_length' => '', 'date_timezone' => '', 'date_timezone_dst' => ''));
       $feed_options = array_diff_key($settings, $item_options);
       if (($row->display_options['style_options'] != $feed_options) || ($row->display_options['row_options'] != $item_options)) {
         $row->display_options['style_options'] = $feed_options;
