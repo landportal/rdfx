@@ -231,6 +231,10 @@ function rdf_build_rss_feed_node($nid, array $options = array()) {
 }
 
 function rdf_build_rss_feed_node_field(&$item, $field_name, $field_info, array $options) {
+  if (isset($field_info['#access']) && !$field_info['#access']) {
+    return; // this provides integration with CCK's Content Permissions module
+  }
+
   foreach (array('' => 'value', '[from]' => 'value', '[to]' => 'value2') as $field_suffix => $field_value_index) {
     if (($field_uri = variable_get('rdf_schema_property_content_' . $field_name . $field_suffix, '')) != '' && rdf_is_valid_uri($field_uri)) {
       if (isset($item->$field_name)) {
