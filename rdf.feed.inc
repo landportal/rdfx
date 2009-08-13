@@ -194,6 +194,11 @@ function rdf_build_rss_feed_node($nid, array $options = array()) {
         $item->rdf[$element['key']][] = $element['value'];
       }
       else {
+        foreach ($element['value'] as $key => $value) {
+          if (!is_array($value)) {
+            $item->rdf[$key][] = $value;
+          }
+        }
         // TODO: need to construct an equivalent BNode structure
         //$item->rdf[$element['key']][] = 
       }
