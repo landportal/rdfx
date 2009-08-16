@@ -286,5 +286,8 @@ function rdf_get_rss_feed_date_field($field_value, $field_value_index, array $op
     }
   }
 
-  return rdf_datetime($timestamp, empty($options['date_timezone']) ? 0 : $timezone);
+  return rdf_datetime($timestamp,
+    empty($options['date_timezone'])      ? 0 : $timezone,                    // TZ offset
+    empty($options['date_timezone_name']) ? NULL : @$field_value['timezone'], // TZ name
+    variable_get('rdf_datetime_datatype', 'xsd:dateTime'));                   // RDF datatype
 }

@@ -575,6 +575,12 @@ function rdf_admin_feed_item_form(&$form, &$form_state, $defaults = array(), $mo
     '#default_value' => !empty($defaults['date_timezone_dst']) ? $defaults['date_timezone_dst'] : '',
     '#description'   => t(''),
   );
+  $form['date_timezone_name'] = array(
+    '#type'          => 'checkbox',
+    '#title'         => t('Append the time zone name to datetime literals'),
+    '#default_value' => !empty($defaults['date_timezone_name']) ? $defaults['date_timezone_name'] : '',
+    '#description'   => t('This is a non-standard extension to XML Schema\'s datetime literal datatype and <strong>not</strong> recommended for ordinary usage.'),
+  );
 }
 
 function rdf_admin_feed_validate($form, &$form_state) {
@@ -618,7 +624,7 @@ function rdf_admin_feed_submit($form, &$form_state) {
 
   // Save feed settings
   $function = ($feed->module == 'views') ? 'rdf_views_set_feed_settings' : 'rdf_set_feed_settings';
-  $function($feed, compact('description_from_mission', 'description', 'update_period', 'update_frequency', 'update_base', 'format', 'item_length', 'date_timezone', 'date_timezone_dst'));
+  $function($feed, compact('description_from_mission', 'description', 'update_period', 'update_frequency', 'update_base', 'format', 'item_length', 'date_timezone', 'date_timezone_dst', 'date_timezone_name'));
   drupal_set_message(t('The feed configuration for %path has been updated.', array('%path' => $feed->path)));
 }
 
