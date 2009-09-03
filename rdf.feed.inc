@@ -210,11 +210,14 @@ function rdf_build_rss_feed_node_author(&$item, array $options) {
   // up the author name to output.
   if (!empty($options['author_property'])) {
     if (module_exists('token') && !empty($options['author_value'])) {
-      $item->rdf[$options['author_property']][] = token_replace($options['author_value'], 'node', $item);
+      $author = $options['author_value'];
+      $author = token_replace($author, 'node', $item);
+      $author = token_replace($author, 'user', user_load($item->uid));
     }
     else {
-      $item->rdf[$options['author_property']][] = $item->name;
+      $author = $item->name;
     }
+    $item->rdf[$options['author_property']][] = $author;
   }
 }
 
