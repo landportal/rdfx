@@ -4,7 +4,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // RDF API settings
 
-define('RDF_ARC2_PATH',   drupal_get_path('module', 'rdf') . '/vendor/arc');
+if (module_exists('libraries')) {
+  define('RDF_ARC2_PATH', libraries_get_path('arc'));
+}
+else {
+  define('RDF_ARC2_PATH', drupal_get_path('module', 'rdf') . '/vendor/arc');
+}
 define('RDF_FORMAT',      variable_get('rdf_format', 'rdf+json'));
 define('RDF_FORMAT_RSS',  variable_get('rdf_format_rss', 'rdf+xml'));
 define('RDF_SITE_URI',    url(NULL, array('absolute' => TRUE)));
