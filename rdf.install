@@ -232,7 +232,7 @@ function rdf_schema_alter($schema) {
   // created by third-party modules to have a schema without them having to
   // duplicate the definition of the {rdf_data} table, above.
   if (function_exists('rdf_get_tables')) {
-    foreach (rdf_get_tables() as $table) {
+    foreach (rdf_get_tables(TRUE) as $table) {
       if ($table != RDF_DB_TABLE_DEFAULT) {
         $schema[$table] = $schema[RDF_DB_TABLE_DEFAULT];
       }
