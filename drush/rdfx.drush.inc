@@ -24,9 +24,10 @@
 function rdfx_drush_command() {
   $items = array();
 
-  $items['rdfx-arc2'] = array(
+  $items['rdf-download'] = array(
     'callback' => 'rdfx_drush_arc2_download',
     'description' => dt('Downloads the required ARC2 library from http://arc.semsol.org/download'),
+    'aliases' => array('rdfdl'),
     'arguments' => array(
       'path' => dt('Optional. A path to the rdfx module. If omitted Drush will use the default location.'),
     ),
@@ -48,7 +49,7 @@ function rdfx_drush_command() {
  */
 function rdfx_drush_help($section) {
   switch ($section) {
-    case 'drush:rdfx-arc2':
+    case 'drush:rdf-download':
       return dt("Downloads the required ARC2 library from http://arc.semsol.org/download. Include the optional path.");
   }
 }
@@ -69,20 +70,28 @@ function rdfx_drush_arc2_download() {
   if ($args[0]) {
     $path = $args[0];
   }
+  elseif(module_exists('libraries')) {
+    $path = 'sites/all/libraries';
+
+    // Create the path if it does not exist.
+    if (!is_dir($path)) {
+      drush_op('mkdir', $path);
+      drush_log(dt('Directory @path was created', array('@path' => $path)), 'notice');
+    }
+  }
   else {
-    $path = drupal_get_path('module', 'rdfx');
+    $path = drupal_get_path('module', 'rdfx') . '/vendor';
+    // Create the vendor directory if it does not exist yet.
+    if (!is_dir($path)) {
+      drush_op('mkdir', $path);
+    }
   }
   drush_op('chdir', $path);
-  // Create vendor directory if it does not exist yet.
-  if (!drush_op('chdir', 'vendor')) {
-    drush_op('mkdir', 'vendor');
-    drush_op('chdir', 'vendor');
-  }
   // Download and extract library.
   if (drush_shell_exec('wget http://code.semsol.org/source/arc.tar.gz') &&
       drush_shell_exec('tar zxvf arc.tar.gz') &&
       drush_shell_exec('rm arc.tar.gz')) {
-    drush_log(dt('The latest ARC2 library has been downloaded to @path/vendor', array('@path' => $path)), 'success');
+    drush_log(dt('The latest ARC2 library has been downloaded to @path', array('@path' => $path)), 'success');
   }
   else {
     drush_log(dt('Drush was unable to download the ARC2 library to @path', array('@path' => $path)), 'error');
