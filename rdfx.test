@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 /**
  * Test the RDF serialization functionality for nodes.

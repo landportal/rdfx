@@ -1,4 +1,3 @@
-; $Id$
 name = RDF UI
 description = User interface for altering the RDF mapping of Drupal data structure.
 package = RDF
