@@ -25,7 +25,7 @@ function rdfx_drush_command() {
 
   $items['rdf-download'] = array(
     'callback' => 'rdfx_drush_arc2_download',
-    'description' => dt('Downloads the required ARC2 library from http://arc.semsol.org/download'),
+    'description' => dt('Downloads the required ARC2 library from http://github.com/semsol/arc2'),
     'aliases' => array('rdfdl'),
     'arguments' => array(
       'path' => dt('Optional. A path to the rdfx module. If omitted Drush will use the default location.'),
@@ -49,7 +49,7 @@ function rdfx_drush_command() {
 function rdfx_drush_help($section) {
   switch ($section) {
     case 'drush:rdf-download':
-      return dt("Downloads the required ARC2 library from http://arc.semsol.org/download. Include the optional path.");
+      return dt("Downloads the required ARC2 library from http://github.com/semsol/arc2. Include the optional path.");
   }
 }
 
@@ -87,8 +87,9 @@ function rdfx_drush_arc2_download() {
   }
   drush_op('chdir', $path);
   // Download and extract library.
-  if (drush_shell_exec('wget http://code.semsol.org/source/arc.tar.gz') &&
+  if (drush_shell_exec('wget --no-check-certificate -O arc.tar.gz http://github.com/semsol/arc2/tarball/master') &&
       drush_shell_exec('tar zxvf arc.tar.gz') &&
+      drush_shell_exec('mv semsol-arc2-* arc') &&
       drush_shell_exec('rm arc.tar.gz')) {
     drush_log(dt('The latest ARC2 library has been downloaded to @path', array('@path' => $path)), 'success');
   }
