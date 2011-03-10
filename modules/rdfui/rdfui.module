@@ -123,26 +123,66 @@ function rdfui_admin_rdf_overview_form($form, &$form_state, $entity_type, $bundl
   $bundle = field_extract_bundle($entity_type, $bundle);
   $fields = field_info_instances($entity_type, $bundle);
   $mapping = rdf_mapping_load($entity_type, $bundle);
+  $type = node_type_get_type($bundle);
 
-  $form['rdf_rdftype'] = array(
+  $form['rdf_mappings'] = array(
+    '#type' => 'vertical_tabs',
+    '#attached' => array(
+      'js' => array(drupal_get_path('module', 'rdfui') . '/rdfui.js'),
+    ),
+  );
+
+  // Declare the fieldset and field for RDF type.
+  $form['type'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Type'),
+    '#group' => 'rdf_mappings',
+    '#attributes' => array('class' => array('rdf-type')),
+  );
+  $form['type']['rdf_rdftype'] = array(
     '#type' => 'textarea',
     '#title' => t('RDF Type'),
+    '#attached' => array(
+      'js' => array(drupal_get_path('module', 'rdfui') . '/rdfui.js'),
+    ),
   );
-  $form['rdf_title'] = array(
+
+  // Declare the fieldset and field for RDF type.
+  $form['type'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Title'),
+    '#title' => t('Type'),
+    '#group' => 'rdf_mappings',
+    '#attributes' => array('class' => array('rdf-field')),
   );
+  $form['type']['rdf_rdftype'] = array(
+    '#type' => 'textarea',
+    '#title' => t('RDF Type'),
+    '#attributes' => array('class' => array('rdf-field')),
+  );
+
+  // If this entity has a title display a fieldset for mapping.
+  if ($type->has_title) {
+    $form['rdf_title'] = array(
+      '#type' => 'fieldset',
+      '#group' => 'rdf_mappings',
+      '#title' => $type->title_label,
+      '#attributes' => array('class' => array('rdf-field')),
+    );
+    // Add the options for this entites title.
+    rdfui_predicate_fieldset($form['rdf_title'], $mapping, 'title', 'title');
+  }
+
   // Add the field for RDF type.
-  rdfui_rdftype_fieldset($form['rdf_rdftype'], $mapping);
-  // Add the options for Title.
-  rdfui_predicate_fieldset($form['rdf_title'], $mapping, 'title', 'title');
+  rdfui_rdftype_fieldset($form['type']['rdf_rdftype'], $mapping);
   // Add the options for all other fields.
   foreach ($fields as $field) {
     $label = $field['label'];
     $field_name = $field['field_name'];
     $form[$field_name] = array(
       '#type' => 'fieldset',
+      '#group' => 'rdf_mappings',
       '#title' => t('@label', array('@label' => $label)),
+      '#attributes' => array('class' => array('rdf-field')),
     );
     rdfui_predicate_fieldset($form[$field_name], $mapping, $field_name, $label);
   }
@@ -152,7 +192,6 @@ function rdfui_admin_rdf_overview_form($form, &$form_state, $entity_type, $bundl
 
 // @todo where is RDFUI_CURIE_REGEX declared?
 //  drupal_add_js(array('rdfui' => array('termRegex' => RDFUI_CURIE_REGEX)), 'setting');
-
   return $form;
 }
 
@@ -386,8 +425,20 @@ function rdfui_predicate_fieldset(&$fieldset, $mapping, $field_name, $label) {
     '#resizable' => FALSE,
   );
 
+  $fieldset['rdf_'. $field_name .'_type'] = array(
+    '#prefix' => '<div class="rdf-attribute-type-wrapper">',
+    '#type' => 'select',
+    '#title' => t('Attribute Type'),
+    '#default_value' => empty($mapping[$field_name]['type']) ? 'property' : $mapping[$field_name]['type'],
+    '#description' => t('If a field contains a literal, such as a string or an integer, then the property attribute should be used. If it contains a url or node reference, the !rel or !rev attribute should be used.', array('@label' => $label, '!rel' => l('rel','http://www.w3.org/TR/html401/struct/links.html#adef-rel'), '!rev' => l('rev','http://www.w3.org/TR/html401/struct/links.html#adef-rev'))),
+    '#options' => array('property'=>'property', 'rel'=>'rel', 'rev'=>'rev'),
+    '#attributes' => array('class' => array('rdf-attribute-type')),
+    '#suffix' => '</div>',
+  );
+
   // @todo Possibly autocomplete the builtin xsd datatypes, but do not restrict to xsd datatypes.
   $fieldset['rdf_'. $field_name .'_datatype'] = array(
+    '#prefix' => '<div class="rdf-data-type">',
     '#type' => 'textfield',
     '#title' => t('Datatype'),
     '#autocomplete_path' => 'rdfui/datatype/autocomplete',
@@ -398,14 +449,12 @@ function rdfui_predicate_fieldset(&$fieldset, $mapping, $field_name, $label) {
         '!link' => l('XML Schema datatypes', 'http://www.w3.org/TR/2004/REC-rdf-mt-20040210/#dtype_interp', array('attributes' => array('target' => '_blank'))),
       )
     ),
-  );
-
-  $fieldset['rdf_'. $field_name .'_type'] = array(
-    '#type' => 'select',
-    '#title' => t('Attribute Type'),
-    '#default_value' => empty($mapping[$field_name]['type']) ? 'property' : $mapping[$field_name]['type'],
-    '#description' => t('If a field contains a literal, such as a string or an integer, then the property attribute should be used. If it contains a url or node reference, the !rel or !rev attribute should be used.', array('@label' => $label, '!rel' => l('rel','http://www.w3.org/TR/html401/struct/links.html#adef-rel'), '!rev' => l('rev','http://www.w3.org/TR/html401/struct/links.html#adef-rev'))),
-    '#options' => array('property'=>'property', 'rel'=>'rel', 'rev'=>'rev'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="rdf_' . $field_name . '_type"]' => array('value' => 'property'),
+      ),
+    ),
+    '#suffix' => '</div>',
   );
   drupal_add_css(drupal_get_path('module', 'rdfui') .'/rdfui.css', 'file');
 }
@@ -424,7 +473,6 @@ function rdfui_rdftype_fieldset(&$fieldset, $mapping) {
     '#default_value' => empty($mapping['rdftype']) ? '' : implode(", ",$mapping['rdftype']),
     '#description' => t('Enter the RDF type for the bundle here. Classes should be listed in CURIE syntax, with the vocabulary namespace and predicate. For example, sioc:Item.'),
   );
-
 }
 
 /**

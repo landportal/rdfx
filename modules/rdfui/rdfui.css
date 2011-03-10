@@ -24,25 +24,12 @@
 }
 
 /*
- * Fieldset in RDF Settings block on bundle's main edit page.
- */
-.vertical-tabs #edit-rdf-title {
-  background:none;
-  padding: 0;
-}
-
-.vertical-tabs #edit-rdf-title legend {
-  display: inline;
-  padding: 20px 0 30px;
-}
-
-/*
  * Terms autocomplete on administrative screens.
  */
 .rdf-term-autocomplete {
   margin: 0;
   padding: 0;
-  white-space: normal;  
+  white-space: normal;
 }
 
 .rdf-comment-autocomplete {
@@ -52,4 +39,15 @@
   font-style: italic;
   margin: 0;
   padding-bottom: 10px;
+}
+
+.rdf-attribute-type-wrapper {
+  float: left;
+  width: 45%;
+  padding: 10px;
+}
+
+.rdf-data-type-wrapper {
+  width: 45%;
+  float: left;
 }
