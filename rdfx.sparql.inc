@@ -167,7 +167,7 @@ function rdfx_arc2_init_remote_store($endpoint, $options) {
   $config = array(
     /* remote endpoint */
     'remote_store_endpoint' => $endpoint,
-    'store_read_key' => $options['store_read_key'] ? $options['store_read_key'] : '',
+    'store_read_key' => !empty($options['store_read_key']) ? $options['store_read_key'] : '',
   );
 
   /* instantiation */
