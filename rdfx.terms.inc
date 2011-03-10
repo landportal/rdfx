@@ -43,9 +43,8 @@ function _rdfx_get_terms($term_type) {
 function rdfx_get_namespaces() {
   $rdf_namespaces = &drupal_static(__FUNCTION__);
   if (empty($rdf_namespaces)) {
-    $rdf_namespaces = module_invoke_all('rdf_namespaces');
+    $rdf_namespaces = rdf_get_namespaces();
   }
-  // @todo ensure there are no duplicates and that array is only one level.
   return $rdf_namespaces;
 }
 
