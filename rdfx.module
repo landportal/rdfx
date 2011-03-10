@@ -21,7 +21,7 @@ else {
  */
 function rdfx_init() {
   // Attempts to load the ARC2 library, if available.
-  if (!class_exists('ARC2')) {
+  if (!class_exists('ARC2') && file_exists(RDF_ARC2_PATH . '/ARC2.php')) {
     @include_once RDF_ARC2_PATH . '/ARC2.php';
   }
   module_load_include('inc', 'rdfx', 'rdfx.terms');
