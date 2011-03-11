@@ -13,7 +13,7 @@ class RdfxNodeSerializationTestCase extends DrupalWebTestCase {
   }
 
   function setUp() {
-    parent::setUp();
+    parent::setUp('rdfx');
 
     // Set default storage backend.
     variable_set('field_storage_default', 'field_sql_storage');
