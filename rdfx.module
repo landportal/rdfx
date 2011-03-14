@@ -99,7 +99,7 @@ function rdfx_build_rdf_node($node) {
         $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $node->$name);
         break;
 
-      case 'created' :
+      case 'changed' :
         $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $node->$name);
         break;
 
