@@ -18,11 +18,11 @@ Drupal 7 core.
      sites/all/modules/rdf/ under your Drupal installation directory.
 
   2. Install the ARC2 library following one of these 2 options:
-       - run "drush rdfx-arc2" (recommended, it will download the right package
-         and extract it at the right place for you.)
+       - run "drush rdf-download" (recommended, it will download the right
+         package and extract it at the right place for you.)
        - manual install: download the library from
-       http://arc.semsol.org/download and extract it in the rdf module directory
-       such that you end up with the following file structure:
+       http://github.com/semsol/arc2/tarball/master and extract it in the rdf
+       module directory such that you end up with the following file structure:
        sites/all/modules/rdf/vendor/arc/ARC2.php
 
   3. Go to Administer >> Site building >> Modules and enable the RDFx module and
