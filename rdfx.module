@@ -192,6 +192,32 @@ function rdfx_build_rdf_node($node) {
 }
 
 /**
+ * Implements hook_requirements().
+ */
+function rdf_requirements($phase) {
+  $requirements = array();
+
+  if ($phase == 'runtime') {
+    $exists = class_exists('ARC2');
+    if ($exists) {
+      $value = t('Exists');
+      $severity = REQUIREMENT_OK;
+    }
+    else {
+      $value = t('Doesn\'t exist');;
+      $severity = REQUIREMENT_ERROR;
+    }
+    $requirements['rdfx_arc'] = array(
+      'title' => t('RDFx ARC2 Library'),
+      'value' => $value,
+      'severity' => $severity,
+    );
+  }
+
+  return $requirements;
+}
+
+/**
  * Constructs the RDF representation of an entity of type user.
  */
 function rdfx_build_rdf_user($user) {
