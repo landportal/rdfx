@@ -52,14 +52,24 @@ function rdfx_get_namespaces() {
  * Implements hook_rdf_namespaces.
  */
 function rdfx_rdf_namespaces() {
-  //$rdf_namespaces = db_query('SELECT prefix, uri FROM {rdfx_namespaces}')->fetchAllKeyed();
-
-  // Adds some additionnal common namespaces which core does not include.
-  return array(
+  // Starts with some additionnal common namespaces which core does not include.
+  $ns_mappings = array(
     'owl'      => 'http://www.w3.org/2002/07/owl#',
     'rdf'      => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     'rss'      => 'http://purl.org/rss/1.0/',
   );
+
+  // Gets the custom namespaces stored in the database.
+  $query = db_select('rdfx_vocabulary_graphs', 'g');
+  $query->fields('n', array('prefix', 'uri'));
+  $query->join('rdfx_namespaces', 'n', 'g.main_ns = n.nsid');
+  $query->orderBy('n.prefix');
+  $namespaces = $query->execute()->fetchAllKeyed();
+  foreach ($namespaces as $prefix => $uri) {
+    $ns_mappings[$prefix] = $uri;
+  }
+
+  return $ns_mappings;
 }
 
 /**

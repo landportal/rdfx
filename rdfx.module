@@ -73,8 +73,8 @@ function rdfx_menu() {
   ) + $config_base;
   $items['admin/config/services/rdf/namespaces'] = array(
     'title' => 'RDF namespaces',
-    'description'      => 'See all namespace mappings.',
-    'page callback'    => 'rdfx_namespace_overview',
+    'description'      => 'See all namespaces and their prefixes.',
+    'page callback'    => 'rdfx_admin_namespaces',
     'type'             => MENU_LOCAL_TASK,
   ) + $config_base;
   $items['node/%node/rdf'] = array(
