@@ -519,23 +519,31 @@ function _rdfui_validate_datatype($form_state, $field_name) {
  */
 
 function _rdfui_mapping_save($form_state, $entity_type, $bundle, $field_name) {
-
-  // @ todo Why would we need this mapping_load? I think we don't
   $mapping = rdf_mapping_load($entity_type, $bundle);
   // Set the RDF type if it is in this form.
-  if (isset($form_state['values']['rdf_rdftype'])) {
+  if (!empty($form_state['values']['rdf_rdftype'])) {
     $mapping['rdftype'] = rdfui_extract_curies($form_state['values']['rdf_rdftype']);
   }
-  // Set the predicates for the field.
-  $predicates = rdfui_extract_curies($form_state['values']['rdf_'. $field_name .'_predicates']);
-  // Make sure we remove any mapping which does not have any valid predicate.
-  if (empty($predicates)) {
-    unset($mapping[$field_name]);
-  }
-  else {
-    $mapping[$field_name]['predicates'] = $predicates;
-    $mapping[$field_name]['datatype'] = $form_state['values']['rdf_'. $field_name .'_datatype'];
-    $mapping[$field_name]['type'] = $form_state['values']['rdf_'. $field_name .'_type'];
+  // Turn the predicates string into an array.
+  $form_state['values']['rdf_'. $field_name .'_predicates'] = rdfui_extract_curies($form_state['values']['rdf_'. $field_name .'_predicates']);
+
+  foreach (array('type', 'datatype', 'predicates') as $key) {
+    // If there is form input for this key, set it in the mapping.
+    if (!empty($form_state['values']['rdf_'. $field_name .'_' . $key])) {
+      $mapping[$field_name][$key] = $form_state['values']['rdf_'. $field_name .'_' . $key];
+    }
+    // If there is no form input for this key, we need to remove it from the
+    // mapping.
+    else {
+      // If there are no predicates, there should be no mapping at all for the
+      // field.
+      if ($key == 'predicates') {
+        unset($mapping[$field_name]);
+      }
+      else {
+        unset($mapping[$field_name][$key]);
+      }
+    }
   }
 
   $mapping_info = array(

@@ -11,7 +11,7 @@ function rdfx_mapping_overview() {
  * Menu callback for viewing all declared namespaces and their prefixes.
  */
 function rdfx_admin_namespaces() {
-  $output = '<p>' .  t('This page lists the namespaces and associated prefixes known to the system. Prefixes provide an abbreviation for namespaces allowing URIs to be shortened in the form of <a href="http://en.wikipedia.org/wiki/CURIE">CURIEs</a> (Compact URIs). For example, the shorthand notation dc:title refers to the URI http://purl.org/dc/terms/title. You can add more namespaces in the form located under the table below.') . '</p>';
+  $output = '';
 
   // Builds a table of existing namespaces known to the system.
   $table_namespaces = array();
@@ -22,7 +22,8 @@ function rdfx_admin_namespaces() {
   $output .= theme('table', $table_namespaces);
 
   // Form to add namespaces.
-  $output .= drupal_render(drupal_get_form('rdfx_admin_namespaces_form'));
+  $form = drupal_get_form('rdfx_admin_namespaces_form');
+  $output .= drupal_render($form);
 
   return $output;
 }
@@ -32,18 +33,18 @@ function rdfx_admin_namespaces_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Prefix'),
     '#required' => TRUE,
-    '#description' => "Choose a prefix for this namespace, e.g. dc, foaf, sioc. This prefix will later be used in the system as a shorthand notation to refer to this namespace.",
+    '#description' => t('Choose a prefix for this namespace, e.g. dc, foaf, sioc. This prefix will be used as an abbreviation for the namespace URI.'),
   );
   $form['ns_uri'] = array(
     '#type' => 'textfield',
     '#title' => t('Namespace URI'),
     '#required' => TRUE,
     '#default_value' => isset($form_state['values']['ns_uri']) ? $form_state['values']['ns_uri'] : NULL,
-    '#description' => "Enter the URI of the namespace. Make sure it ends with either / or #.",
+    '#description' => t("Enter the URI of the namespace. Make sure it ends with either / or #."),
   );
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Submit',
+    '#value' => t('Save'),
   );
   return $form;
 }
@@ -81,5 +82,5 @@ function rdfx_admin_namespaces_form_submit($form, &$form_state) {
     'namespaces' => array(),
   );
   _rdfx_save_vocabulary($ns_uri, $prefix, $vocabulary);
-  drupal_set_message(t('The namespace @namespace has been associated with the prefix @prefix.', array('@namespace' => $ns_uri, '@prefix' => $prefix)));
+  drupal_set_message(t('The namespace @namespace has been saved with the prefix @prefix.', array('@namespace' => $ns_uri, '@prefix' => $prefix)));
 }
