@@ -261,7 +261,7 @@ function rdfx_build_rdf_user($user) {
   $doc_uri = url('user/' . $user->uid, array('absolute' => TRUE));
   // URI of the resource being described in the node.
   // @todo allow for customizable resource uris.
-  $res_uri = url('user/' . $user->uid, array('fragment' => 'this', 'absolute' => TRUE));
+  $res_uri = url('user/' . $user->uid, array('fragment' => 'me', 'absolute' => TRUE));
 
   // Instanciate node resource as ARC2 class and set base and namespaces.
   $res = ARC2::getResource();
