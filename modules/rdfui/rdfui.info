@@ -3,4 +3,5 @@ description = User interface for altering the RDF mapping of Drupal data structu
 package = RDF
 version = VERSION
 core = 7.x
+dependencies[] = rdfx
 files[] = rdfui.module
