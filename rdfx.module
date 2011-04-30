@@ -99,6 +99,16 @@ function rdfx_menu() {
 }
 
 /**
+ * Implements hook_help().
+ */
+function rdfx_help($path, $arg) {
+  switch($path) {
+    case 'admin/config/services/rdf/namespaces';
+      return '<p>' . t('Manage the namespaces and associated prefixes used by the site. Prefixes allow URIs to be shortened in the form of <a href="http://en.wikipedia.org/wiki/CURIE">CURIEs</a> (Compact URIs). For example, the CURIE %curie represents the URI %uri.', array('%curie' => 'dc:title', '%uri' => 'http://purl.org/dc/terms/title')) . '</p>';
+  }
+}
+
+/**
  * Constructs the RDF representation of an entity of type node.
  */
 function rdfx_build_rdf_node($node) {
