@@ -389,6 +389,8 @@ function rdfx_build_rdf_user($user) {
  * Helper function to build an ARC2 index composed of predicates and objects.
  */
 function _rdfx_build_arc2_index_p_o($mapping, $data = NULL) {
+  $props = array();
+
   // The type of mapping defaults to 'property'.
   $type = isset($mapping['type']) ? $mapping['type'] : 'property';
 
