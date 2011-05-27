@@ -465,7 +465,7 @@ function rdfui_predicate_fieldset(&$fieldset, $mapping, $field_name, $label) {
       ),
     ),
   );
-  drupal_add_css(drupal_get_path('module', 'rdfui') .'/rdfui.css', 'file');
+  drupal_add_css(drupal_get_path('module', 'rdfui') .'/css/rdfui.css', 'file');
 }
 
 /**
