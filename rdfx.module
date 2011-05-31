@@ -83,7 +83,6 @@ function rdfx_menu() {
     'page arguments' => array('node', 1),
     'access arguments' => array('access content'),
     'weight' => 0,
-    'type' => MENU_LOCAL_TASK,
     'file' => 'rdfx.pages.inc',
   );
   $items['user/%user/rdf'] = array(
@@ -92,7 +91,6 @@ function rdfx_menu() {
     'page arguments' => array('user', 1),
     'access arguments' => array('access content'),
     'weight' => 0,
-    'type' => MENU_LOCAL_TASK,
     'file' => 'rdfx.pages.inc',
   );
   return $items;
