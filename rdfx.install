@@ -284,3 +284,11 @@ function rdfx_schema() {
 
   return $schema;
 }
+
+/**
+ * Enable entity module (new dependency).
+ */
+function rdfx_update_7001() {
+  module_enable(array(entity));
+  drupal_set_message('The Entity API module is now required by the RDFx module and has been enabled.');
+}

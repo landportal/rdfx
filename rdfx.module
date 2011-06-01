@@ -77,22 +77,6 @@ function rdfx_menu() {
     'page callback'    => 'rdfx_admin_namespaces',
     'type'             => MENU_LOCAL_TASK,
   ) + $config_base;
-  $items['node/%node/rdf'] = array(
-    'title' => 'RDF',
-    'page callback' => 'rdfx_entity_view',
-    'page arguments' => array('node', 1),
-    'access arguments' => array('access content'),
-    'weight' => 0,
-    'file' => 'rdfx.pages.inc',
-  );
-  $items['user/%user/rdf'] = array(
-    'title' => 'RDF',
-    'page callback' => 'rdfx_entity_view',
-    'page arguments' => array('user', 1),
-    'access arguments' => array('access content'),
-    'weight' => 0,
-    'file' => 'rdfx.pages.inc',
-  );
   return $items;
 }
 
@@ -106,133 +90,203 @@ function rdfx_help($path, $arg) {
   }
 }
 
-/**
- * Constructs the RDF representation of an entity of type node.
- */
-function rdfx_build_rdf_node($node) {
-  // URI of the node.
-  $doc_uri = url('node/' . $node->nid, array('absolute' => TRUE));
-  // URI of the resource being described in the node.
-  // @todo allow for customizable resource uris.
-  $res_uri = url('node/' . $node->nid, array('fragment' => 'this', 'absolute' => TRUE));
+function rdfx_get_rdf_model($type, $id) {
+  // Loads entity and its metadata.
+  $wrapper = entity_metadata_wrapper($type, $id);
+  $entity = $wrapper->value();
 
-  // Instanciate node resource as ARC2 class and set base and namespaces.
+  $entity_uri = rdfx_resource_uri($type, $id);
+  // Instantiates node resource as ARC2 class and set base and namespaces.
   $res = ARC2::getResource();
-  $res->setUri($doc_uri);
+  $res->setUri($entity_uri);
   $res->base = url('', array('absolute' => TRUE));
-  $res->ns = rdfx_get_namespaces();
+  $res->ns = rdf_get_namespaces();
 
-  // Container for the triples about the document.
-  $doc_props = array();
+  // Initializes ARC2 index.
+  $index = array();
 
-  // Only include data which has RDF mapping associated with it.
-  foreach ($node->rdf_mapping as $name => $mapping) {
-    switch ($name) {
-      // Non field API properties.
-      case 'rdftype' :
-        $doc_props['rdf:type'] = $node->rdf_mapping['rdftype'];
-        break;
+  // Adds the RDF types of the resource if a mapping exists.
+  if (!empty($entity->rdf_mapping['rdftype'])) {
+    $index[$entity_uri]['rdf:type'] = $entity->rdf_mapping['rdftype'];
+  }
 
-      case 'title' :
-        $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $node->$name);
-        break;
-
-      case 'created' :
-        // @todo creation date: the user should be able to opt in/out.
-        // @todo modified date: the user should be able to opt in/out.
-        $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $node->$name);
-        break;
-
-      case 'changed' :
-        $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $node->$name);
-        break;
-
-      case 'uid' :
-        // We need to pass the uri of the sioc:has_creator user.
-        $user_uri = url('user/' . $node->uid, array('absolute' => TRUE));
-        $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $user_uri);
-        break;
-
-      case 'comment_count' :
-        $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $node->$name);
-        break;
-
-      // Additionally, include RDF data from Field API fields.
-      default :
-        if (isset($node->$name) && $field_info = field_info_field($name)) {
-          // Items which will be exported as objects.
-          $items = array();
-          switch ($field_info['type']) {
-            case 'image' :
-              // @todo type object with foaf:Image.
-              // @todo export all images with some metadata (size) about them?
-            case 'file' :
-              // @todo support translatable.
-              if (isset($node->{$name}['und'])) {
-                foreach ($node->{$name}['und'] as $item) {
-                  $items[] = file_create_url($item['uri']);
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'taxonomy_term_reference' :
-              // @todo support translatable.
-              if (isset($node->{$name}['und'])) {
-                foreach ($node->{$name}['und'] as $item) {
-                  $items[] = url('taxonomy/term/' . $item['tid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'node_reference' :
-              // @todo support translatable.
-              if (isset($node->{$name}['und'])) {
-                foreach ($node->{$name}['und'] as $item) {
-                  $items[] = url('node/' . $item['nid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'user_reference' :
-              // @todo support translatable.
-              if (isset($node->{$name}['und'])) {
-                foreach ($node->{$name}['und'] as $item) {
-                  $items[] = url('user/' . $item['uid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'text_with_summary' :
-            case 'text_long' :
-              // Forces datatype to rdf:XMLLiteral since it's most likely HTML.
-              // @todo check the input format to check whether it's HTML or not.
-              if (empty($node->rdf_mapping[$name]['datatype'])) {
-                $node->rdf_mapping[$name]['datatype'] = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral';
-              }
-            case 'text' :
-              // @todo support translatable.
-              if (isset($node->{$name}['und'])) {
-                foreach ($node->{$name}['und'] as $item) {
-                  $items[] = $item['safe_value'];
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($node->rdf_mapping[$name], $items);
-              }
-              break;
+  foreach ($wrapper as $name => $property) {
+    if ($property->access('view')) {
+      try {
+        if ($property instanceof EntityDrupalWrapper || $property instanceof EntityValueWrapper) {
+          rdfx_add_statement($index, $entity_uri, $property, $wrapper, $name);
+        }
+        elseif ($property instanceof EntityListWrapper) {
+          // Iterates through the list and add each of them as statement.
+          $li_filtered = rdfx_property_access_filter($property);
+          foreach ($li_filtered as $li_name => $li_property) {
+            if ($li_property instanceof EntityDrupalWrapper || $li_property instanceof EntityValueWrapper) {
+              rdfx_add_statement($index, $entity_uri, $li_property, $wrapper, $name);
+            }
           }
         }
+        elseif ($property instanceof EntityStructureWrapper) {
+          // Entity Structure Wrapper exposes structural elements, such as
+          // text format for fields. We are not interested in this, and adding
+          // the additional information about values means you have to handle
+          // values as blank nodes.
+          $li_filtered = rdfx_property_access_filter($property);
+          foreach ($li_filtered as $li_name => $li_property) {
+            if ($li_property instanceof EntityDrupalWrapper || $li_property instanceof EntityValueWrapper) {
+              // This assumes that all literals have a 'value' array element
+              // and that all resources have a 'uri' array element.
+              if ($li_name == 'value' || $li_name == 'uri'){
+                rdfx_add_statement($index, $entity_uri, $li_property, $wrapper, $name);
+              }
+            }
+          }
+        }
+      }
+      catch (EntityMetadataWrapperException $e) {
+        // Property not supported. Fail silently.
+      }
     }
   }
 
-  // Attach the node properties to the document URI.
-  $index[$doc_uri] = $doc_props;
   // Expand all CURIEs and attach the index to the ARC2 resource.
   $res->index = $res->expandPNames($index);
-
   return $res;
+}
+
+function rdfx_property_access_filter($wrapper) {
+  $filtered = array();
+  foreach ($wrapper as $name => $property) {
+    if ($property->access('view')) {
+      $filtered[$name] = $property;
+    }
+  }
+  return $filtered;
+}
+
+/**
+ * Gets the predicates relating the property to the entity.
+ */
+function rdfx_get_predicates(EntityMetadataWrapper $wrapper, $name) {
+  $element = array();
+  if ($wrapper instanceof EntityDrupalWrapper) {
+    $entity = $wrapper->value();
+    if (!empty($entity->rdf_mapping[$name])) {
+      // Just make use of the first predicate for now.
+      // @lin this support all predicates defined in the mapping.
+      $predicates = $entity->rdf_mapping[$name]['predicates'];
+      $element = $predicates;
+    }
+  }
+  // For elements which don't have a mapping, expose them using a local
+  // namespace. @todo site vocabulary.
+  // This functionality is disabled by default as a lot of this data is
+  // irrelevant for outsiders and might contains some data the site owner might
+  // not want to expose.
+  // @todo provide admin setting to enable this functionality.
+  if (!isset($element) && variable_get('rdfx_include_unset_mappings', FALSE)) {
+    $predicate = 'site:' . (is_numeric($name) ? 'item' : $name);
+    $element = array($predicate);
+  }
+  return $element;
+}
+
+/**
+ * Adds an RDF statement between the entity and the property. These statements
+ * can have either resource or literal objects.
+ */
+function rdfx_add_statement(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
+  if ($property instanceof EntityDrupalWrapper) {
+    // For referenced entities only add the resource's URI
+    rdfx_add_resource($index, $uri, $property, $wrapper, $name);
+  }
+  elseif ($property instanceof EntityValueWrapper) {
+    rdfx_add_literal($index, $uri, $property, $wrapper, $name);
+  }
+}
+
+/**
+ * Adds a resource object.
+ */
+function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
+  if ($id = $property->getIdentifier()) {
+    $predicates = rdfx_get_predicates($wrapper, $name);
+    $object_uri = rdfx_resource_uri($property->type(), $id);
+    foreach ($predicates as $predicate) {
+      $index[$uri][$predicate][] = $object_uri;
+    }
+  }
+}
+
+/**
+ * Adds a literal object.
+ */
+function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
+  $predicates = rdfx_get_predicates($wrapper, $name);
+  $object_value = $property->value();
+
+  // Extracts datatype and callback from the RDF mapping.
+  $datatype = '';
+  if ($wrapper instanceof EntityDrupalWrapper) {
+    $entity = $wrapper->value();
+    if (!empty($entity->rdf_mapping[$name]['datatype'])) {
+      $datatype = $entity->rdf_mapping[$name]['datatype'];
+    }
+    if (!empty($entity->rdf_mapping[$name]['callback']) && function_exists($entity->rdf_mapping[$name]['callback'])) {
+      $object_value = $entity->rdf_mapping[$name]['callback']($object_value);
+    }
+  }
+
+  foreach ($predicates as $predicate) {
+    $index[$uri][$predicate][] = array(
+      'value' => $object_value,
+      'type' => 'literal',
+      'datatype' => $datatype,
+    );
+  }
+}
+
+/**
+ * Returns the URI used for the given resource.
+ */
+function rdfx_resource_uri($resource, $id) {
+  return url($resource . '/' . $id, array('absolute' => TRUE));
+}
+
+/**
+ * Lists the RDF serializations format which will be integrated with RestWS.
+ *
+ * Does not implement hook_restws_format_info() because we need to override the
+ * RDF serialization format to use our own ARC2 based serializer.
+ */
+function _rdfx_serialization_formats() {
+  $result['rdf'] = array(
+    'label' => t('RDF/XML'),
+    'class' => 'RDFxRestWSFormatRDFXML',
+    'mime type' => 'application/rdf+xml',
+  );
+  $result['ttl'] = array(
+    'label' => t('Turtle'),
+    'class' => 'RDFxRestWSFormatTurtle',
+    'mime type' => 'application/x-turtle',
+  );
+  $result['nt'] = array(
+    'label' => t('NTriples'),
+    'class' => 'RDFxRestWSFormatNTriples',
+    'mime type' => 'text/plain',
+  );
+  $result['rdfjson'] = array(
+    'label' => t('RDFJSON'),
+    'class' => 'RDFxRestWSFormatRDFJSON',
+    'mime type' => 'application/json',
+  );
+  return $result;
+}
+
+/**
+ * Implements hook_restws_format_info_alter().
+ */
+function rdfx_restws_format_info_alter(&$info) {
+  $info = _rdfx_serialization_formats() + $info;
 }
 
 /**
@@ -261,301 +315,4 @@ function rdfx_requirements($phase) {
     );
   }
   return $requirements;
-}
-
-/**
- * Constructs the RDF representation of an entity of type user.
- */
-function rdfx_build_rdf_user($user) {
-  // URI of the node.
-  $doc_uri = url('user/' . $user->uid, array('absolute' => TRUE));
-  // URI of the resource being described in the node.
-  // @todo allow for customizable resource uris.
-  $res_uri = url('user/' . $user->uid, array('fragment' => 'me', 'absolute' => TRUE));
-
-  // Instanciate node resource as ARC2 class and set base and namespaces.
-  $res = ARC2::getResource();
-  $res->setUri($doc_uri);
-  $res->base = url('', array('absolute' => TRUE));
-  $res->ns = rdfx_get_namespaces();
-
-  // Container for the triples about the document.
-  $doc_props = array();
-
-  // Only include data which has RDF mapping associated with it.
-  foreach ($user->rdf_mapping as $name => $mapping) {
-    switch ($name) {
-      // @todo add foaf:Person URI (using $res_uri).
-      // @todo deal with anonymous users (put then with the comments RDF?).
-      // Non field API properties.
-      case 'rdftype' :
-        $doc_props['rdf:type'] = $user->rdf_mapping['rdftype'];
-        break;
-
-      case 'name' :
-        $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $user->$name);
-        break;
-
-      // Additionally, include RDF data from Field API fields.
-      default :
-        if (isset($user->$name) && $field_info = field_info_field($name)) {
-          // Items which will be exported as objects.
-          $items = array();
-          switch ($field_info['type']) {
-            case 'image' :
-              // @todo type object with foaf:Image.
-              // @todo export all images with some metadata (size) about them?
-            case 'file' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = file_create_url($item['uri']);
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'taxonomy_term_reference' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = url('taxonomy/term/' . $item['tid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'node_reference' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = url('node/' . $item['nid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'user_reference' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = url('user/' . $item['uid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'text_with_summary' :
-            case 'text_long' :
-              // Forces datatype to rdf:XMLLiteral since it's most likely HTML.
-              // @todo check the input format to check whether it's HTML or not.
-              if (empty($user->rdf_mapping[$name]['datatype'])) {
-                $user->rdf_mapping[$name]['datatype'] = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral';
-              }
-            case 'text' :
-              // @todo support translatable.
-              if (isset($node->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = $item['safe_value'];
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-          }
-        }
-    }
-  }
-
-  // Container for the triples about the document.
-  $res_props = array();
-  // Links sioc:UserAccount to foaf:Person.
-  // @todo pull these predicates from regular Drupal RDF mappings.
-  $res_props['rdf:type'] = array('foaf:Person');
-  $res_props['foaf:account'] = $doc_uri;
-
-  // Attach the user properties to the document URI.
-  $index[$doc_uri] = $doc_props;
-  // Attach the user res properties to the user res URI.
-  $index[$res_uri] = $res_props;
-  // Expand all CURIEs and attach the index to the ARC2 resource.
-  $res->index = $res->expandPNames($index);
-
-  return $res;
-}
-
-/**
- * Helper function to build an ARC2 index composed of predicates and objects.
- */
-function _rdfx_build_arc2_index_p_o($mapping, $data = NULL) {
-  $props = array();
-
-  // The type of mapping defaults to 'property'.
-  $type = isset($mapping['type']) ? $mapping['type'] : 'property';
-
-  switch ($type) {
-    // The mapping expresses the relationship between two resources.
-    case 'rel':
-      foreach ($mapping['predicates'] as $p) {
-        if (!is_array($data)) {
-          $data = array($data);
-        }
-        foreach ($data as $data_item) {
-          $props[$p][] = array(
-            'value' => $data_item,
-            'type' => 'uri',
-          );
-        }
-      }
-      break;
-
-    case 'rev': // Not supported yet.
-      // @todo
-      break;
-
-    // The mapping expresses the relationship between a resource and some
-    // literal text.
-    case 'property':
-      // Convert $data to a specific format as per the callback function.
-      if (isset($data) && isset($mapping['callback']) && function_exists($mapping['callback'])) {
-        $callback = $mapping['callback'];
-        $data = $callback($data);
-      }
-      foreach ($mapping['predicates'] as $p) {
-        if (!is_array($data)) {
-          $data = array($data);
-        }
-        foreach ($data as $data_item) {
-          $props[$p][] = array(
-            'value' => $data_item,
-            'type' => 'literal',
-            'datatype' => isset($mapping['datatype']) ? $mapping['datatype'] : '',
-          );
-        }
-      }
-      break;
-  }
-
-  return $props;
-}
-
-
-
-/**
- * Constructs the RDF representation of an entity of type user.
- */
-function rdfx_build_rdf_term($user) {
-  // URI of the node.
-  $doc_uri = url('taxonomy/term/' . $user->tid, array('absolute' => TRUE));
-  // URI of the resource being described in the node.
-  // @todo allow for customizable resource uris.
-  $res_uri = url('taxonomy/term/' . $user->tid, array('fragment' => 'this', 'absolute' => TRUE));
-
-  // Instanciate node resource as ARC2 class and set base and namespaces.
-  $res = ARC2::getResource();
-  $res->setUri($doc_uri);
-  $res->base = url('', array('absolute' => TRUE));
-  $res->ns = rdfx_get_namespaces();
-
-  // Container for the triples about the document.
-  $doc_props = array();
-
-  // Only include data which has RDF mapping associated with it.
-  foreach ($user->rdf_mapping as $name => $mapping) {
-    switch ($name) {
-      // @todo add foaf:Person URI (using $res_uri).
-      // @todo deal with anonymous users (put then with the comments RDF?).
-      // Non field API properties.
-      case 'rdftype' :
-        $doc_props['rdf:type'] = $user->rdf_mapping['rdftype'];
-        break;
-
-      case 'name' :
-        $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $user->$name);
-        break;
-
-      // Additionally, include RDF data from Field API fields.
-      default :
-        if (isset($user->$name) && $field_info = field_info_field($name)) {
-          // Items which will be exported as objects.
-          $items = array();
-          switch ($field_info['type']) {
-            case 'image' :
-              // @todo type object with foaf:Image.
-              // @todo export all images with some metadata (size) about them?
-            case 'file' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = file_create_url($item['uri']);
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'taxonomy_term_reference' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = url('taxonomy/term/' . $item['tid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'node_reference' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = url('node/' . $item['nid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'user_reference' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = url('user/' . $item['uid'], array('absolute' => TRUE));
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-
-            case 'text_with_summary' :
-            case 'text_long' :
-              // Forces datatype to rdf:XMLLiteral since it's most likely HTML.
-              // @todo check the input format to check whether it's HTML or not.
-              if (empty($user->rdf_mapping[$name]['datatype'])) {
-                $user->rdf_mapping[$name]['datatype'] = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral';
-              }
-            case 'text' :
-              // @todo support translatable.
-              if (isset($user->{$name}['und'])) {
-                foreach ($user->{$name}['und'] as $item) {
-                  $items[] = $item['safe_value'];
-                }
-                $doc_props += _rdfx_build_arc2_index_p_o($user->rdf_mapping[$name], $items);
-              }
-              break;
-          }
-        }
-    }
-  }
-
-  // Container for the triples about the document.
-  $res_props = array();
-  // Links sioc:UserAccount to foaf:Person.
-  // @todo pull these predicates from regular Drupal RDF mappings.
-//  $res_props['rdf:type'] = array('foaf:Person');
-//  $res_props['foaf:account'] = $doc_uri;
-
-  // Attach the user properties to the document URI.
-  $index[$doc_uri] = $doc_props;
-  // Attach the user res properties to the user res URI.
-//  $index[$res_uri] = $res_props;
-  // Expand all CURIEs and attach the index to the ARC2 resource.
-  $res->index = $res->expandPNames($index);
-
-  return $res;
 }
