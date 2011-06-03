@@ -55,7 +55,7 @@ function rdfx_rdf_namespaces() {
   // Starts with some additionnal common namespaces which core does not include.
   $ns_mappings = array(
     'owl'      => 'http://www.w3.org/2002/07/owl#',
-    'rdf'      => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    'rdfs'      => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     'rss'      => 'http://purl.org/rss/1.0/',
     // url() does not support empty fragment.
     'site'     => url('ns', array('absolute' => TRUE)) . '#',

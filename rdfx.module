@@ -313,6 +313,40 @@ function rdfx_requirements($phase) {
       'severity' => $severity,
       'description' => $description,
     );
+
+    // If there were any conflicting namespaces...
+    if (rdfx_get_conflicting_namespaces()) {
+      // Add a requirement warning and break.
+      $requirements['rdfx_ns_conflict'] = array(
+        'title' => t('RDFx Namespace Conflict'),
+        'severity' => REQUIREMENT_ERROR,
+        'value' => '',
+        'description' => t('One or more namespaces has conflicts.  See this page for more information:') . ' ' . l(t('RDF publishing settings'), 'admin/config/services/rdf/namespaces')
+      );
+    }
   }
   return $requirements;
+}
+
+
+/**
+ * Gets conflicting namespaces.
+ * Returns an array of (prefix => array(uri1, uri2, ...)) items.
+ */
+function rdfx_get_conflicting_namespaces() {
+  $conflicting_namespaces = array();
+
+  $rdf_namespaces = module_invoke_all('rdf_namespaces');
+
+  foreach ($rdf_namespaces as $prefix => $uris) {
+    if (is_array($uris)) {
+      $consolidated_uris = array_unique($uris);
+
+      // A prefix has conflicting namespaces if it has multiple associated URIs.
+      if (count($consolidated_uris) > 1) {
+        $conflicting_namespaces[$prefix] = $consolidated_uris;
+      }
+    }
+  }
+  return $conflicting_namespaces;
 }

@@ -8,16 +8,33 @@ function rdfx_mapping_overview() {
 }
 
 /**
- * Menu callback for viewing all declared namespaces and their prefixes.
+ * Menu callback for viewing all declared namespaces (conflicting and non-conflicting)
+ * and their prefixes.
  */
 function rdfx_admin_namespaces() {
   $output = '';
 
-  // Builds a table of existing namespaces known to the system.
+  // List conflicting namespaces.
+  $conflicting_namespaces = rdfx_get_conflicting_namespaces();
+  if ($conflicting_namespaces) {
+    $table_conflicting_namespaces = array();
+    $table_conflicting_namespaces['header'] = array('Prefix', 'Conflicting Namespaces');
+    foreach ($conflicting_namespaces as $prefix => $uris) {
+      $table_conflicting_namespaces['rows'][] = array($prefix, implode(", ", $uris));
+    }
+    $output .= '<div class="messages warning">' . t("Warning: The following namespaces have conflicts") . '</div>';
+    $output .= theme('table', $table_conflicting_namespaces);
+  }
+
+  // List non-conflicting namespaces.
   $table_namespaces = array();
   $table_namespaces['header'] = array('Prefix', 'Namespace');
   foreach (rdf_get_namespaces() as $prefix => $namespace) {
     $table_namespaces['rows'][] = array($prefix, $namespace);
+  }
+  // Only show label if there were conflicting namespaces.
+  if ($conflicting_namespaces) {
+    $output .= '<div class="messages status">' . t("The following namespaces do not have conflicts") . '</div>';
   }
   $output .= theme('table', $table_namespaces);
 
