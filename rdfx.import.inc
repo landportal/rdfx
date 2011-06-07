@@ -39,7 +39,6 @@ function rdfx_fetch_rdf($uri, $prefix, $filename = NULL) {
 function _rdfx_parse_rdf($base_uri) {
   $namespaces = array();
 
-  include_once(drupal_get_path('module', 'rdfx') . '/vendor/arc/ARC2.php');
   $parser = ARC2::getRDFParser();
   $parser->parse($base_uri);
   // If this is an N3 file, the namespaces array isn't populated. Iterate
