@@ -63,8 +63,8 @@ function rdfx_menu() {
   $items['admin/config/services/rdf'] = array(
     'title'            => 'RDF publishing settings',
     'description'      => 'Configure how site content gets published in RDF.',
-    'access arguments' => array('administer rdf'),
-  );
+    'page callback' => 'rdfx_mapping_overview',
+  ) + $config_base;
   $items['admin/config/services/rdf/mappings'] = array(
     'title' => 'RDF Mappings',
     'description'      => 'Configure how site content gets published in RDF.',
@@ -87,7 +87,29 @@ function rdfx_help($path, $arg) {
   switch($path) {
     case 'admin/config/services/rdf/namespaces';
       return '<p>' . t('Manage the namespaces and associated prefixes used by the site. Prefixes allow URIs to be shortened in the form of <a href="http://en.wikipedia.org/wiki/CURIE">CURIEs</a> (Compact URIs). For example, the CURIE %curie represents the URI %uri.', array('%curie' => 'dc:title', '%uri' => 'http://purl.org/dc/terms/title')) . '</p>';
+    case 'admin/config/services/rdf/mappings':
+      if (module_exists('rdfui')) {
+        $message = t('Manage RDF mappings for entity types and field bundles used throughout the site. Some mappings are not editable through the UI. See the core RDF mapping API !documentation to find out how to modify these mappings.', array('!documentation' => l('documentation', 'http://drupal.org/developing/api/rdf')));
+      }
+      else {
+        $message = t('View RDF mappings for entity types and field bundles used throughout the site. Enabling the RDF UI module (bundled with RDFx) will allow you to configure many of these mappings.');
+      }
+      return '<p>' . $message . '</p>';
   }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function rdfx_theme() {
+  return array(
+    'rdfx_mapping_admin_overview' => array(
+      'variables' => array('bundle' => array(), 'rdftype' => array(), 'real_fields' => array(), 'fake_fields' => array()),
+    ),
+    'rdfx_mapping_admin_overview_row' => array(
+      'variables' => array('field' => array()),
+    ),
+  );
 }
 
 function rdfx_get_rdf_model($type, $id) {

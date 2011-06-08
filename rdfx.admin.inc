@@ -4,7 +4,152 @@
  * Callback function for viewing all bundles' RDF mappings.
  */
 function rdfx_mapping_overview() {
-  return '';
+  $render = array();
+  $entities = entity_get_info();
+  $fields = field_info_instances();
+  $render['tabs'] = array(
+    '#type' => 'vertical_tabs',
+  );
+
+  // Create a tab for each entity.
+  foreach ($entities as $entity_type => $entity) {
+    $render['tabs'][$entity_type] = array(
+      '#type' => 'fieldset',
+      '#title' => $entity['label'],
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+    // The bundle's RDF mapping array may contain mappings for entity attributes
+    // that are not fields. The bundle's field array may contain fields that are
+    // not in the RDF mapping array. In order to ensure we get all the available
+    // fields and all the mapped entity attributes, we compare the arrays.
+    foreach ($entity['bundles'] as $bundle_name => $bundle) {
+      $rows = array();
+      $real_fields = array();
+      $fake_fields = array();
+      $bundle_fields = $fields[$entity_type][$bundle_name];
+      $bundle['edit_path'] = NULL;
+      $rdf_mapping = $bundle['rdf_mapping'];
+      if (isset($bundle['admin']['real path'])) {
+        $bundle['edit_path'] = $bundle['admin']['real path'] . '/rdf';
+      }
+
+      // Set RDF type.
+      if (isset($rdf_mapping['rdftype'])) {
+        $rdftype = implode(', ', $rdf_mapping['rdftype']);
+        unset($rdf_mapping['rdftype']);
+      }
+      foreach ($rdf_mapping as $field_name => $mapping_info) {
+        // Gather Field API fields.
+        if (isset($bundle_fields[$field_name])) {
+          $real_fields[$field_name]['rdf_mapping'] = $mapping_info;
+          $real_fields[$field_name]['label'] = $fields[$entity_type][$bundle_name][$field_name]['label'];
+          $real_fields[$field_name]['edit_path'] = $bundle['edit_path'];
+          unset($bundle_fields[$field_name]);
+        }
+        // Gather non-field content variables.
+        else {
+          $fake_fields[$field_name]['rdf_mapping'] = $mapping_info;
+          $fake_fields[$field_name]['label'] = $field_name;
+          $fake_fields[$field_name]['edit_path'] = ($field_name == 'title') ? $bundle['edit_path'] : NULL;
+        }
+      }
+      // Theme this bundle's table and add it to it's parent entity's tab.
+      $variables = array(
+        'bundle' => $bundle,
+        'rdftype' => $rdftype,
+        'real_fields' => $real_fields,
+        'fake_fields' => $fake_fields,
+      );
+      $render['tabs'][$entity_type][$bundle_name] = theme('rdfx_mapping_admin_overview', $variables);
+    }
+  }
+  return $render;
+}
+
+/**
+ * Theme function to output the table for a bundle's mappings.
+ */
+function theme_rdfx_mapping_admin_overview($variables) {
+  $bundle_label = $variables['bundle']['label'];
+  $bundle = $variables['bundle'];
+  $real_fields = $variables['real_fields'];
+  $fake_fields = $variables['fake_fields'];
+  $rows = array();
+
+  // Add the table header for this bundle.
+  $header = array(t('Fields'), t('RDF predicates'), t('Mapping type'), t('Datatype'));
+  if (module_exists('rdfui')) {
+    $header[] = t('Operations');
+  }
+
+  // Display a title for each bundle above the mappings table. If RDF UI is
+  // enabled, also add an 'edit' link.
+  $title = "<h3>$bundle_label</h3>";
+  $edit_link = (module_exists('rdfui') && !empty($bundle['edit_path'])) ? ' (' . l(t('edit'), $bundle['edit_path']) . ')' : '';
+  $title .= "<p>" . t('RDF Types:') . ' ' . $variables['rdftype'] . $edit_link . '</p>';
+
+  // List all of the Field API fields and their mappings.
+  foreach ($real_fields as $name => $field) {
+    $rows[] = array(
+      'data' => theme('rdfx_mapping_admin_overview_row', array('field' => $field, 'field_name' => $name, 'edit_path' => $field['edit_path'])),
+    );
+  }
+
+  // Add any non-Field API entity attributes.
+  foreach ($fake_fields as $name => $field) {
+    $rows[] = array(
+      'data' => theme('rdfx_mapping_admin_overview_row', array('field' => $field, 'field_name' => $name, 'edit_path' => $field['edit_path'])),
+    );
+  }
+
+  // If there are no mappings, display a message inside the table.
+  if (!count($rows)) {
+    $rows[] = array(
+      'data' => array(array('data' => t('No mappings have been configured for this bundle.'), 'colspan' => 5))
+    );
+  }
+
+  // Return the table for this bundle.
+  return array(
+    '#prefix' => $title,
+    '#theme' => 'table',
+    '#rows' => $rows,
+    '#header' => $header,
+  );
+}
+
+/**
+ * Theme function to output a field's row in the bundle mapping table.
+ */
+function theme_rdfx_mapping_admin_overview_row($variables) {
+  $field = $variables['field'];
+
+  $field_label = '<strong>' . t($field['label']) . '</strong>';
+  $predicates = isset($field['rdf_mapping']['predicates']) ? t(implode(', ', $field['rdf_mapping']['predicates'])) : '';
+  $predicate_type = isset($field['rdf_mapping']['type']) ? check_plain($field['rdf_mapping']['type']) : 'property';
+  $datatype = isset($field['rdf_mapping']['datatype']) ? $field['rdf_mapping']['datatype'] : '';
+
+  $row = array($field_label, $predicates, $predicate_type, $datatype);
+
+  // Add operations links only if RDF UI is enabled.
+  if (module_exists('rdfui')) {
+    $operations = '';
+    if (isset($variables['edit_path'])) {
+      // By adding the appropriate url fragment, we can open the corresponding
+      // vertical tab on the RDF mapping UI page. The fragment should correspond
+      // to the html id for each fieldset, which means certain characters need
+      // to be replaced. These replacement patterns are from drupal_html_id().
+      $id = ($variables['field_name'] == 'title') ? 'rdf-title' : $variables['field_name'];
+      $id = strtr(drupal_strtolower($id), array(' ' => '-', '_' => '-', '[' => '-', ']' => ''));
+      $id = preg_replace('/[^A-Za-z0-9\-_]/', '', $id);
+      $id = preg_replace('/\-+/', '-', $id);
+      $operations = l(t('edit'), $variables['edit_path'], array('fragment' => "edit-$id"));
+    }
+    $row[] = $operations;
+  }
+
+  return $row;
 }
 
 /**
