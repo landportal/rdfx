@@ -123,8 +123,8 @@ function rdfui_admin_rdf_overview_form($form, &$form_state, $entity_type, $bundl
   $bundle = field_extract_bundle($entity_type, $bundle);
   $fields = field_info_instances($entity_type, $bundle);
   $mapping = rdf_mapping_load($entity_type, $bundle);
-  $type = node_type_get_type($bundle);
-
+  // Don't make assumptions about entities and only get the type if dealing with a node entity
+  $type = ($entity_type == 'node') ? node_type_get_type($bundle) : '';
   $form['rdf_mappings'] = array(
     '#type' => 'vertical_tabs',
     '#attached' => array(
@@ -160,15 +160,15 @@ function rdfui_admin_rdf_overview_form($form, &$form_state, $entity_type, $bundl
     '#attributes' => array('class' => array('rdf-field')),
   );
 
-  // If this entity has a title display a fieldset for mapping.
-  if ($type->has_title) {
+  // If this entity is a node and has a title display a fieldset for mapping.
+  if (isset($type->has_title)) {
     $form['rdf_title'] = array(
       '#type' => 'fieldset',
       '#group' => 'rdf_mappings',
       '#title' => $type->title_label,
       '#attributes' => array('class' => array('rdf-field')),
     );
-    // Add the options for this entites title.
+    // Add the options for this entity's title.
     rdfui_predicate_fieldset($form['rdf_title'], $mapping, 'title', 'title');
   }
 
@@ -276,9 +276,11 @@ function rdfui_admin_rdf_overview_form_validate($form, &$form_state) {
   _rdfui_validate_terms($form_state);
 
   // Validate title predicate(s).
-  $field_name = 'title';
-  _rdfui_validate_terms($form_state, $field_name);
-  _rdfui_validate_datatype($form_state, $field_name);
+  if ((isset($form_state['input']['rdf_title_type']))) {
+    $field_name = 'title';
+    _rdfui_validate_terms($form_state, $field_name);
+    _rdfui_validate_datatype($form_state, $field_name);
+  }
 
   // Validate predicates for all fields.
   foreach ($form_state['values']['field_names'] as $field_name) {
@@ -292,9 +294,11 @@ function rdfui_form_node_type_form_validate($form, &$form_state) {
   _rdfui_validate_terms($form_state);
 
   // Validate title predicate(s).
-  $field_name = 'title';
-  _rdfui_validate_terms($form_state, $field_name);
-  _rdfui_validate_datatype($form_state, $field_name);
+  if ((isset($form_state['input']['rdf_title_type']))) {
+    $field_name = 'title';
+    _rdfui_validate_terms($form_state, $field_name);
+    _rdfui_validate_datatype($form_state, $field_name);
+  }
 }
 
 /**
@@ -306,6 +310,9 @@ function rdfui_admin_rdf_overview_form_submit($form, &$form_state) {
   // node RDF mapping but a string 'user' for the user RDF mapping.
   if (isset($form_state['build_info']['args'][1]->type)) {
     $bundle = $form_state['build_info']['args'][1]->type;
+  }
+  elseif ($form_state['build_info']['args'][0] == 'taxonomy_term') {
+    $bundle = $form_state['build_info']['args'][1]->machine_name;
   }
   else {
     $bundle = $form_state['build_info']['args'][1];
@@ -534,8 +541,10 @@ function _rdfui_mapping_save($form_state, $entity_type, $bundle, $field_name) {
     $mapping['rdftype'] = rdfui_extract_curies($form_state['values']['rdf_rdftype']);
   }
   // Turn the predicates string into an array.
-  $form_state['values']['rdf_'. $field_name .'_predicates'] = rdfui_extract_curies($form_state['values']['rdf_'. $field_name .'_predicates']);
-
+  if (isset($form_state['input']['rdf_title_type']) || $field_name != 'title') {
+    $form_state['values']['rdf_'. $field_name .'_predicates'] = rdfui_extract_curies($form_state['values']['rdf_'. $field_name .'_predicates']);
+  }
+  
   foreach (array('type', 'datatype', 'predicates') as $key) {
     // If there is form input for this key, set it in the mapping.
     if (!empty($form_state['values']['rdf_'. $field_name .'_' . $key])) {
