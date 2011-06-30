@@ -372,3 +372,16 @@ function rdfx_get_conflicting_namespaces() {
   }
   return $conflicting_namespaces;
 }
+
+/**
+ * Implementation of hook_features_api().
+ */
+function rdfx_features_api() {
+  return array(
+    'rdf_mappings' => array(
+      'name' => t('RDF mappings'),
+      'default_hook' => 'rdf_default_mappings',
+      'file' => drupal_get_path('module', 'rdfx') .'/rdfx.features.inc',
+    ),
+  );
+}
