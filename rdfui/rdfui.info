@@ -4,4 +4,4 @@ package = RDF
 version = VERSION
 core = 7.x
 dependencies[] = rdfx
-files[] = rdfui.module
+files[] = rdfui.test

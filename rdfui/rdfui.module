@@ -502,17 +502,42 @@ function _rdfui_validate_terms($form_state, $field_name = '') {
   // Validate terms.
   if ($terms = trim($form_state['values'][$field_id])) {
     $terms = rdfui_extract_curies($terms);
-    $error = '';
+    $rdf_namespaces = module_invoke_all('rdf_namespaces');
+    $errors = array();
+    $warnings = array();
+
     foreach($terms as $term) {
+      // Ensure this is a CURIE.
       if (!preg_match(QNAME, $term)){
         // @todo Add a page to the drupal docs about CURIE format and adding
         // namespaces. Then add a link to this error that says 'For more info'.
-        $error .= t('Term %term must be in CURIE format.', array('%term'=>$term));
+        $errors[] = t('Term %term must be in CURIE format.', array('%term'=>$term));
+      }
+      else {
+        // Check the prefixes to ensure they are bound. If not, issue a warning.
+        $term_parts = explode(':', $term);
+        $prefix = $term_parts[0];
+        if (!isset($rdf_namespaces[$prefix])) {
+          $warnings[] = t('Term %term uses unmapped prefix %prefix. Please map the prefix in !rdf_publishing.',
+            array(
+              '%term' => $term,
+              '%prefix' => $prefix,
+              '!rdf_publishing' => l(t('RDF publishing settings'), 'admin/config/services/rdf/namespaces'),
+            )
+          );
+        }
       }
     }
 
-    if ($error) {
-      form_set_error($field_id, $error);
+    if (!empty($errors)) {
+      foreach ($errors as $error) {
+        form_set_error($field_id, $error);
+      }
+    }
+    if (!empty($warnings)) {
+      foreach ($warnings as $warning) {
+        drupal_set_message($warning, $type='warning');
+      }
     }
   }
 }
