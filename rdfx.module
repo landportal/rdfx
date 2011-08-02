@@ -10,7 +10,7 @@
  * Path to the ARC2 PHP library.
  */
 if (module_exists('libraries')) {
-  define('RDF_ARC2_PATH', libraries_get_path('arc'));
+  define('RDF_ARC2_PATH', libraries_get_path('ARC2') . '/arc');
 }
 else {
   define('RDF_ARC2_PATH', drupal_get_path('module', 'rdfx') . '/vendor/arc');
@@ -326,8 +326,8 @@ function rdfx_requirements($phase) {
     else {
       $value = t('Not installed');;
       $severity = REQUIREMENT_ERROR;
-      $path = module_exists('libraries') ? libraries_get_path('arc') : drupal_get_path('module', 'rdfx') . '/vendor/arc';
-      $description = t('The RDFx module requires the ARC2 library to function properly. The simplest way to install ARC2 is by using the Drush command "drush rdf-download". Alternatively, you can !download the latest package, unzip it, and move/rename the folder so that it is located at %path', array('!download' => l('download', 'http://github.com/semsol/arc2/tarball/master'), '%path' => $path));
+      $path = module_exists('libraries') ? libraries_get_path('ARC2') . '/arc/ARC2.php' : drupal_get_path('module', 'rdfx') . '/vendor/arc/ARC2.php';
+      $description = t('The RDFx module requires the ARC2 library to function properly. The simplest way to install ARC2 is by using the Drush command "drush rdf-download". Alternatively, you can !download the latest package, unzip it, and move/rename the folder so that the path to ARC2.php is %path', array('!download' => l('download', 'http://github.com/semsol/arc2/tarball/master'), '%path' => $path));
     }
     $requirements['rdfx_arc'] = array(
       'title' => t('RDFx ARC2 Library'),
