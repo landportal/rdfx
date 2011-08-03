@@ -10,10 +10,13 @@ function rdf_mappings_features_export($data, &$export, $module_name = '') {
   $export['dependencies']['rdf'] = 'rdf';
   $export['dependencies']['rdfx'] = 'rdfx';
 
-  foreach ($data as $name) {
-    if ($rdf_mapping = rdf_mapping_load('node', $name)) {
-      // Add RDF mapping to available exports.
-      $export['features']['rdf_mappings'][$name] = $rdf_mapping;
+  foreach ($data as $key => $value) {
+    $parts = explode('-', $key);
+    $entity_type = $parts[0];
+    $bundle_name = $parts[1];
+
+    if ($rdf_mapping = rdf_mapping_load($entity_type, $bundle_name)) {
+      $export['features']['rdf_mappings'][$entity_type . '-' . $bundle_name] = $rdf_mapping;
     }
   }
 
@@ -26,8 +29,15 @@ function rdf_mappings_features_export($data, &$export, $module_name = '') {
  * Provides an array of components that can be exported for a given type.
  */
 function rdf_mappings_features_export_options() {
-  // Only offer node content types for now.
-  return node_type_get_names();
+  $bundles = array();
+
+  foreach (entity_get_info() as $entity_type => $entity) {
+    foreach ($entity['bundles'] as $bundle_name => $bundle) {
+      $bundles[$entity_type . '-' . $bundle_name] = $entity['label'] . ': ' . $bundle['label'];
+    }
+  }
+
+  return $bundles;
 }
 
 /**
@@ -40,15 +50,19 @@ function rdf_mappings_features_export_render($module, $data, $export = NULL) {
   $code[] = '  $rdf_mappings = array();';
   $code[] = '';
 
-  foreach ($data as $k => $name) {
-    if (is_array($name)) {
-      $name = $k;
+  foreach ($data as $key => $entity_type_bundle) {
+    if (is_array($entity_type_bundle)) {
+      $entity_type_bundle = $key;
     }
-    if ($rdf_mapping = rdf_mapping_load('node', $name)) {
+    $parts = explode('-', $entity_type_bundle);
+    $entity_type = $parts[0];
+    $bundle_name = $parts[1];
+    if ($rdf_mapping = rdf_mapping_load($entity_type, $bundle_name)) {
       $rdf_mapping_export = features_var_export($rdf_mapping, '  ');
-      $rdf_mapping_identifier = features_var_export($name);
-      $code[] = "  // Exported RDF mapping: {$name}";
-      $code[] = "  \$rdf_mappings['node'][{$rdf_mapping_identifier}] = {$rdf_mapping_export};";
+      $rdf_bundle = features_var_export($bundle_name);
+      $rdf_entity_type = features_var_export($entity_type);
+      $code[] = "  // Exported RDF mapping: {$bundle_name}";
+      $code[] = "  \$rdf_mappings[$rdf_entity_type][$rdf_bundle] = $rdf_mapping_export;";
       $code[] = "";
     }
   }
@@ -77,7 +91,7 @@ function rdf_mappings_features_rebuild($module) {
     foreach ($defaults as $entity_type => $bundles) {
       foreach ($bundles as $bundle => $mapping) {
         rdf_mapping_save(array(
-          'type' => 'node',
+          'type' => $entity_type,
           'bundle' => $bundle,
           'mapping' => $mapping,
         ));
