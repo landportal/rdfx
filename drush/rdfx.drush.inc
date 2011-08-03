@@ -69,25 +69,26 @@ function rdfx_drush_arc2_download() {
   if ($args[0]) {
     $path = $args[0];
   }
-  elseif(module_exists('libraries')) {
-    $path = 'sites/all/libraries';
-
-    // Create the path if it does not exist.
-    if (!is_dir($path)) {
-      drush_op('mkdir', $path);
-      drush_log(dt('Directory @path was created', array('@path' => $path)), 'notice');
-    }
-  }
   else {
-    $path = drupal_get_path('module', 'rdfx') . '/vendor';
-    // Create the vendor directory if it does not exist yet.
-    if (!is_dir($path)) {
-      drush_op('mkdir', $path);
+    $path = drush_get_context('DRUSH_DRUPAL_ROOT');
+    if (module_exists('libraries')) {
+      $path .= '/' . libraries_get_path('ARC2');
+    }
+    else {
+      $path .= '/' . drupal_get_path('module', 'rdfx') . '/vendor';
     }
   }
-  drush_op('chdir', $path);
-  // Download and extract library.
-  if (drush_shell_exec('wget --no-check-certificate -O arc.tar.gz http://github.com/semsol/arc2/tarball/master') &&
+
+  // Create the path if it does not exist yet.
+  if (!is_dir($path)) {
+    drush_mkdir($path);
+  }
+
+  if (is_dir($path . '/arc')) {
+    drush_log('ARC2 already present. No download required.', 'ok');
+  }
+  elseif (drush_op('chdir', $path) &&
+      drush_shell_exec('wget --no-check-certificate -O arc.tar.gz http://github.com/semsol/arc2/tarball/master') &&
       drush_shell_exec('tar zxvf arc.tar.gz') &&
       drush_shell_exec('mv semsol-arc2-* arc') &&
       drush_shell_exec('rm arc.tar.gz')) {
@@ -95,5 +96,20 @@ function rdfx_drush_arc2_download() {
   }
   else {
     drush_log(dt('Drush was unable to download the ARC2 library to @path', array('@path' => $path)), 'error');
+  }
+}
+
+/**
+ * Implements drush_MODULE_post_COMMAND().
+ */
+function drush_rdfx_post_pm_enable() {
+  $extensions = func_get_args();
+  // Deal with comma delimited extension list.
+  if (strpos($extensions[0], ',') !== FALSE) {
+    $extensions = explode(',', $extensions[0]);
+  }
+
+  if (in_array('rdfx', $extensions) && !drush_get_option('skip')) {
+    rdfx_drush_arc2_download();
   }
 }

@@ -292,3 +292,17 @@ function rdfx_update_7001() {
   module_enable(array(entity));
   drupal_set_message('The Entity API module is now required by the RDFx module and has been enabled.');
 }
+
+/**
+ * Move the ARC2 library to the new location if the libraries module is used.
+ */
+function rdfx_update_7002() {
+  if (module_exists('libraries') && is_dir(libraries_get_path('arc'))) {
+    if (mkdir(libraries_get_path('ARC2')) && rename(libraries_get_path('arc'), libraries_get_path('ARC2') . '/arc')) {
+      drupal_set_message('The ARC2 library has been moved to its new location.');
+    }
+    else {
+      drupal_set_message('There was a problem while moving the ARC library to its new location.', 'error');
+    }
+  }
+}
