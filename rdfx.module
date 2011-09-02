@@ -112,12 +112,12 @@ function rdfx_theme() {
   );
 }
 
-function rdfx_get_rdf_model($type, $id) {
+function rdfx_get_rdf_model($type, $data) {
   // Loads entity and its metadata.
-  $wrapper = entity_metadata_wrapper($type, $id);
+  $wrapper = entity_metadata_wrapper($type, $data);
   $entity = $wrapper->value();
 
-  $entity_uri = rdfx_resource_uri($type, $id);
+  $entity_uri = rdfx_resource_uri($type, $wrapper->getIdentifier());
   // Instantiates node resource as ARC2 class and set base and namespaces.
   $res = ARC2::getResource();
   $res->setUri($entity_uri);
