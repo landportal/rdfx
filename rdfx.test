@@ -69,7 +69,7 @@ class RdfxNodeSerializationTestCase extends DrupalWebTestCase {
     $uri = url('node/' . $node->nid, array('absolute' => TRUE));
 
     // Get the node as RDF.
-    $g = rdfx_build_rdf_node($node);
+    $g = rdfx_get_rdf_model('node', $node);
 
     // Inspect the PHP object returned by ARC2.
     // Test object class.
@@ -122,14 +122,6 @@ class RdfxNodeSerializationTestCase extends DrupalWebTestCase {
       'datatype' => 'xsd:dateTime',
     );
     $this->assertTrue(in_array($o, $g->index[$uri]['http://purl.org/dc/terms/created']), t('dc:created value found in ARC2 index.'));
-
-    // Test creator (user) in ARC2 RDF index.
-    $expected_user_uri = url('user/' . $node->uid, array('absolute' => TRUE));
-    $o = array (
-      'value'=> $expected_user_uri,
-      'type'=> 'uri',
-    );
-    $this->assertTrue(in_array($o, $g->index[$uri]['http://rdfs.org/sioc/ns#has_creator']), t('sioc:has_creator value found in ARC2 index.'));
 
     // Test comment_count in ARC2 RDF index.
     $o = array (
