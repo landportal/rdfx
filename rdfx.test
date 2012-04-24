@@ -69,7 +69,7 @@ class RdfxNodeSerializationTestCase extends DrupalWebTestCase {
     $uri = url('node/' . $node->nid, array('absolute' => TRUE));
 
     // Get the node as RDF.
-    $g = rdfx_get_rdf_model('node', $node);
+    $g = rdfx_get_rdf_model('node', $node->nid);
 
     // Inspect the PHP object returned by ARC2.
     // Test object class.
