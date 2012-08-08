@@ -119,6 +119,20 @@ function rdfx_theme() {
   function getRdfData(&$index, $subject_uri, $wrapper) {
     // The subject of the triples are by default the entity itself.
 
+    // Asserts RDF types for the entity.
+    if ($wrapper instanceof EntityDrupalWrapper) {
+      $entity_info = entity_get_property_info($wrapper->type());
+      $bundle = $wrapper->getBundle();
+      if (!empty($entity_info['bundles'][$bundle]['rdf mapping']['rdf types'])) {
+        foreach ($entity_info['bundles'][$bundle]['rdf mapping']['rdf types'] as $rdf_type) {
+          $index[$subject_uri]['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'][] = array(
+            'value' => $rdf_type,
+            'type' => 'uri',
+          );
+        }
+      }
+    }
+
     // Only output the properties the user has access to.
     $filtered = restws_property_access_filter($wrapper);
     foreach ($filtered as $name => $property) {
