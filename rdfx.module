@@ -140,9 +140,14 @@ function rdfx_theme() {
         $info = $property->info();
         if ($property instanceof EntityDrupalWrapper) {
           // For referenced entities only return the URI.
-          if ($id = $property->getIdentifier()) {
-          // @todo
-//            $index[$name] = self::getResourceReference($property->type(), $id);
+          // @todo tokens to extract properties from the referenced entity.
+          if ($property->getIdentifier()) {
+            foreach (rdfx_get_predicates($property, $name) as $predicate) {
+              $index[$subject_uri][$predicate][] = array(
+                'value' => rdfx_resource_uri($property->type(), $property->value()),
+                'type' => 'uri',
+              );
+            }
           }
         }
         elseif ($property instanceof EntityValueWrapper) {
@@ -332,7 +337,17 @@ function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapp
  *   An absolute path to the entity instance.
  */
 function rdfx_resource_uri($type, $entity) {
-  $uri = entity_uri($type, $entity);
+  // Drupal core doesn't define file as a proper entity and therefore cannot
+  // return a URI for it, so we have to generate it ourselves.
+  if ($type == 'file') {
+    $uri = array(
+      'path' => file_create_url($entity->uri),
+      'options' => array(),
+    );
+  }
+  else {
+    $uri = entity_uri($type, $entity);
+  }
   return url($uri['path'], array('absolute' => TRUE));
 
 }
