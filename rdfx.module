@@ -163,19 +163,38 @@ function rdfx_theme() {
           }
         }
         elseif ($property instanceof EntityListWrapper || $property instanceof EntityStructureWrapper) {
-          // If some predicates were defined for this field, we need to create
-          // an intermediary RDF resource whose type and URI can be defined
-          // via the RDF mapping.
-          if (rdfx_get_predicates($property, $name)) {
-            if (!empty($info['rdf mapping']['rdf types'])) {
+          // Creates an intermediary RDF resource whose type and URI can be
+          // defined via the RDF mapping.
+          // @todo what should happen if 'rdf properties' is defined for a field
+          // but no 'rdf types' or 'rdf container uri' are defined? should we
+          // try to map 'rdf properties' to the field value (e.g. string for
+          // text field, URI for reference)? For now we do nothing.
+          if (!empty($info['rdf mapping']['rdf container uri']) || !empty($info['rdf mapping']['rdf types'])) {
+            // Generates a URI for the RDF resource if it looks like it's going
+            // to be needed.
+            if (!empty($info['rdf mapping']['rdf container uri'])) {
+              $object_uri = token_replace($info['rdf mapping']['rdf container uri'], array('node' => $wrapper->value()));
+              $object_type = 'uri';
+            }
+            // If 'rdf types' is defined without a container URI, a bnode will
+            // be needed.
+            elseif (!empty($info['rdf mapping']['rdf types'])) {
               $object_uri = '_:' . $name . rdfx_create_bnode_id();
+              $object_type = 'bnode';
+            }
+
+            if (isset($object_uri)) {
               // Links the entity to the new resource.
               foreach (rdfx_get_predicates($property, $name) as $predicate) {
                 $index[$subject_uri][$predicate][] = array(
                   'value' => $object_uri,
-                  'type' => 'bnode',
+                  'type' => $object_type,
                 );
               }
+            }
+            // Additionally sets the RDF types of the new RDF resource if they
+            // are defined.
+            if (!empty($info['rdf mapping']['rdf types'])) {
               // Asserts the types of the new resource.
               foreach ($info['rdf mapping']['rdf types'] as $type) {
                 $index[$object_uri]['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'][] = array(
