@@ -166,14 +166,14 @@ function rdfx_theme() {
           // Creates an intermediary RDF resource whose type and URI can be
           // defined via the RDF mapping.
           // @todo what should happen if 'rdf properties' is defined for a field
-          // but no 'rdf types' or 'rdf container uri' are defined? should we
+          // but no 'rdf types' or 'rdf resource' are defined? should we
           // try to map 'rdf properties' to the field value (e.g. string for
           // text field, URI for reference)? For now we do nothing.
-          if (!empty($info['rdf mapping']['rdf container uri']) || !empty($info['rdf mapping']['rdf types'])) {
+          if (!empty($info['rdf mapping']['rdf resource']) || !empty($info['rdf mapping']['rdf types'])) {
             // Generates a URI for the RDF resource if it looks like it's going
             // to be needed.
-            if (!empty($info['rdf mapping']['rdf container uri'])) {
-              $object_uri = token_replace($info['rdf mapping']['rdf container uri'], array('node' => $wrapper->value()));
+            if (!empty($info['rdf mapping']['rdf resource'])) {
+              $object_uri = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
               $object_type = 'uri';
             }
             // If 'rdf types' is defined without a container URI, a bnode will
