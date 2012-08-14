@@ -140,11 +140,18 @@ function rdfx_theme() {
         $info = $property->info();
         if ($property instanceof EntityDrupalWrapper) {
           // For referenced entities only return the URI.
-          // @todo tokens to extract properties from the referenced entity.
           if ($property->getIdentifier()) {
+            if (!empty($info['rdf mapping']['rdf resource'])) {
+              // Uses token to build the referenced resource if 'rdf resource'
+              // key is provided.
+              $value = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
+            }
+            else {
+              $value = rdfx_resource_uri($property->type(), $property->value());
+            }
             foreach (rdfx_get_predicates($property, $name) as $predicate) {
               $index[$subject_uri][$predicate][] = array(
-                'value' => rdfx_resource_uri($property->type(), $property->value()),
+                'value' => $value,
                 'type' => 'uri',
               );
             }
