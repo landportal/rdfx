@@ -152,11 +152,16 @@ function rdfx_theme() {
         }
         elseif ($property instanceof EntityValueWrapper) {
           // @todo tokens
-          // @todo callback
           $datatype = isset($info['rdf mapping']['rdf value datatype']) ? $info['rdf mapping']['rdf value datatype'] : '';
+          if (!empty($info['rdf mapping']['rdf value callback']) && function_exists($info['rdf mapping']['rdf value callback'])) {
+            $value = $info['rdf mapping']['rdf value callback']($property->value());
+          }
+          else {
+            $value = $property->value();
+          }
           foreach (rdfx_get_predicates($property, $name) as $predicate) {
             $index[$subject_uri][$predicate][] = array(
-              'value' => $property->value(),
+              'value' => $value,
               'type' => 'literal',
               'datatype' => $datatype,
             );
