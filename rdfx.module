@@ -153,7 +153,7 @@ function rdfx_theme() {
         elseif ($property instanceof EntityValueWrapper) {
           // @todo tokens
           // @todo callback
-          $datatype = isset($info['rdf mapping']['datatype']) ? $info['rdf mapping']['datatype'] : '';
+          $datatype = isset($info['rdf mapping']['rdf value datatype']) ? $info['rdf mapping']['rdf value datatype'] : '';
           foreach (rdfx_get_predicates($property, $name) as $predicate) {
             $index[$subject_uri][$predicate][] = array(
               'value' => $property->value(),
