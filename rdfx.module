@@ -266,8 +266,8 @@ function rdfx_get_rdf_model($type, $id) {
   $index = array();
   // Constructs the ARC2 index for the RDF model.
   $index = getRdfData($index, $entity_uri, $wrapper);
-  // Expand all CURIEs and attach the index to the ARC2 resource.
-  $res->index = $res->expandPNames($index);
+  // Attaches the index to the ARC2 resource.
+  $res->index = $index;
 
   return $res;
 }
