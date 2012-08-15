@@ -31,6 +31,9 @@ function rdfx_drush_command() {
       'path' => dt('Optional. A path to the rdfx module. If omitted Drush will use the default location.'),
     ),
   );
+  $items['rdfx-entity-rdf-migrate'] = array(
+    'description' => dt('Displays a list of features components that can be used for migrating old style D7 core mappings into new entity_rdf mappings.'),
+  );
   return $items;
 }
 
@@ -111,5 +114,23 @@ function drush_rdfx_post_pm_enable() {
 
   if (in_array('rdfx', $extensions) && !drush_get_option('skip')) {
     rdfx_drush_arc2_download();
+  }
+}
+
+/**
+ * Callback for displaying a full list of existing RDF mapping components
+ */
+function drush_rdfx_entity_rdf_migrate() {
+  foreach (entity_get_info() as $entity_type => $entity) {
+    foreach ($entity['bundles'] as $bundle_name => $bundle) {
+      foreach (rdf_mapping_load($entity_type, $bundle_name) as $name => $mapping) {
+        if ($name == 'rdftype') {
+          echo 'features[rdf_mappings][] = ' . $entity_type . ':' . $bundle_name . "\n";
+        }
+        else {
+          echo 'features[rdf_mappings][] = ' . $entity_type . ':' . $bundle_name . ':' . $name . "\n";
+        }
+      }
+    }
   }
 }

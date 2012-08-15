@@ -449,7 +449,7 @@ function rdfx_get_conflicting_namespaces() {
 function rdfx_features_api() {
   return array(
     'rdf_mappings' => array(
-      'name' => t('RDF mappings'),
+      'name' => t('RDF mappings (entity_rdf compatible)'),
       'default_hook' => 'rdf_default_mappings',
       'file' => drupal_get_path('module', 'rdfx') .'/rdfx.features.inc',
     ),
