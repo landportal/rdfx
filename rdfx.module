@@ -261,6 +261,9 @@ function rdfx_get_rdf_model($type, $id) {
   $res = ARC2::getResource();
   $res->setUri($entity_uri);
   $res->base = url('', array('absolute' => TRUE));
+  if (function_exists('rdf_get_namespaces')) {
+    $res->ns = rdf_get_namespaces();
+  }
 
   // Initializes ARC2 index.
   $index = array();
