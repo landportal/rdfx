@@ -141,7 +141,7 @@ function rdfx_get_rdf_model($type, $id) {
   // Initializes ARC2 index.
   $index = array();
   // Constructs the ARC2 index for the RDF model.
-  $index = getRdfData($index, $entity_uri, $wrapper);
+  $index = rdfx_get_rdf_data($index, $entity_uri, $wrapper);
   // Attaches the index to the ARC2 resource.
   $res->index = $index;
 
@@ -151,7 +151,7 @@ function rdfx_get_rdf_model($type, $id) {
 /**
  * Gets a simple PHP array using URI references for some wrapped data.
  */
-function getRdfData(&$index, $subject_uri, $wrapper) {
+function rdfx_get_rdf_data(&$index, $subject_uri, $wrapper) {
   // The subject of the triples are by default the entity itself.
 
   // Asserts RDF types for the entity.
@@ -259,11 +259,11 @@ function getRdfData(&$index, $subject_uri, $wrapper) {
           }
           // Continues inside the field (field properties) with the new
           // resource URI as subject.
-          getRdfData($index, $object_uri, $property);
+          rdfx_get_rdf_data($index, $object_uri, $property);
         }
         else {
           // Continues inside the field (field properties).
-          getRdfData($index, $subject_uri, $property);
+          rdfx_get_rdf_data($index, $subject_uri, $property);
         }
       }
     }
