@@ -134,7 +134,7 @@ function rdfx_theme() {
     }
 
     // Only output the properties the user has access to.
-    $filtered = restws_property_access_filter($wrapper);
+    $filtered = rdfx_property_access_filter($wrapper);
     foreach ($filtered as $name => $property) {
       try {
         $info = $property->info();
