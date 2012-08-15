@@ -305,64 +305,6 @@ function rdfx_get_predicates(EntityMetadataWrapper $wrapper, $name) {
 }
 
 /**
- * Adds an RDF statement between the entity and the property. These statements
- * can have either resource or literal objects.
- */
-function rdfx_add_statement(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
-  if ($property instanceof EntityDrupalWrapper) {
-    // For referenced entities only add the resource's URI
-    rdfx_add_resource($index, $uri, $property, $wrapper, $name);
-  }
-  elseif ($property instanceof EntityValueWrapper) {
-    rdfx_add_literal($index, $uri, $property, $wrapper, $name);
-  }
-}
-
-/**
- * Adds a resource object.
- */
-function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
-  if ($id = $property->getIdentifier()) {
-    $predicates = rdfx_get_predicates($wrapper, $name);
-    $type = $property->type();
-    $entities = entity_load($type, array($id));
-    $entity = $entities[$id];
-    $object_uri = rdfx_resource_uri($type, $entity);
-    foreach ($predicates as $predicate) {
-      $index[$uri][$predicate][] = $object_uri;
-    }
-  }
-}
-
-/**
- * Adds a literal object.
- */
-function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
-  $predicates = rdfx_get_predicates($wrapper, $name);
-  $object_value = $property->value();
-
-  // Extracts datatype and callback from the RDF mapping.
-  $datatype = '';
-  if ($wrapper instanceof EntityDrupalWrapper) {
-    $entity = $wrapper->value();
-    if (!empty($entity->rdf_mapping[$name]['datatype'])) {
-      $datatype = $entity->rdf_mapping[$name]['datatype'];
-    }
-    if (!empty($entity->rdf_mapping[$name]['callback']) && function_exists($entity->rdf_mapping[$name]['callback'])) {
-      $object_value = $entity->rdf_mapping[$name]['callback']($object_value);
-    }
-  }
-
-  foreach ($predicates as $predicate) {
-    $index[$uri][$predicate][] = array(
-      'value' => $object_value,
-      'type' => 'literal',
-      'datatype' => $datatype,
-    );
-  }
-}
-
-/**
  * Returns the URI used for the given resource.
  *
  * @param String $type
