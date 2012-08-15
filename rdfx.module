@@ -112,133 +112,6 @@ function rdfx_theme() {
   );
 }
 
-
-  /**
-   * Gets a simple PHP array using URI references for some wrapped data.
-   */
-  function getRdfData(&$index, $subject_uri, $wrapper) {
-    // The subject of the triples are by default the entity itself.
-
-    // Asserts RDF types for the entity.
-    if ($wrapper instanceof EntityDrupalWrapper) {
-      $entity_info = entity_get_property_info($wrapper->type());
-      $bundle = $wrapper->getBundle();
-      if (!empty($entity_info['bundles'][$bundle]['rdf mapping']['rdf types'])) {
-        foreach ($entity_info['bundles'][$bundle]['rdf mapping']['rdf types'] as $rdf_type) {
-          $index[$subject_uri]['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'][] = array(
-            'value' => $rdf_type,
-            'type' => 'uri',
-          );
-        }
-      }
-    }
-
-    // Only output the properties the user has access to.
-    $filtered = rdfx_property_access_filter($wrapper);
-    foreach ($filtered as $name => $property) {
-      try {
-        $info = $property->info();
-        if ($property instanceof EntityDrupalWrapper) {
-          // For referenced entities only return the URI.
-          if ($property->getIdentifier()) {
-            if (!empty($info['rdf mapping']['rdf resource'])) {
-              // Uses token to build the referenced resource if 'rdf resource'
-              // key is provided.
-              $value = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
-              $type = 'uri';
-            }
-            elseif (!empty($info['rdf mapping']['rdf value'])) {
-              // Uses token to format a string for the value of the property.
-              $value = token_replace($info['rdf mapping']['rdf value'], array('node' => $wrapper->value()));
-              $type = 'literal';
-            }
-            else {
-              $value = rdfx_resource_uri($property->type(), $property->value());
-              $type = 'uri';
-            }
-            foreach (rdfx_get_predicates($property, $name) as $predicate) {
-              $index[$subject_uri][$predicate][] = array(
-                'value' => $value,
-                'type' => $type,
-              );
-            }
-          }
-        }
-        elseif ($property instanceof EntityValueWrapper) {
-          // @todo tokens
-          $datatype = isset($info['rdf mapping']['rdf value datatype']) ? $info['rdf mapping']['rdf value datatype'] : NULL;
-          if (!empty($info['rdf mapping']['rdf value callback']) && function_exists($info['rdf mapping']['rdf value callback'])) {
-            $value = $info['rdf mapping']['rdf value callback']($property->value());
-          }
-          else {
-            $value = $property->value();
-          }
-          foreach (rdfx_get_predicates($property, $name) as $predicate) {
-            $index[$subject_uri][$predicate][] = array(
-              'value' => $value,
-              'type' => 'literal',
-              'datatype' => $datatype,
-            );
-          }
-        }
-        elseif ($property instanceof EntityListWrapper || $property instanceof EntityStructureWrapper) {
-          // Creates an intermediary RDF resource whose type and URI can be
-          // defined via the RDF mapping.
-          // @todo what should happen if 'rdf properties' is defined for a field
-          // but no 'rdf types' or 'rdf resource' are defined? should we
-          // try to map 'rdf properties' to the field value (e.g. string for
-          // text field, URI for reference)? For now we do nothing.
-          if (!empty($info['rdf mapping']['rdf resource']) || !empty($info['rdf mapping']['rdf types'])) {
-            // Generates a URI for the RDF resource if it looks like it's going
-            // to be needed.
-            if (!empty($info['rdf mapping']['rdf resource'])) {
-              $object_uri = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
-              $object_type = 'uri';
-            }
-            // If 'rdf types' is defined without a container URI, a bnode will
-            // be needed.
-            elseif (!empty($info['rdf mapping']['rdf types'])) {
-              $object_uri = '_:' . $name . rdfx_create_bnode_id();
-              $object_type = 'bnode';
-            }
-
-            if (isset($object_uri)) {
-              // Links the entity to the new resource.
-              foreach (rdfx_get_predicates($property, $name) as $predicate) {
-                $index[$subject_uri][$predicate][] = array(
-                  'value' => $object_uri,
-                  'type' => $object_type,
-                );
-              }
-            }
-            // Additionally sets the RDF types of the new RDF resource if they
-            // are defined.
-            if (!empty($info['rdf mapping']['rdf types'])) {
-              // Asserts the types of the new resource.
-              foreach ($info['rdf mapping']['rdf types'] as $type) {
-                $index[$object_uri]['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'][] = array(
-                  'value' => $type,
-                  'type' => 'uri',
-                );
-              }
-            }
-            // Continues inside the field (field properties) with the new
-            // resource URI as subject.
-            getRdfData($index, $object_uri, $property);
-          }
-          else {
-            // Continues inside the field (field properties).
-            getRdfData($index, $subject_uri, $property);
-          }
-        }
-      }
-      catch (EntityMetadataWrapperException $e) {
-        // A property causes problems - ignore that.
-      }
-    }
-    return $index;
-  }
-
 /**
  * @param String $type
  *   The entity type.
@@ -273,6 +146,132 @@ function rdfx_get_rdf_model($type, $id) {
   $res->index = $index;
 
   return $res;
+}
+
+/**
+ * Gets a simple PHP array using URI references for some wrapped data.
+ */
+function getRdfData(&$index, $subject_uri, $wrapper) {
+  // The subject of the triples are by default the entity itself.
+
+  // Asserts RDF types for the entity.
+  if ($wrapper instanceof EntityDrupalWrapper) {
+    $entity_info = entity_get_property_info($wrapper->type());
+    $bundle = $wrapper->getBundle();
+    if (!empty($entity_info['bundles'][$bundle]['rdf mapping']['rdf types'])) {
+      foreach ($entity_info['bundles'][$bundle]['rdf mapping']['rdf types'] as $rdf_type) {
+        $index[$subject_uri]['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'][] = array(
+          'value' => $rdf_type,
+          'type' => 'uri',
+        );
+      }
+    }
+  }
+
+  // Only output the properties the user has access to.
+  $filtered = rdfx_property_access_filter($wrapper);
+  foreach ($filtered as $name => $property) {
+    try {
+      $info = $property->info();
+      if ($property instanceof EntityDrupalWrapper) {
+        // For referenced entities only return the URI.
+        if ($property->getIdentifier()) {
+          if (!empty($info['rdf mapping']['rdf resource'])) {
+            // Uses token to build the referenced resource if 'rdf resource'
+            // key is provided.
+            $value = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
+            $type = 'uri';
+          }
+          elseif (!empty($info['rdf mapping']['rdf value'])) {
+            // Uses token to format a string for the value of the property.
+            $value = token_replace($info['rdf mapping']['rdf value'], array('node' => $wrapper->value()));
+            $type = 'literal';
+          }
+          else {
+            $value = rdfx_resource_uri($property->type(), $property->value());
+            $type = 'uri';
+          }
+          foreach (rdfx_get_predicates($property, $name) as $predicate) {
+            $index[$subject_uri][$predicate][] = array(
+              'value' => $value,
+              'type' => $type,
+            );
+          }
+        }
+      }
+      elseif ($property instanceof EntityValueWrapper) {
+        // @todo tokens
+        $datatype = isset($info['rdf mapping']['rdf value datatype']) ? $info['rdf mapping']['rdf value datatype'] : NULL;
+        if (!empty($info['rdf mapping']['rdf value callback']) && function_exists($info['rdf mapping']['rdf value callback'])) {
+          $value = $info['rdf mapping']['rdf value callback']($property->value());
+        }
+        else {
+          $value = $property->value();
+        }
+        foreach (rdfx_get_predicates($property, $name) as $predicate) {
+          $index[$subject_uri][$predicate][] = array(
+            'value' => $value,
+            'type' => 'literal',
+            'datatype' => $datatype,
+          );
+        }
+      }
+      elseif ($property instanceof EntityListWrapper || $property instanceof EntityStructureWrapper) {
+        // Creates an intermediary RDF resource whose type and URI can be
+        // defined via the RDF mapping.
+        // @todo what should happen if 'rdf properties' is defined for a field
+        // but no 'rdf types' or 'rdf resource' are defined? should we
+        // try to map 'rdf properties' to the field value (e.g. string for
+        // text field, URI for reference)? For now we do nothing.
+        if (!empty($info['rdf mapping']['rdf resource']) || !empty($info['rdf mapping']['rdf types'])) {
+          // Generates a URI for the RDF resource if it looks like it's going
+          // to be needed.
+          if (!empty($info['rdf mapping']['rdf resource'])) {
+            $object_uri = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
+            $object_type = 'uri';
+          }
+          // If 'rdf types' is defined without a container URI, a bnode will
+          // be needed.
+          elseif (!empty($info['rdf mapping']['rdf types'])) {
+            $object_uri = '_:' . $name . rdfx_create_bnode_id();
+            $object_type = 'bnode';
+          }
+
+          if (isset($object_uri)) {
+            // Links the entity to the new resource.
+            foreach (rdfx_get_predicates($property, $name) as $predicate) {
+              $index[$subject_uri][$predicate][] = array(
+                'value' => $object_uri,
+                'type' => $object_type,
+              );
+            }
+          }
+          // Additionally sets the RDF types of the new RDF resource if they
+          // are defined.
+          if (!empty($info['rdf mapping']['rdf types'])) {
+            // Asserts the types of the new resource.
+            foreach ($info['rdf mapping']['rdf types'] as $type) {
+              $index[$object_uri]['http://www.w3.org/1999/02/22-rdf-syntax-ns#type'][] = array(
+                'value' => $type,
+                'type' => 'uri',
+              );
+            }
+          }
+          // Continues inside the field (field properties) with the new
+          // resource URI as subject.
+          getRdfData($index, $object_uri, $property);
+        }
+        else {
+          // Continues inside the field (field properties).
+          getRdfData($index, $subject_uri, $property);
+        }
+      }
+    }
+    catch (EntityMetadataWrapperException $e) {
+      // A property causes problems - ignore that.
+    }
+  }
+  return $index;
 }
 
 function rdfx_property_access_filter($wrapper) {
