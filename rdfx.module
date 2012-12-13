@@ -179,12 +179,14 @@ function rdfx_get_rdf_data(&$index, $subject_uri, $wrapper) {
           if (!empty($info['rdf mapping']['rdf resource']) && is_object($wrapper->value())) {
             // Uses token to build the referenced resource if 'rdf resource'
             // key is provided.
-            $value = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
+            $entity_info = $wrapper->entityInfo();
+            $value = token_replace($info['rdf mapping']['rdf resource'], array($entity_info['token type'] => $wrapper->value()));
             $type = 'uri';
           }
           elseif (!empty($info['rdf mapping']['rdf value']) && is_object($wrapper->value())) {
             // Uses token to format a string for the value of the property.
-            $value = token_replace($info['rdf mapping']['rdf value'], array('node' => $wrapper->value()));
+            $entity_info = $wrapper->entityInfo();
+            $value = token_replace($info['rdf mapping']['rdf value'], array($entity_info['token type'] => $wrapper->value()));
             $type = 'literal';
           }
           else {
@@ -227,7 +229,8 @@ function rdfx_get_rdf_data(&$index, $subject_uri, $wrapper) {
           // Generates a URI for the RDF resource if it looks like it's going
           // to be needed.
           if (!empty($info['rdf mapping']['rdf resource']) && is_object($wrapper->value())) {
-            $object_uri = token_replace($info['rdf mapping']['rdf resource'], array('node' => $wrapper->value()));
+            $entity_info = $wrapper->entityInfo();
+            $object_uri = token_replace($info['rdf mapping']['rdf resource'],  array($entity_info['token type'] => $wrapper->value()));
             $object_type = 'uri';
           }
           // If 'rdf types' is defined without a container URI, a bnode will
