@@ -171,7 +171,7 @@ function rdfx_get_rdf_model($type, $id) {
             if ($li_property instanceof EntityDrupalWrapper || $li_property instanceof EntityValueWrapper) {
               // This assumes that all literals have a 'value' array element
               // and that all resources have a 'uri' array element.
-              if ($li_name == 'value' || $li_name == 'uri'){
+              if (in_array($li_name, array('value', 'uri', 'url'))){
                 rdfx_add_statement($index, $entity_uri, $li_property, $wrapper, $name);
               }
             }
