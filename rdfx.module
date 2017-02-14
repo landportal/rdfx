@@ -244,7 +244,14 @@ function rdfx_get_predicates(EntityMetadataWrapper $wrapper, $name) {
  * can have either resource or literal objects.
  */
 function rdfx_add_statement(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
-  if ($property instanceof EntityDrupalWrapper) {
+  // Semberry: added code to detect attribute type (empty, "rel" or "rev") and added to IF below
+  // to allow to treat text or link values for certain properties as resources
+  $entity = $wrapper->value();
+  $attrib = "";
+  if(isset($entity->rdf_mapping[$name]['type']))
+    $attrib = $entity->rdf_mapping[$name]['type'];
+
+  if ($property instanceof EntityDrupalWrapper || $attrib == "rel") {
     // For referenced entities only add the resource's URI
     rdfx_add_resource($index, $uri, $property, $wrapper, $name);
   }
@@ -257,7 +264,7 @@ function rdfx_add_statement(&$index, $uri, $property, EntityMetadataWrapper $wra
  * Adds a resource object.
  */
 function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
-  if ($id = $property->getIdentifier()) {
+  if ($property instanceof EntityDrupalWrapper && $id = $property->getIdentifier()) {
     $predicates = rdfx_get_predicates($wrapper, $name);
     $type = $property->type();
     $entities = entity_load($type, array($id));
@@ -269,6 +276,18 @@ function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrap
       foreach ($predicates as $predicate) {
         $index[$uri][$predicate][] = $object_uri;
       }
+    }
+  }
+  else { // Semberry: else added for values that should be treated as resources:
+    $predicates = rdfx_get_predicates($wrapper, $name);
+    foreach ($predicates as $predicate) {
+     if ($property->value() && $property->value() != "") {
+       //if (!preg_match('/\S/', $property->value()))
+       $index[$uri][$predicate][] = $property->value();
+     }
+     else
+      watchdog('rdfx', 'Empty value (attribute type (rel)) for URI: ' . $uri . ' Property: ' . $predicate, array(), WATCHDOG_DEBUG);
+      return;
     }
   }
 }
@@ -309,7 +328,7 @@ function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapp
       }
     }
     else {
-      watchdog('rdfx', 'Empty value for URI: ' . $uri . ' Property: ' . $predicate, array(), WATCHDOG_DEBUG);
+      watchdog('rdfx', 'Empty value (attribute type (empty)) for URI: ' . $uri . ' Property: ' . $predicate, array(), WATCHDOG_DEBUG);
       return;
     }
   }
