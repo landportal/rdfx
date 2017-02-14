@@ -627,7 +627,8 @@ function theme_rdfui_term_autocomplete($variables) {
  * value on its own line.
  */
 function rdfui_extract_curies($string_values) {
-  $list = explode(", ", $string_values);
+  $list = explode(",", $string_values);
+  $list = array_filter(array_map('trim', $list));
   $last = array_pop($list);
   $last = str_replace(',', '', $last);
   array_push($list, $last);
