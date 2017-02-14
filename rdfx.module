@@ -303,8 +303,8 @@ function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapp
       // end of patch
         $index[$uri][$predicate][] = array(
           'value' => $object_value,
-           'type' => 'literal',
-           'datatype' => $datatype,
+          'type' => 'literal',
+          'datatype' => $datatype,
         );
       }
     }
