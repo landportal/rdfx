@@ -261,10 +261,14 @@ function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrap
     $predicates = rdfx_get_predicates($wrapper, $name);
     $type = $property->type();
     $entities = entity_load($type, array($id));
-    $entity = $entities[$id];
-    $object_uri = rdfx_resource_uri($type, $entity);
-    foreach ($predicates as $predicate) {
-      $index[$uri][$predicate][] = $object_uri;
+    // Ensure the entity actually exists in the system. This prevents stale
+    // references for example to generate errors.
+    if (!empty($entities[$id])) {
+      $entity = $entities[$id];
+      $object_uri = rdfx_resource_uri($type, $entity);
+      foreach ($predicates as $predicate) {
+        $index[$uri][$predicate][] = $object_uri;
+      }
     }
   }
 }
