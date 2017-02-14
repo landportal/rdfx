@@ -293,11 +293,25 @@ function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapp
   }
 
   foreach ($predicates as $predicate) {
-    $index[$uri][$predicate][] = array(
-      'value' => $object_value,
-      'type' => 'literal',
-      'datatype' => $datatype,
-    );
+    //Semberry patch: exclude empty strings
+    if (is_string($object_value) && $object_value != "") {
+      $val = preg_replace('/\s+/', ' ', $object_value);
+      $val = preg_replace('/\t+/', '', $val);
+      $val = str_replace('  ', '', $val);
+      $object_value = trim($val);
+      if (preg_match('/\S/', $object_value)) {
+      // end of patch
+        $index[$uri][$predicate][] = array(
+          'value' => $object_value,
+           'type' => 'literal',
+           'datatype' => $datatype,
+        );
+      }
+    }
+    else {
+      watchdog('rdfx', 'Empty value for URI: ' . $uri . ' Property: ' . $predicate, array(), WATCHDOG_DEBUG);
+      return;
+    }
   }
 }
 
