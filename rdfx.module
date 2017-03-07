@@ -281,13 +281,14 @@ function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrap
   else { // Semberry: else added for values that should be treated as resources:
     $predicates = rdfx_get_predicates($wrapper, $name);
     foreach ($predicates as $predicate) {
-     if ($property->value() && $property->value() != "") {
-       //if (!preg_match('/\S/', $property->value()))
-       $index[$uri][$predicate][] = $property->value();
-     }
-     else
-      watchdog('rdfx', 'Empty value (attribute type (rel)) for URI: ' . $uri . ' Property: ' . $predicate, array(), WATCHDOG_DEBUG);
-      return;
+      if ($property->value() && $property->value() != "") {
+        //if (!preg_match('/\S/', $property->value()))
+        $index[$uri][$predicate][] = $property->value();
+      }
+      else {
+        watchdog('rdfx', 'Empty value (attribute type (rel)) for URI: ' . $uri . ' Property: ' . $predicate, array(), WATCHDOG_DEBUG);
+        return;
+      }
     }
   }
 }
