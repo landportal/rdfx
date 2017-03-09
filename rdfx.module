@@ -378,7 +378,31 @@ function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapp
  */
 function rdfx_resource_uri($type, $entity) {
   $uri = entity_uri($type, $entity);
-  return url($uri['path'], array('absolute' => TRUE));
+  // Patch 1 by Semberry: we need URIs built with specific string per bundle and then IDs (better: UUIDs), not aliases
+  // Not necessarily URIs have to coincide with RESTWS URIs (for field collections, "field_collection_item")
+  // that can be adjusted in rewrite rules
+  $base_uri = "http://data.landportal.info"; // hard-code (TODO: make it configurable)
+  list(, , $bundle) = entity_extract_ids($type, $entity);
+  if ($type == "node") {
+    switch ($bundle) {
+      case "landlibrary_resource":
+        $uuids = entity_get_uuid_by_id($type, array($entity->nid));
+        $uuid = $uuids[$entity->nid];
+        $localURI = $base_uri . "/library/resource/" . $uuid;
+        break;
+      case "news":
+        $uuids = entity_get_uuid_by_id($type, array($entity->nid));
+        $uuid = $uuids[$entity->nid];
+        $localURI = $base_uri . "/news/" . $uuid;
+        break;
+      default:
+        $localURI = url($uri['path'], array('absolute' => TRUE));
+    }
+  }
+  else
+    $localURI = url($uri['path'], array('absolute' => TRUE));
+  return $localURI;
+  // end of patch 1
 
 }
 
