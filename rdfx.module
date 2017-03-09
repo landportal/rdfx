@@ -159,6 +159,22 @@ function rdfx_get_rdf_model($type, $id) {
             if ($li_property instanceof EntityDrupalWrapper || $li_property instanceof EntityValueWrapper) {
               rdfx_add_statement($index, $entity_uri, $li_property, $wrapper, $name);
             }
+            elseif ($li_property instanceof EntityStructureWrapper) {
+              // Entity Structure Wrapper exposes structural elements, such as
+              // text format for fields. We are not interested in this, and adding
+              // the additional information about values means you have to handle
+              // values as blank nodes.
+              $li_filtered = rdfx_property_access_filter($li_property);
+              foreach ($li_filtered as $li_name => $li_property) {
+                if ($li_property instanceof EntityDrupalWrapper || $li_property instanceof EntityValueWrapper) {
+                   // This assumes that all literals have a 'value' array element
+                   // and that all resources have a 'uri' array element.
+                   if (in_array($li_name, array('value', 'uri', 'url'))){
+                      rdfx_add_statement($index, $entity_uri, $li_property, $wrapper, $name);
+                   }
+                }
+              }
+            }
           }
         }
         elseif ($property instanceof EntityStructureWrapper) {
