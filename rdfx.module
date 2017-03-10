@@ -399,6 +399,24 @@ function rdfx_resource_uri($type, $entity) {
         $localURI = url($uri['path'], array('absolute' => TRUE));
     }
   }
+  elseif ($type == "taxonomy_term") {
+    switch ($bundle) {
+      case "regions":
+        // 1st: ISO3; 2nd UN M49; 3rd absolute URL
+        $field_iso3 = $entity->field_iso3['und']['0']['value'];
+        $field_area_code_un_m_49 = $entity->field_area_code_un_m_49['und']['0']['value'];
+        if(!empty($field_iso3)) {
+           $localURI = $base_uri . "/geo/" . $field_iso3;
+        } elseif (!empty($field_area_code_un_m_49)){
+           $localURI = $base_uri . "/geo/" . $field_area_code_un_m_49;
+        } else {
+           $localURI = url($uri['path'], array('absolute' => TRUE));
+        }
+        break;
+      default:
+        $localURI = url($uri['path'], array('absolute' => TRUE));
+    }
+  }
   else
     $localURI = url($uri['path'], array('absolute' => TRUE));
   return $localURI;
