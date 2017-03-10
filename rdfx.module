@@ -413,6 +413,14 @@ function rdfx_resource_uri($type, $entity) {
            $localURI = url($uri['path'], array('absolute' => TRUE));
         }
         break;
+      case "themes":
+        $field_id = $entity->field_id['und']['0']['value'];
+        $localURI = $base_uri . "/voc/landvoc/theme/" . $field_id;
+        break;
+      case "overarching_categories":
+        $field_id = $entity->field_id['und']['0']['value'];
+        $localURI = $base_uri . "/voc/landvoc/overarching-category/" . $field_id;
+        break;
       default:
         $localURI = url($uri['path'], array('absolute' => TRUE));
     }
