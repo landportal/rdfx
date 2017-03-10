@@ -417,6 +417,10 @@ function rdfx_resource_uri($type, $entity) {
         $field_language_code_iso_639_1 = $entity->field_language_code_iso_639_1['und']['0']['value'];
         $localURI = $base_uri . "/voc/language/" . $field_language_code_iso_639_1;
         break;
+      case "licences":
+        $field_rdflicense_uri = $entity->field_rdflicense_uri['und']['0']['url'];
+        $localURI = url($field_rdflicense_uri, array('absolute' => TRUE));
+        break;
       case "themes":
         $field_id = $entity->field_id['und']['0']['value'];
         $localURI = $base_uri . "/voc/landvoc/theme/" . $field_id;
