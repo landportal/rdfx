@@ -429,6 +429,15 @@ function rdfx_resource_uri($type, $entity) {
         $field_id = $entity->field_id['und']['0']['value'];
         $localURI = $base_uri . "/voc/landvoc/overarching-category/" . $field_id;
         break;
+      case "landvoc_concepts":
+        // 1st: Agrovoc; 2nd absolute URL
+        $field_agrovoc_uri = $entity->field_agrovoc_uri['und']['0']['url'];
+        if(!empty($field_agrovoc_uri)) {
+           $localURI = url($field_agrovoc_uri, array('absolute' => TRUE));
+        } else {
+           $localURI = url($uri['path'], array('absolute' => TRUE));
+        }
+        break;
       default:
         $localURI = url($uri['path'], array('absolute' => TRUE));
     }
