@@ -400,6 +400,11 @@ function rdfx_resource_uri($type, $entity) {
         $uuid = $uuids[$entity->nid];
         $localURI = $base_uri . "/blog-post/" . $uuid;
         break;
+      case "event":
+        $uuids = entity_get_uuid_by_id($type, array($entity->nid));
+        $uuid = $uuids[$entity->nid];
+        $localURI = $base_uri . "/event/" . $uuid;
+        break;
       default:
         $localURI = url($uri['path'], array('absolute' => TRUE));
     }
