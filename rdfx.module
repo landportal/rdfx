@@ -418,8 +418,14 @@ function rdfx_resource_uri($type, $entity) {
     switch ($bundle) {
       case "regions":
         // 1st: ISO3; 2nd UN M49; 3rd absolute URL
-        $field_iso3 = $entity->field_iso3['und']['0']['value'];
-        $field_area_code_un_m_49 = $entity->field_area_code_un_m_49['und']['0']['value'];
+        $field_iso3 = null;
+        if (isset($entity->field_iso3['und']) || array_key_exists('und', $entity->field_iso3)) {
+           $field_iso3 = $entity->field_iso3['und']['0']['value'];
+        }
+        $field_area_code_un_m_49 = null;
+        if (isset($entity->field_area_code_un_m_49['und']) || array_key_exists('und', $entity->field_area_code_un_m_49)) {
+           $field_area_code_un_m_49 = $entity->field_area_code_un_m_49['und']['0']['value'];
+        }
         if(!empty($field_iso3)) {
            $localURI = $base_uri . "/geo/" . $field_iso3;
         } elseif (!empty($field_area_code_un_m_49)){
