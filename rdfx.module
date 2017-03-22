@@ -114,16 +114,21 @@ function rdfx_theme() {
  * @param String $type
  *   The entity type.
  *
- * @param String $id
- *   The entity instance ID.
+ * @param String $data
+ *   The entity instance or entity_id.
  *
  * @return ARC2 Object
  */
-function rdfx_get_rdf_model($type, $id) {
+function rdfx_get_rdf_model($type, $data) {
   // Loads entity and its metadata.
-  $wrapper = entity_metadata_wrapper($type, $id);
-  $entities = entity_load($type, array($id));
-  $entity = $entities[$id];
+  $wrapper = entity_metadata_wrapper($type, $data);
+  if (!is_object($data)) {
+    $entities = entity_load($type, array($data));
+    $entity = $entities[$data];
+  }
+  else {
+    $entity = $data;
+  }
   $data = $wrapper->value();
   $property_info = entity_get_property_info($type);
   $entity_uri = rdfx_resource_uri($type, $entity);
