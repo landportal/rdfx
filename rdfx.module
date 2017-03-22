@@ -285,8 +285,9 @@ function rdfx_add_statement(&$index, $uri, $property, EntityMetadataWrapper $wra
  * Adds a resource object.
  */
 function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrapper, $name) {
-  if ($property instanceof EntityDrupalWrapper && $id = $property->getIdentifier()) {
+if ($property instanceof EntityDrupalWrapper) {
     $predicates = rdfx_get_predicates($wrapper, $name);
+  if ($id = $property->getIdentifier()) {
     $type = $property->type();
     $entities = entity_load($type, array($id));
     // Ensure the entity actually exists in the system. This prevents stale
@@ -299,7 +300,14 @@ function rdfx_add_resource(&$index, $uri, $property, EntityMetadataWrapper $wrap
       }
     }
   }
-  else { // Semberry: else added for values that should be treated as resources:
+  else {
+    // To cover cases as "an anonymous user (uid=0) is the author of a node"
+      foreach ($predicates as $predicate) {
+        watchdog('rdfx', 'Empty value (EntityDrupalWrapper) for URI: ' . $uri . ' Property: ' . $predicate, array(), WATCHDOG_DEBUG);
+      }
+  }
+} // end of EntityDrupalWrapper
+  else { // Semberry: else added for values that should be treated as resources. ($property is instanceof EntityValueWrapper)
     $predicates = rdfx_get_predicates($wrapper, $name);
     foreach ($predicates as $predicate) {
       if ($property->value() && $property->value() != "") {
