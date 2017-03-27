@@ -269,6 +269,7 @@ function rdfui_form_field_ui_field_edit_form_validate($form, &$form_state) {
 
   _rdfui_validate_terms($form_state, $field_name);
   _rdfui_validate_datatype($form_state, $field_name);
+  _rdfui_validate_callback($form_state, $field_name);
 }
 
 function rdfui_admin_rdf_overview_form_validate($form, &$form_state) {
@@ -280,12 +281,14 @@ function rdfui_admin_rdf_overview_form_validate($form, &$form_state) {
     $field_name = 'title';
     _rdfui_validate_terms($form_state, $field_name);
     _rdfui_validate_datatype($form_state, $field_name);
+    _rdfui_validate_callback($form_state, $field_name);
   }
 
   // Validate predicates for all fields.
   foreach ($form_state['values']['field_names'] as $field_name) {
     _rdfui_validate_terms($form_state, $field_name);
     _rdfui_validate_datatype($form_state, $field_name);
+    _rdfui_validate_callback($form_state, $field_name);
   }
 }
 
@@ -298,6 +301,7 @@ function rdfui_form_node_type_form_validate($form, &$form_state) {
     $field_name = 'title';
     _rdfui_validate_terms($form_state, $field_name);
     _rdfui_validate_datatype($form_state, $field_name);
+    _rdfui_validate_callback($form_state, $field_name);
   }
 }
 
@@ -484,7 +488,6 @@ function rdfui_predicate_fieldset(&$fieldset, $mapping, $field_name, $label) {
       )
     ),
     '#resizable' => FALSE,
-    '#disabled' => TRUE,
   );
   drupal_add_css(drupal_get_path('module', 'rdfui') .'/css/rdfui.css', 'file');
 }
@@ -570,6 +573,20 @@ function _rdfui_validate_datatype($form_state, $field_name) {
 }
 
 /**
+ * Sets a form error if callback don't validate.
+ */
+function _rdfui_validate_callback($form_state, $field_name) {
+
+  // validate callback
+  if ($callback = trim($form_state['values']['rdf_'. $field_name .'_callback'])) {
+    if(!function_exists($callback))
+      form_set_error('rdf_'. $field_name .'_callback', t('Callback %callback does NOT exists.', array('%callback'=>$callback)));
+  }
+
+}
+
+
+/**
  * Saves the mapping
  */
 
@@ -584,7 +601,7 @@ function _rdfui_mapping_save($form_state, $entity_type, $bundle, $field_name) {
     $form_state['values']['rdf_'. $field_name .'_predicates'] = rdfui_extract_curies($form_state['values']['rdf_'. $field_name .'_predicates']);
   }
   
-  foreach (array('type', 'datatype', 'predicates') as $key) {
+  foreach (array('type', 'datatype', 'predicates', 'callback') as $key) {
     // If there is form input for this key, set it in the mapping.
     if (!empty($form_state['values']['rdf_'. $field_name .'_' . $key])) {
       $mapping[$field_name][$key] = $form_state['values']['rdf_'. $field_name .'_' . $key];
