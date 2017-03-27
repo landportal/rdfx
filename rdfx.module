@@ -25,6 +25,7 @@ function rdfx_init() {
   module_load_include('inc', 'rdfx', 'rdfx.terms');
   module_load_include('inc', 'rdfx', 'rdfx.import');
   module_load_include('inc', 'rdfx', 'rdfx.query');
+  module_load_include('inc', 'rdfx', 'rdfx.callback');
 }
 
 /*
