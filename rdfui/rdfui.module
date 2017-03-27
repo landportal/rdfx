@@ -472,6 +472,20 @@ function rdfui_predicate_fieldset(&$fieldset, $mapping, $field_name, $label) {
       ),
     ),
   );
+
+  $fieldset['rdf_'. $field_name .'_callback'] = array(
+    '#type' => 'textfield',
+    '#title' => t('CallBack'),
+    '#default_value' => empty($mapping[$field_name]['callback']) ? '' : $mapping[$field_name]['callback'],
+    '#description' => t('Enter a callback function for %label. For example: %callbacks',
+      array(
+        '%label' => $label,
+        '%callbacks' => 'date_iso8601'
+      )
+    ),
+    '#resizable' => FALSE,
+    '#disabled' => TRUE,
+  );
   drupal_add_css(drupal_get_path('module', 'rdfui') .'/css/rdfui.css', 'file');
 }
 

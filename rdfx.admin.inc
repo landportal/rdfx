@@ -78,7 +78,7 @@ function theme_rdfx_mapping_admin_overview($variables) {
   $rows = array();
 
   // Add the table header for this bundle.
-  $header = array(t('Fields'), t('RDF predicates'), t('Mapping type'), t('Datatype'));
+  $header = array(t('Fields'), t('RDF predicates'), t('Mapping type'), t('Datatype'), t('Callback'));
   if (module_exists('rdfui')) {
     $header[] = t('Operations');
   }
@@ -129,8 +129,9 @@ function theme_rdfx_mapping_admin_overview_row($variables) {
   $predicates = isset($field['rdf_mapping']['predicates']) ? t(implode(', ', $field['rdf_mapping']['predicates'])) : '';
   $predicate_type = isset($field['rdf_mapping']['type']) ? check_plain($field['rdf_mapping']['type']) : 'property';
   $datatype = isset($field['rdf_mapping']['datatype']) ? $field['rdf_mapping']['datatype'] : '';
+  $callback = isset($field['rdf_mapping']['callback']) ? $field['rdf_mapping']['callback'] : '';
 
-  $row = array($field_label, $predicates, $predicate_type, $datatype);
+  $row = array($field_label, $predicates, $predicate_type, $datatype, $callback);
 
   // Add operations links only if RDF UI is enabled.
   if (module_exists('rdfui')) {
