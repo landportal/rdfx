@@ -206,7 +206,7 @@ function rdfx_get_rdf_model($type, $data) {
     }
   }
 
-rdfx_add_seealso($index, $type, $entity);
+  rdfx_add_seealso($index, $type, $entity);
 
   // Attach the index to the ARC2 resource.
   $res->index = $index;
