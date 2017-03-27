@@ -206,6 +206,8 @@ function rdfx_get_rdf_model($type, $data) {
     }
   }
 
+rdfx_add_seealso($index, $type, $entity);
+
   // Attach the index to the ARC2 resource.
   $res->index = $index;
 
@@ -223,6 +225,44 @@ function rdfx_get_rdf_model($type, $data) {
 
   return $res;
 }
+
+function rdfx_add_seealso(&$index, $type, $entity) {
+  $entity_uri = rdfx_resource_uri($type, $entity);
+  $uri = entity_uri($type, $entity);
+  $localURI = url($uri['path'], array('absolute' => TRUE));
+  list(, , $bundle) = entity_extract_ids($type, $entity);
+  if ($type == "taxonomy_term") {
+    switch ($bundle) {
+      case "regions":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      case "languages":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      case "licences":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      case "themes":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      case "overarching_categories":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      case "landvoc_concepts":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      case "datasets":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      case "indicators":
+        $index[$entity_uri]['rdfs:seeAlso'] = $localURI;
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 
 function rdfx_property_access_filter($wrapper) {
   $filtered = array();
