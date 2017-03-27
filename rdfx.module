@@ -344,16 +344,6 @@ function rdfx_add_literal(&$index, $uri, $property, EntityMetadataWrapper $wrapp
 
   // Semberry patch: no way to strip tags in the UI, so let's force it here
   $object_value = strip_tags($object_value);
-  // Semberry patch: no way to force date format in the UI, so let's force it here
-  // This way to update is AFTER the callback (if exists)
-  if (!empty($object_value)){
-     if ($datatype == "xsd:date") {
-        $object_value = date("Y-m-d", $object_value);
-     }
-     if($datatype == "xsd:gYear") {
-       $object_value = date("Y", $object_value);
-     }
-  }
   // end of patch
 
   foreach ($predicates as $predicate) {
