@@ -478,6 +478,14 @@ function rdfx_resource_uri($type, $entity) {
            $localURI = url($uri['path'], array('absolute' => TRUE));
         }
         break;
+      case "datasets":
+        $field_id = $entity->field_id['und']['0']['value'];
+        $localURI = $base_uri . "/dataset/" . $field_id;
+        break;
+      case "indicators":
+        $field_id = $entity->field_id['und']['0']['value'];
+        $localURI = $base_uri . "/indicator/" . $field_id;
+        break;
       case "languages":
         $field_language_code_iso_639_1 = $entity->field_language_code_iso_639_1['und']['0']['value'];
         $localURI = $base_uri . "/voc/language/" . $field_language_code_iso_639_1;
