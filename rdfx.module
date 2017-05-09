@@ -515,6 +515,9 @@ function rdfx_resource_uri($type, $entity) {
         $localURI = url($uri['path'], array('absolute' => TRUE));
     }
   }
+  elseif ($type == "taxonomy_vocabulary" || $type == "taxonomy") {
+      $localURI = $base_uri . "/vocabulary/" . $entity->vid;
+  }
   else
     $localURI = url($uri['path'], array('absolute' => TRUE));
   return $localURI;
