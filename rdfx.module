@@ -193,7 +193,7 @@ function rdfx_get_rdf_model($type, $data) {
             if ($li_property instanceof EntityDrupalWrapper || $li_property instanceof EntityValueWrapper) {
               // This assumes that all literals have a 'value' array element
               // and that all resources have a 'uri' array element.
-              if (in_array($li_name, array('value', 'uri', 'url'))){
+              if (in_array($li_name, array('value', 'uri', 'url', 'file'))){
                 rdfx_add_statement($index, $entity_uri, $li_property, $wrapper, $name);
               }
             }
@@ -518,8 +518,12 @@ function rdfx_resource_uri($type, $entity) {
   elseif ($type == "taxonomy_vocabulary" || $type == "taxonomy") {
       $localURI = $base_uri . "/vocabulary/" . $entity->vid;
   }
-  else
+  elseif ($type == "file"){
+    $localURI = file_create_url($entity->uri);
+  }
+  else {
     $localURI = url($uri['path'], array('absolute' => TRUE));
+  }
   return $localURI;
   // end of patch 1
 
