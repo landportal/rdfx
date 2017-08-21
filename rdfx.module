@@ -434,6 +434,11 @@ function rdfx_resource_uri($type, $entity) {
         $uuid = $uuids[$entity->nid];
         $localURI = $base_uri . "/library/resource/" . $uuid;
         break;
+      case "project":
+        $uuids = entity_get_uuid_by_id($type, array($entity->nid));
+        $uuid = $uuids[$entity->nid];
+        $localURI = $base_uri . "/project/" . $uuid;
+        break;
       case "news":
         $uuids = entity_get_uuid_by_id($type, array($entity->nid));
         $uuid = $uuids[$entity->nid];
